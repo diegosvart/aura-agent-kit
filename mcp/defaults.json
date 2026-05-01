@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCP Configuration Defaults",
+  "description": "Configuración por defecto de MCPs según tecnología del proyecto",
+  "type": "object",
+  "properties": {
+    "mcp_servers": {
+      "description": "Lista de servidores MCP a configurar",
+      "type": "object",
+      "properties": {
+        "engram": {
+          "type": "object",
+          "description": "Memoria persistente (siempre disponible)",
+          "properties": {
+            "type": { "const": "local" },
+            "command": { "type": "array" },
+            "enabled": { "type": "boolean" }
+          },
+          "required": ["type", "enabled"]
+        },
+        "github": {
+          "type": "object",
+          "description": "GitHub operations (issues, PRs, repos)",
+          "properties": {
+            "type": { "const": "remote" },
+            "url": { "type": "string" },
+            "headers": { "type": "object" },
+            "enabled": { "type": "boolean" }
+          },
+          "required": ["type", "url", "enabled"]
+        },
+        "filesystem": {
+          "type": "object",
+          "description": "File system operations",
+          "properties": {
+            "type": { "const": "local" },
+            "allowedDirectories": { "type": "array" },
+            "enabled": { "type": "boolean" }
+          },
+          "required": ["type", "enabled"]
+        },
+        "docker": {
+          "type": "object",
+          "description": "Docker operations",
+          "properties": {
+            "type": { "const": "local" },
+            "enabled": { "type": "boolean" }
+          },
+          "required": ["type", "enabled"]
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "mcp_servers": {
+        "engram": {
+          "type": "local",
+          "command": ["engram", "mcp", "--tools=agent"],
+          "enabled": true
+        }
+      }
+    },
+    {
+      "mcp_servers": {
+        "engram": {
+          "type": "local",
+          "command": ["engram", "mcp", "--tools=agent"],
+          "enabled": true
+        },
+        "github": {
+          "type": "remote",
+          "url": "https://api.githubcopilot.com/mcp/",
+          "headers": {
+            "Authorization": "Bearer {{GITHUB_PAT}}"
+          },
+          "enabled": true
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Temp
+tmp/
+temp/
+*.tmp
+
+# Secrets
+*.pem
+*.key
+credentials.json
+secrets/
+
+# Build
+dist/
+build/
+__pycache__/
+node_modules/
+
+# Python
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+npm-debug.log*
+yarn-error.log
+
+# Git
+*.orig
+*.rej
+
+# Aura local
+docs/aura/specs/*.md
+docs/aura/plans/*.md
+!docs/aura/specs/.gitkeep
+!docs/aura/plans/.gitkeep

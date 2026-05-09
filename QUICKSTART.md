@@ -1,6 +1,6 @@
 # Quick Start — Aura Agent Kit
 
-> **Objetivo:** Empezar a trabajar en <2 minutos, sin configuración.
+> **Objetivo:** Empezar a trabajar en <2 minutos, sin configuración. **v1.1.0**
 
 ---
 

@@ -35,7 +35,22 @@ cp -r /ruta/a/aura-agent-kit/protocols/* .agent/protocols/
 cp /ruta/a/aura-agent-kit/AGENTS.md .
 ```
 
-### Paso 2: Configurar tu IDE
+### Paso 2: Seleccionar tu IDE
+
+Copiá el adaptador correspondiente a tu IDE. Ver [`integrations/README.md`](integrations/README.md) para instrucciones completas.
+
+| IDE | Comando rápido |
+|-----|---------------|
+| Codex / Zed | Sin setup — `AGENTS.md` ya es leído nativo |
+| Claude Code | `cp integrations/claude-code/CLAUDE.md . && mkdir -p .claude && cp integrations/claude-code/settings.json .claude/` |
+| Copilot | `mkdir -p .github && cp integrations/copilot/copilot-instructions.md .github/` |
+| Cursor | `mkdir -p .cursor/rules && cp integrations/cursor/rules/* .cursor/rules/` |
+| Windsurf | `mkdir -p .windsurf/rules && cp integrations/windsurf/rules/* .windsurf/rules/` |
+| Aider | `cp integrations/aider/aider.conf.yml .aider.conf.yml && cp integrations/aider/CONVENTIONS.md .` |
+| Antigravity | `cp integrations/antigravity/GEMINI.md .` |
+| OpenCode | `cp integrations/opencode/opencode.json .` |
+
+### Paso 3: Configurar tu IDE (legacy)
 
 **OpenCode** (`opencode.json` en el proyecto):
 ```json

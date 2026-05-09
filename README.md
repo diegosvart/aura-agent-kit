@@ -1,6 +1,6 @@
 # Aura Agent Kit
 
-> **Instrumento de precisión para agentes IA.** Un kit reutilizable para configurar el flujo de trabajo de desarrollo con tu agente.
+> **Instrumento de precisión para agentes IA.** Un kit reutilizable para configurar el flujo de trabajo de desarrollo con tu agente. v1.1.0
 
 ---
 
@@ -220,10 +220,24 @@ Session End      → Guardar memoria, verificar CI
 
 ---
 
+## Nuevas Capacidades v1.1
+
+| Capacidad | Archivo | Descripción |
+|-----------|---------|-------------|
+| **Pilares SDD** | `docs/aura/specs/2026-05-09-harness-pillars.md` | 7 pilares formalizados con anti-patrones |
+| **Challenger Agent** | `agents/challenger.md` | Cuestiona specs antes del go a /write-plan |
+| **Spec Validation** | `skills/spec-validation/SKILL.md` | HARD-GATE técnico pre-implementación |
+| **Auto-Research** | `skills/auto-research/SKILL.md` | Hipótesis documentadas para mejorar el harness |
+| **Router de Contexto** | `protocols/router.md` | Carga diferida — solo lo necesario |
+| **AGENTS.md liviano** | `AGENTS.md` | Spine ~60 líneas (era ~200) |
+
+---
+
 ## Changelog
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
+| 1.1.0 | 2026-05-09 | Pilares SDD, challenger agent, spec-validation, auto-research liviano, router de contexto, AGENTS.md spine |
 | 1.0.0 | 2026-05-01 | Versión inicial con skills de Superpowers |
 
 ---

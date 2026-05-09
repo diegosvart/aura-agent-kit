@@ -140,6 +140,21 @@ Si durante la sesión se tomó una decisión arquitectural:
 
 ---
 
+## Paso 8 — Auto-Research (si aplica)
+
+Antes de cerrar, dedicar 30 segundos a observar:
+
+- ¿Hubo algún paso que se repitió manualmente más de una vez esta sesión?
+- ¿Algún protocolo o skill no aplicó bien al contexto?
+- ¿El usuario tuvo que corregir al agente en algo recurrente?
+
+**Si sí** → proponer `/auto-research` antes de cerrar:
+> "Observé [fricción concreta]. ¿Querés que lo registremos como experimento de mejora del harness?"
+
+**Si no** → cerrar normalmente.
+
+---
+
 ## Reglas
 
 1. **No cerrar si hay checks fallando** — el usuario debe saberlo

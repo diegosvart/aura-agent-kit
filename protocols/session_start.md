@@ -124,22 +124,77 @@ Rama sugerida: `{{TIPO}}/{{CODIGO}}-{{descripcion}}`
 
 ---
 
-## Paso 7 — Confirmar con Usuario y Derivar
+## Paso 7 — Stack de Sesión
 
-Presentar al usuario la próxima acción recomendada y esperar su respuesta:
+Determinar el stack tecnológico antes de presentar el menú:
 
-> "¿Continuamos con [next_step] o hay algo nuevo?"
+**7a — Detección automática:**
+```
+Buscar en la raíz del proyecto:
+  pyproject.toml / setup.py  → Python
+  package.json               → Node.js / TypeScript
+  Cargo.toml                 → Rust
+  go.mod                     → Go
+```
 
-**Según la respuesta, derivar:**
+Si se detecta → mostrar: `Stack detectado: [lenguaje/framework]. ¿Correcto? [S/n]`
+
+**7b — Sin detección:** Invocar `skills/stack-selection/SKILL.md` (lista de 24 perfiles).
+
+**7c — Ya existe `.agent/memory/session-stack.json`:** Leer y confirmar con el usuario que sigue siendo válido.
+
+Una vez confirmado, el stack queda disponible para todos los pasos siguientes.
+
+---
+
+## Paso 8 — Capability Menu
+
+Presentar el menú contextual. Incluir solo las secciones que aplican:
+
+```
+## ¿Qué hacemos hoy?
+
+**Stack activo:** [nombre del perfil detectado o seleccionado]
+
+### Continuar trabajo          ← solo si hay issues con label `ready`
+  ✓ Issue #N — [título]
+  ✓ Issue #M — [título]
+
+### Nuevo trabajo
+  📋 Planificar nuevas tareas       → /plan-work
+  💡 Brainstorm de idea             → /brainstorm
+  🚀 Crear proyecto desde cero      → wizard nuevo proyecto
+
+### Calidad y documentación
+  📖 Verificar documentación        → /doc-check
+  🔍 Code review                    → /request-review
+  ✅ Cerrar rama lista              → /finish-branch
+
+### Investigación y mejora
+  🔬 Auto-research del harness      → /auto-research
+  🐛 Debug de problema              → systematic-debugging
+  🔧 Cambiar stack de sesión        → /stack
+
+> Escribí el número del issue, el nombre de la opción, o describí qué querés hacer.
+```
+
+**Tabla de derivación:**
 
 | Respuesta del usuario | Acción |
 |-----------------------|--------|
-| "Continuamos" / confirma next_step | Invocar `protocols/task_start.md` con el issue pendiente |
-| "Algo nuevo" / describe trabajo nuevo | Invocar `/plan-work` → `skills/issue-planning/SKILL.md` |
-| "Quiero ver el estado" / "revisemos" | Listar issues abiertos con `gh issue list --state open` y presentar opciones |
-| No hay next_step ni issues ready | Invocar `/plan-work` automáticamente |
+| Número de issue / "continuamos" | Invocar `protocols/task_start.md` con el issue |
+| "Planificar" / "algo nuevo" / describe trabajo | Invocar `/plan-work` |
+| "Brainstorm" | Invocar `/brainstorm` |
+| "Proyecto nuevo" / "desde cero" | Invocar stack-selection → wizard de estructura inicial |
+| "Doc-check" / "documentación" | Invocar `/doc-check` |
+| "Review" / "code review" | Invocar `/request-review` |
+| "Cerrar rama" / "finish" | Invocar `/finish-branch` |
+| "Auto-research" | Invocar `/auto-research` |
+| "Debug" | Activar `skills/systematic-debugging/SKILL.md` |
+| "/stack" / "cambiar stack" | Invocar `skills/stack-selection/SKILL.md` |
+| No hay issues ready y no hay next_step | Invocar `/plan-work` automáticamente |
 
-**Regla:** No comenzar trabajo sin que el usuario haya confirmado la dirección. Si hay issues con label `ready`, presentarlos como opciones antes de proponer trabajo nuevo.
+**Regla:** No comenzar trabajo sin que el usuario haya confirmado la dirección.
 
 ---
 

@@ -1,0 +1,13 @@
+{
+  "profile_id": null,
+  "profile_name": null,
+  "detected_from": null,
+  "language": null,
+  "framework": null,
+  "test_runner": null,
+  "linter": null,
+  "package_manager": null,
+  "database": null,
+  "extras": [],
+  "confirmed_at": null
+}

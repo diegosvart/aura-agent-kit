@@ -50,7 +50,30 @@ Copiá el adaptador correspondiente a tu IDE. Ver [`integrations/README.md`](int
 | Antigravity | `cp integrations/antigravity/GEMINI.md .` |
 | OpenCode | `cp integrations/opencode/opencode.json .` |
 
-### Paso 3: Configurar tu IDE (legacy)
+### Paso 3: Proteger ramas en GitHub
+
+Para que GitHub refuerce las mismas reglas que el harness (no push directo a `main`/`develop`):
+
+> **Requisito:** El repo debe ser **público** o tener GitHub Pro.
+
+```bash
+# Hacer el repo público (si es privado y sin Pro)
+gh repo edit {OWNER}/{REPO} --visibility public --accept-visibility-change-consequences
+
+# Proteger main
+gh api -X PUT repos/{OWNER}/{REPO}/branches/main/protection --input - <<'EOF'
+{"required_status_checks":null,"enforce_admins":false,"required_pull_request_reviews":{"required_approving_review_count":0,"dismiss_stale_reviews":true},"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}
+EOF
+
+# Proteger develop
+gh api -X PUT repos/{OWNER}/{REPO}/branches/develop/protection --input - <<'EOF'
+{"required_status_checks":null,"enforce_admins":false,"required_pull_request_reviews":{"required_approving_review_count":0,"dismiss_stale_reviews":true},"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}
+EOF
+```
+
+El agente verifica estas protecciones automáticamente al inicio de cada sesión (Paso 3 del protocolo session_start).
+
+### Paso 4: Configurar tu IDE (legacy)
 
 **OpenCode** (`opencode.json` en el proyecto):
 ```json
@@ -95,7 +118,7 @@ Copiá el adaptador correspondiente a tu IDE. Ver [`integrations/README.md`](int
 }
 ```
 
-### Paso 3: Crear estructura de memoria
+### Paso 5: Crear estructura de memoria
 
 `.agent/memory/current-session.json`:
 ```json

@@ -119,6 +119,19 @@ cp aura-agent-kit/agents/*.md .agent/agents/
 cp aura-agent-kit/protocols/*.md .agent/protocols/
 ```
 
+### Proteger ramas (recomendado)
+
+Para que GitHub refuerce el workflow (no push directo a `main`/`develop`), el repo debe ser **público** o tener GitHub Pro.
+
+```bash
+# main y develop — reemplazar {OWNER}/{REPO}
+gh api -X PUT repos/{OWNER}/{REPO}/branches/main/protection --input - <<'EOF'
+{"required_status_checks":null,"enforce_admins":false,"required_pull_request_reviews":{"required_approving_review_count":0,"dismiss_stale_reviews":true},"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}
+EOF
+```
+
+Ver instrucciones completas → [`QUICKSTART.md`](QUICKSTART.md) Paso 3.
+
 ---
 
 ## Configuración

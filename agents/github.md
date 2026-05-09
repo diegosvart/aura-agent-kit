@@ -62,6 +62,64 @@ git checkout -b feature/issue-N-description
 
 ---
 
+## Salud del Repositorio
+
+Verificar al inicio de sesión (Paso 3 de `protocols/session_start.md`).
+
+### Checklist
+
+| Check | Comando | Estado esperado |
+|-------|---------|----------------|
+| gh autenticado | `gh auth status` | Logged in |
+| Visibilidad | `gh repo view --json visibility -q .visibility` | `PUBLIC` |
+| main protegida | `gh api repos/{owner}/{repo}/branches/main/protection` | 200 OK |
+| develop protegida | `gh api repos/{owner}/{repo}/branches/develop/protection` | 200 OK |
+
+### Aplicar protección (si falta)
+
+```bash
+# Proteger main o develop — reemplazar {BRANCH} por main o develop
+gh api -X PUT repos/{OWNER}/{REPO}/branches/{BRANCH}/protection --input - <<'EOF'
+{
+  "required_status_checks": null,
+  "enforce_admins": false,
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 0,
+    "dismiss_stale_reviews": true
+  },
+  "restrictions": null,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_linear_history": false
+}
+EOF
+```
+
+### Hacer repo público (si privado y sin Pro)
+
+```bash
+gh repo edit {OWNER}/{REPO} --visibility public --accept-visibility-change-consequences
+```
+
+### Qué protege cada regla
+
+| Regla | Protege contra |
+|-------|---------------|
+| `required_pull_request_reviews` | Push directo a la rama (obliga PR) |
+| `allow_force_pushes: false` | `git push --force` que sobrescribe historia |
+| `allow_deletions: false` | `git push origin :main` que borra la rama |
+| `dismiss_stale_reviews: true` | Aprobaciones stale tras nuevos commits |
+
+### Coherencia con el harness
+
+| Regla harness | Enforcement GitHub | Enforcement harness |
+|---------------|-------------------|---------------------|
+| No push directo a main/develop | ✓ require PR | ✓ session_end verifica rama |
+| No force push | ✓ allow_force_pushes: false | ✓ settings.json deny |
+| Feature branch obligatoria | ✓ solo merges via PR | ✓ task_start crea rama |
+
+---
+
 ## Hooks de Seguridad
 
 ### Pre-commit (obligatorio)

@@ -60,6 +60,38 @@ git remote prune origin --dry-run
 
 Incluir en el resumen si hay ramas que requieren limpieza.
 
+### Salud del Repositorio (si gh autenticado)
+
+Ejecutar solo si `gh auth status` pasó en Paso 2:
+
+```bash
+# Visibilidad del repo
+gh repo view --json visibility -q .visibility
+
+# Protección de main
+gh api repos/{{OWNER}}/{{REPO}}/branches/main/protection \
+  --jq '{force_push: .allow_force_pushes.enabled, deletions: .allow_deletions.enabled, require_pr: (.required_pull_request_reviews != null)}' \
+  2>/dev/null || echo "main: sin protección"
+
+# Protección de develop
+gh api repos/{{OWNER}}/{{REPO}}/branches/develop/protection \
+  --jq '{force_push: .allow_force_pushes.enabled, deletions: .allow_deletions.enabled, require_pr: (.required_pull_request_reviews != null)}' \
+  2>/dev/null || echo "develop: sin protección"
+```
+
+Incluir en el resumen ejecutivo (Paso 6) con este formato:
+
+```
+## Salud del Repositorio
+| Check             | Estado                          |
+|-------------------|---------------------------------|
+| Visibilidad       | public ✓  / private ⚠          |
+| main protegida    | ✓ require PR, no force push     |
+| develop protegida | ✓ require PR, no force push     |
+```
+
+Si algún check falla → sugerir el comando exacto para corregirlo (ver `agents/github.md`).
+
 ---
 
 ## Paso 4 — Issues Listos (si aplica)

@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(python:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(cargo:*)",
+      "Read(**)",
+      "Write(src/**)",
+      "Write(tests/**)",
+      "Write(docs/**)",
+      "Write(.agent/**)",
+      "Write(AGENTS.md)",
+      "Write(skills/**)",
+      "Write(protocols/**)",
+      "Write(agents/**)",
+      "Write(commands/**)",
+      "Write(templates/**)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Write(.env:*)",
+      "Write(.env.local:*)",
+      "Write(*.pem:*)",
+      "Write(*.key:*)"
+    ]
+  }
+}

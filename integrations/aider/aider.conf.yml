@@ -1,0 +1,23 @@
+# Aura Agent Kit — Aider Configuration
+# Place this file at the root of your project as .aider.conf.yml
+
+# Load harness files at startup
+read:
+  - AGENTS.md
+  - protocols/router.md
+  - protocols/session_start.md
+  - CONVENTIONS.md
+
+# Recommended model
+model: claude-sonnet-4-6
+
+# Show diffs before applying
+auto-commits: false
+
+# Git settings (harness enforces conventional commits)
+git: true
+gitignore: true
+
+# Attribution
+attribute-author: false
+attribute-committer: false

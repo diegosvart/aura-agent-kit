@@ -66,6 +66,24 @@ aura-agent-kit/
 
 ---
 
+## Compatibilidad Multi-IDE
+
+| IDE | Setup | Archivos |
+|-----|-------|----------|
+| **OpenAI Codex** | Ninguno ✓ | Lee `AGENTS.md` nativo |
+| **Zed** | Ninguno ✓ | Lee `AGENTS.md` nativo |
+| **Claude Code** | Mínimo | `integrations/claude-code/` |
+| **GitHub Copilot** | Mínimo | `integrations/copilot/` |
+| **Cursor** | Mínimo | `integrations/cursor/` |
+| **Windsurf** | Mínimo | `integrations/windsurf/` |
+| **Aider** | Mínimo | `integrations/aider/` |
+| **Antigravity** | Mínimo | `integrations/antigravity/` |
+| **OpenCode** | Mínimo | `integrations/opencode/` |
+
+Ver instrucciones completas de instalación por IDE → [`integrations/README.md`](integrations/README.md)
+
+---
+
 ## Diferencia con Superpowers
 
 | Aspecto | Superpowers | Aura Agent Kit |

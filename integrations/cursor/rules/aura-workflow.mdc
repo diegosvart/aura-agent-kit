@@ -1,0 +1,54 @@
+---
+description: Aura workflow — commands, routing, and session lifecycle. Load when planning or executing work.
+alwaysApply: false
+globs: ["**/*.md", "**/*.ts", "**/*.py", "**/*.js", "**/*.go", "**/*.rs"]
+---
+
+# Aura Workflow
+
+## Main Flow
+```
+/brainstorm → spec-validation → challenger → /write-plan → /execute-plan → session end
+```
+
+## Commands
+| Command | When to use |
+|---------|-------------|
+| `/plan-work` | User describes new work → refine → create N GitHub issues |
+| `/brainstorm` | Design before any feature (HARD-GATE before code) |
+| `/write-plan` | After spec is approved and challenger gives GO |
+| `/execute-plan` | TDD task by task from the plan |
+| `/finish-branch` | Branch is ready for PR |
+| `/request-review` | Before merge, request structured code review |
+| `/doc-check` | After any .md change, verify integrity |
+| `/auto-research` | Friction detected → hypothesis-first harness improvement |
+
+## Context Router
+| Situation | Load |
+|-----------|------|
+| Session start | `protocols/session_start.md` |
+| New task | `protocols/task_start.md` |
+| Git/GitHub | `agents/github.md` |
+| Writing code | `agents/language.md` |
+| Docker/CI | `agents/infra.md` |
+| Pre-merge | `agents/reviewer.md` |
+| Challenge a spec | `agents/challenger.md` |
+| Session end | `protocols/session_end.md` |
+
+## Session Start Checklist
+1. git status + branch + last commits
+2. gh auth status
+3. Engram context (last session)
+4. Issues with label `ready`
+5. Show executive summary
+6. Ask: "Continue with [next_step] or something new?"
+   - Continue → `task_start.md`
+   - New work → `/plan-work`
+
+## Session End Checklist
+1. Linter + tests pass
+2. Verify closed/open issues this session
+3. `/doc-check` if .md files changed
+4. Save to Engram + update `current-session.json`
+5. Propose next step
+6. `/auto-research` if friction detected

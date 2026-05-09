@@ -48,7 +48,7 @@ This structure informs the task decomposition. Each task should produce self-con
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agents:** Use aura-agent-kit:executing-plans to implement this plan task-by-task.
+> **For agents:** Usar el comando `/execute-plan` para implementar este plan tarea por tarea.
 
 **Goal:** [One sentence describing what this builds]
 

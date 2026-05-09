@@ -50,7 +50,7 @@ En próxima sesión relevante: evaluar resultado → mantener o revertir
 - Requiere aprobación explícita del usuario antes de modificar cualquier archivo
 - Máximo 2 experimentos activos en simultáneo
 - No modifica `docs/aura/specs/2026-05-09-harness-pillars.md` (requiere nueva spec)
-- No modifica `agents/evaluator` ni archivos de configuración de seguridad
+- No modifica `docs/aura/specs/2026-05-09-harness-pillars.md` ni `agents/challenger.md` (son la vara de medición)
 
 ---
 

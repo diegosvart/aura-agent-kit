@@ -120,5 +120,5 @@ Use for ANY technical issue:
 
 ## Related Skills
 
-- **aura:test-driven-development** - For creating failing test case
-- **aura:verification-before-completion** - Verify fix worked
+- **aura:test-driven-development** - For creating failing test case (Red phase)
+- Verificar fix: ejecutar el test creado en Red y confirmar que pasa en Green

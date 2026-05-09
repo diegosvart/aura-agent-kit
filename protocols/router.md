@@ -18,6 +18,10 @@
 | **Revisar antes de merge** | `agents/reviewer.md` | Pre-merge, code review, quality gate |
 | **Cuestionar un plan o spec** | `agents/challenger.md` | Spec lista para pasar a /write-plan |
 | **Validar spec técnicamente** | `skills/spec-validation/SKILL.md` | Después de /brainstorm, antes de challenger |
+| **Planificar trabajo nuevo** | `skills/issue-planning/SKILL.md` via `/plan-work` | Usuario describe trabajo nuevo, no hay issues ready |
+| **Rama lista para PR** | `skills/finishing-a-development-branch/SKILL.md` via `/finish-branch` | Commits sin PR, rama completa |
+| **Solicitar code review** | `skills/requesting-code-review/SKILL.md` via `/request-review` | PR abierta lista para revisión |
+| **Cambios en documentación** | `agents/doc-guardian.md` via `/doc-check` | Se creó o modificó un archivo .md |
 | **Mejorar el harness** | `skills/auto-research/SKILL.md` + `docs/aura/specs/2026-05-09-harness-pillars.md` | Fricción detectada, patrón repetitivo |
 | **Cierre de sesión** | `protocols/session_end.md` | "Terminamos", "cerramos", fin de trabajo |
 
@@ -40,8 +44,11 @@
 | Inicio + tarea nueva de código | `session_start.md` → `task_start.md` → `language.md` |
 | Fix urgente con PR | `task_start.md` → `language.md` → `github.md` |
 | Diseño + implementación completa | `task_start.md` → (brainstorm) → `spec-validation` → `challenger` → `language.md` → `github.md` → `reviewer.md` |
-| Cierre con fricción detectada | `session_end.md` → `auto-research/SKILL.md` |
-| Mejora al harness | `auto-research/SKILL.md` → `harness-pillars.md` → `challenger.md` |
+| Inicio sin issues pendientes | `session_start.md` → `/plan-work` → `task_start.md` |
+| Rama terminada | `session_end.md` → `/finish-branch` → `/request-review` |
+| Cierre con cambios en .md | `session_end.md` → `/doc-check` |
+| Cierre con fricción detectada | `session_end.md` → `/auto-research` |
+| Mejora al harness | `/auto-research` → `harness-pillars.md` → `challenger.md` |
 
 ---
 

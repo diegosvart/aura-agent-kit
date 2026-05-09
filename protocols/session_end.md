@@ -122,7 +122,43 @@ Si durante la sesión se tomó una decisión arquitectural:
 
 ---
 
-## Paso 6 — Presentar Opciones para Próxima Sesión
+## Paso 6 — Verificar Issues de la Sesión
+
+```bash
+# Issues cerrados durante esta sesión (aproximado por fecha)
+gh issue list --state closed --limit 10 --json number,title,closedAt
+
+# Issues aún abiertos con label ready
+gh issue list --label ready --state open --json number,title
+```
+
+Presentar tabla de cierre:
+
+```
+## Issues esta sesión
+| # | Título | Estado |
+|---|--------|--------|
+| #N | <título> | ✅ Cerrado |
+| #N+1 | <título> | 🔲 Pendiente (ready) |
+```
+
+Si hay rama con commits sin PR → preguntar: "¿Querés crear la PR ahora con `/finish-branch`?"
+Si hay PR abierta sin reviewer → preguntar: "¿Solicitamos review con `/request-review`?"
+
+---
+
+## Paso 7 — Integridad Documental (si aplica)
+
+Si durante la sesión se crearon o modificaron archivos `.md`:
+```
+Invocar /doc-check para verificar integridad antes de cerrar.
+```
+Si el reporte es ÍNTEGRO → continuar.
+Si REQUIERE CORRECCIÓN → corregir antes de commitear.
+
+---
+
+## Paso 8 — Presentar Opciones para Próxima Sesión
 
 ```
 ## Sesión Lista para Cerrar
@@ -130,17 +166,18 @@ Si durante la sesión se tomó una decisión arquitectural:
 ✓ Tests pasando
 ✓ Rama: {{rama}}
 ✓ Memoria guardada
+✓ Issues verificados
 
 ## ¿Qué sigue?
 1. [next_step] — continuar con lo pendiente
-2. Nueva tarea — planificar algo nuevo
+2. Nueva tarea — /plan-work para planificar
 3. Revisión — mirar estado del proyecto
 4. otra cosa — especificar
 ```
 
 ---
 
-## Paso 8 — Auto-Research (si aplica)
+## Paso 9 — Auto-Research (si aplica)
 
 Antes de cerrar, dedicar 30 segundos a observar:
 

@@ -124,9 +124,22 @@ Rama sugerida: `{{TIPO}}/{{CODIGO}}-{{descripcion}}`
 
 ---
 
-## Paso 7 — Confirmar con Usuario
+## Paso 7 — Confirmar con Usuario y Derivar
+
+Presentar al usuario la próxima acción recomendada y esperar su respuesta:
 
 > "¿Continuamos con [next_step] o hay algo nuevo?"
+
+**Según la respuesta, derivar:**
+
+| Respuesta del usuario | Acción |
+|-----------------------|--------|
+| "Continuamos" / confirma next_step | Invocar `protocols/task_start.md` con el issue pendiente |
+| "Algo nuevo" / describe trabajo nuevo | Invocar `/plan-work` → `skills/issue-planning/SKILL.md` |
+| "Quiero ver el estado" / "revisemos" | Listar issues abiertos con `gh issue list --state open` y presentar opciones |
+| No hay next_step ni issues ready | Invocar `/plan-work` automáticamente |
+
+**Regla:** No comenzar trabajo sin que el usuario haya confirmado la dirección. Si hay issues con label `ready`, presentarlos como opciones antes de proponer trabajo nuevo.
 
 ---
 

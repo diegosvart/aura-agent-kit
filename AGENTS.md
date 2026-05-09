@@ -49,7 +49,11 @@
 | Pre-merge / quality gate | `agents/reviewer.md` |
 | Cuestionar spec o plan | `agents/challenger.md` |
 | Validar spec técnicamente | `skills/spec-validation/SKILL.md` |
-| Mejorar el harness | `skills/auto-research/SKILL.md` |
+| Planificar trabajo nuevo | `/plan-work` → `skills/issue-planning/SKILL.md` |
+| Rama lista para PR | `/finish-branch` → `skills/finishing-a-development-branch/SKILL.md` |
+| Solicitar code review | `/request-review` → `skills/requesting-code-review/SKILL.md` |
+| Cambios en documentación | `/doc-check` → `agents/doc-guardian.md` |
+| Mejorar el harness | `/auto-research` → `skills/auto-research/SKILL.md` |
 | Cierre de sesión | `protocols/session_end.md` |
 
 ---

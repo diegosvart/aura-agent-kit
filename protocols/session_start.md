@@ -5,6 +5,19 @@
 
 ---
 
+## Hook Fast-Path (leer primero)
+
+Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`, `issues_ready`, `last_session` presentes):
+
+- **Saltear pasos 2, 3 y 4** — los datos ya están disponibles en el hook output
+- **Ejecutar directamente paso 5** (mem_context) y luego paso 6 (resumen)
+- **Repo health** (branch protection checks) → omitir; solo ejecutar bajo demanda o una vez por semana
+- Esto reduce las tool calls de ~10 a **1** (solo mem_context)
+
+Si el hook output NO está presente → ejecutar el protocolo completo desde el Paso 2.
+
+---
+
 ## Paso 1 — Leer Contexto (obligatorio)
 
 Leer en paralelo:
@@ -153,6 +166,10 @@ mem_context(
 | # | Título | Bloque |
 |---|--------|--------|
 | ... | ... | ... |
+
+## Ideas en Backlog
+> N ideas — revisar con `/ideas` o abrir `.agent/memory/ideas.md`
+> (Si ideas_count == 0: omitir esta sección)
 
 ## Próxima Acción Recomendada
 **Issue #N** — [título]

@@ -135,5 +135,18 @@ try {
     }
 } catch { }
 
+# Ideas backlog count
+$ideasFile = Join-Path $projectRoot ".agent\memory\ideas.md"
+try {
+    if (Test-Path $ideasFile) {
+        $ideasContent = Get-Content $ideasFile -Raw
+        $output.ideas_count = ([regex]::Matches($ideasContent, "^## \[", [System.Text.RegularExpressions.RegexOptions]::Multiline)).Count
+    } else {
+        $output.ideas_count = 0
+    }
+} catch {
+    $output.ideas_count = 0
+}
+
 # Output como JSON para que Claude lo use como contexto
 $output | ConvertTo-Json -Depth 5

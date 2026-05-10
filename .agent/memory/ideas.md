@@ -42,3 +42,33 @@ _(sin iterar)_
 
 ### Iteraciones
 - [2026-05-10] Decisión: harness como submodule en `.aura/`. Rules movidas a opt-in (`.aura/rules/`). Mínimo viable = spine + ciclo + hooks + harness-core. Doc acotada sin exponer modelo de negocio. Validado por Opus. Ejecución en dos etapas: docs primero (esta sesión), refactorización de arquitectura como issue separado.
+
+---
+
+## [005] Visibilidad en tiempo real del trabajo del agente
+**Estado:** raw
+**Capturado:** 2026-05-10
+**Contexto:** El usuario no puede ver qué especialista está activo ni el estado interno del agente durante la ejecución. Posible solución: .agent/status.json actualizado en cada paso, visible en el editor.
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [006] Timeline de sesiones en resumen de session_start
+**Estado:** raw
+**Capturado:** 2026-05-10
+**Contexto:** Engram ya tiene mem_timeline con historia cronológica. Integrarla al resumen ejecutivo de session_start como "Últimas N sesiones: [fecha] — [foco]" daría visibilidad inmediata del progreso sin tool calls adicionales.
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [007] Protocolo de cierre por límite de contexto
+**Estado:** raw
+**Capturado:** 2026-05-10
+**Contexto:** A 71% de contexto (141k/200k) con 14.5k libres el autocompact comprime y puede perder nuance. Necesitamos un mecanismo que detecte cuando el contexto supera ~65% y dispare automáticamente el protocolo de cierre de sesión (guardar Engram + current-session.json + avisar al usuario).
+
+### Iteraciones
+_(sin iterar)_

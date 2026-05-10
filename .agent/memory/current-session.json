@@ -1,0 +1,17 @@
+{
+  "last_updated": "2026-05-10T22:30:00-04:00",
+  "branch": "develop",
+  "focus": "Harness v1.2.0 — identidad local, skill /idea, docs. Cerrado por límite de contexto (71%).",
+  "next_step": "1) PR develop→main (commits post-PR#16). 2) Issue #15 parte 2: .aura/ + rules opt-in + script instalación. 3) Protocolo cierre por contexto.",
+  "pending": [
+    "Abrir PR develop→main con commits: identidad local + ideas #005/#006",
+    "Issue #15 parte 2: arquitectura .aura/, rules opt-in, install.ps1/sh",
+    "Nueva idea #007: protocolo de cierre por límite de contexto (detectar >70%, guardar y avisar)",
+    "Probar QUICKSTART en proyecto limpio desde cero"
+  ],
+  "required_reads": [
+    "skills/idea-management/SKILL.md",
+    ".agent/memory/ideas.md",
+    "protocols/session_start.md"
+  ]
+}

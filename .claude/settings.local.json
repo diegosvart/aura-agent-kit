@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path . -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(claude doctor *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\moral\\\\OneDrive\\\\Documentos\\\\repos\\\\aura-agent-kit\" -Recurse -File)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(Get-ChildItem -Path \".\\\\.claude\\\\hooks\\\\\" -File | Select-Object Name)",
+      "Bash(ls .claude/hooks/)",
+      "Bash(ls skills/)"
+    ]
+  }
+}

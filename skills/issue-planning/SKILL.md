@@ -85,6 +85,14 @@ gh issue create \
 **¿Arrancamos con el Issue #N?**
 ```
 
+### Paso 7 — Derivar a Ejecución
+
+Después de presentar el resumen y obtener confirmación del usuario:
+
+- **"Sí, arrancamos"** → Invocar `protocols/task_start.md` con Issue #N (el primero de la lista)
+- **"No, lo dejamos para después"** → Cerrar el skill. Los issues quedan con label `ready` para la próxima sesión.
+- **"Quiero arrancar con otro"** → Invocar `protocols/task_start.md` con el issue que el usuario indique.
+
 ---
 
 ## Reglas

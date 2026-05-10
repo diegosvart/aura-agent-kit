@@ -32,3 +32,13 @@ _(sin iterar)_
 
 ### Iteraciones
 _(sin iterar)_
+
+---
+
+## [004] Documentación formal del Harness como servicio de consultoría TI
+**Estado:** exploring  
+**Capturado:** 2026-05-10  
+**Contexto:** El objetivo no es vender el harness — es posicionarlo como el framework detrás de un servicio de consultoría TI que multiplica la velocidad de entrega de proyectos. La documentación debe comunicar el servicio, no la herramienta.
+
+### Iteraciones
+- [2026-05-10] Decisión: harness como submodule en `.aura/`. Rules movidas a opt-in (`.aura/rules/`). Mínimo viable = spine + ciclo + hooks + harness-core. Doc acotada sin exponer modelo de negocio. Validado por Opus. Ejecución en dos etapas: docs primero (esta sesión), refactorización de arquitectura como issue separado.

@@ -1,232 +1,103 @@
 # Aura Agent Kit
 
-> **Instrumento de precisión para agentes IA.** Un kit reutilizable para configurar el flujo de trabajo de desarrollo con tu agente. v1.1.0
+Un framework de trabajo para agentes IA que convierte a Claude Code en un partner de desarrollo estructurado: con memoria persistente entre sesiones, protocolos de inicio y cierre, ciclo de vida de objetivos y automatización del flujo git/GitHub.
 
 ---
 
-## Alma del Kit
+## Prerrequisitos
 
-> "Soy tu partner del trabajo. Mucho más que un colega, somos hermanos."
+| Herramienta | Versión | Rol |
+|-------------|---------|-----|
+| [Claude Code](https://claude.ai/code) | latest | IDE / CLI principal |
+| [PowerShell](https://github.com/PowerShell/PowerShell) | 7+ | Ejecución de hooks |
+| [gh CLI](https://cli.github.com/) | 2.0+ | Operaciones GitHub |
+| [Engram](https://github.com/The-Pocket/PocketFlow-Tutorial-Codebase-Knowledge) | latest | Memoria persistente (opcional pero recomendado) |
 
-Este kit va más allá de ser una herramienta — es un **instrumento de precisión** construido sobre la identidad de伙伴 (partnership) entre vos y tu agente.
+## Compatibilidad
 
----
+| SO | Claude Code | Hooks PS1 |
+|----|-------------|-----------|
+| Windows 10/11 | ✓ | ✓ |
+| macOS | ✓ | ✓ (pwsh requerido) |
+| Linux | ✓ | ✓ (pwsh requerido) |
 
-## Estructura
-
-```
-aura-agent-kit/
-├── AGENTS.md                     ← Alma + ciclo + reglas
-├── QUICKSTART.md                 ← Empezar en 2 minutos
-├── README.md                     ← Este archivo
-├── LICENSE                       ← MIT
-├── .gitignore
-│
-├── skills/                       ← Skills del flujo de trabajo
-│   ├── brainstorming/            ← Diseño antes de código
-│   ├── writing-plans/            ← Planes de implementación
-│   ├── systematic-debugging/     ← Debugging de 4 fases
-│   ├── test-driven-development/ ← TDD RED-GREEN-REFACTOR
-│   ├── requesting-code-review/   ← Revisión estructurada
-│   └── finishing-a-development-branch/
-│
-├── agents/                       ← Agentes especializados
-│   ├── github.md                 ← gh CLI (no MCP)
-│   ├── language.md               ← Stack-agnóstico
-│   ├── infra.md                  ← Docker/CI
-│   └── reviewer.md               ← Tests/Calidad
-│
-├── commands/                     ← Comandos del agente
-│   ├── brainstorm.md             ← /brainstorm
-│   ├── write-plan.md             ← /write-plan
-│   └── execute-plan.md           ← /execute-plan
-│
-├── protocols/                    ← Protocolos de sesión
-│   ├── session_start.md          ← Inicio de sesión
-│   ├── session_end.md            ← Cierre de sesión
-│   └── task_start.md             ← Nueva tarea
-│
-├── templates/                    ← Plantillas
-│   ├── session.md                ← Resumen de sesión
-│   ├── issues.md                 ← Template de Issue
-│   └── repo_map.md               ← Mapa del proyecto
-│
-├── mcp/                          ← Configuración de MCPs
-│   └── defaults.json             ← Solo Engram obligatorio
-│
-├── opencode/                     ← API keys y providers
-│   ├── api-keys.md              ← Guía de configuración
-│   └── providers.json           ← Template de providers
-│
-└── docs/
-    └── aura/
-        ├── specs/                ← Documentos de diseño
-        └── plans/                ← Planes de implementación
-```
-
----
-
-## Compatibilidad Multi-IDE
-
-| IDE | Setup | Archivos |
-|-----|-------|----------|
-| **OpenAI Codex** | Ninguno ✓ | Lee `AGENTS.md` nativo |
-| **Zed** | Ninguno ✓ | Lee `AGENTS.md` nativo |
-| **Claude Code** | Mínimo | `integrations/claude-code/` |
-| **GitHub Copilot** | Mínimo | `integrations/copilot/` |
-| **Cursor** | Mínimo | `integrations/cursor/` |
-| **Windsurf** | Mínimo | `integrations/windsurf/` |
-| **Aider** | Mínimo | `integrations/aider/` |
-| **Antigravity** | Mínimo | `integrations/antigravity/` |
-| **OpenCode** | Mínimo | `integrations/opencode/` |
-
-Ver instrucciones completas de instalación por IDE → [`integrations/README.md`](integrations/README.md)
-
----
-
-## Diferencia con Superpowers
-
-| Aspecto | Superpowers | Aura Agent Kit |
-|---------|-------------|----------------|
-| **Identidad** | Genérica | "Hermanos/partner" |
-| **Ciclo** | Design → Plan → Execute | Session Start → Task → Session End |
-| **Evolución** | No tiene | "Nunca se settlea" |
-| **gh vs MCP** | No menciona | gh CLI priorizado |
-| **Memoria** | No | Engram + JSON |
-| **Stack** | Código general | Stack-agnóstico |
+> Los hooks requieren PowerShell 7+ (`pwsh`). En macOS/Linux: `brew install powershell` o ver [instrucciones oficiales](https://learn.microsoft.com/powershell/scripting/install/installing-powershell).
 
 ---
 
 ## Instalación
 
-### Clonar el repo
+### Opción A — Clonar directo (proyecto nuevo)
 
 ```bash
-cd C:\Users\moral\OneDrive\Documentos\repos
-git clone https://github.com/diegosvart/aura-agent-kit.git
-cd aura-agent-kit
+git clone https://github.com/diegosvart/aura-agent-kit.git mi-proyecto
+cd mi-proyecto
 ```
 
-### Copiar a tu proyecto
+### Opción B — Agregar a proyecto existente
 
 ```bash
-# En tu proyecto
-mkdir -p .agent/agents .agent/protocols .agent/memory docs/aura/specs docs/aura/plans
+# Desde la raíz de tu proyecto
+git submodule add https://github.com/diegosvart/aura-agent-kit.git .aura
 
-# Copiar archivos
-cp aura-agent-kit/AGENTS.md .agent/
-cp aura-agent-kit/agents/*.md .agent/agents/
-cp aura-agent-kit/protocols/*.md .agent/protocols/
+# Agregar entry point al CLAUDE.md existente (o crear uno)
+echo "" >> CLAUDE.md
+echo "<!-- aura:begin -->" >> CLAUDE.md
+echo "@.aura/CLAUDE.md" >> CLAUDE.md
+echo "<!-- aura:end -->" >> CLAUDE.md
+
+# Copiar hooks (Claude Code los requiere en .claude/hooks/)
+mkdir -p .claude/hooks
+cp .aura/.claude/hooks/*.ps1 .claude/hooks/
 ```
 
-### Proteger ramas (recomendado)
+Luego editar `.claude/settings.json` para registrar los hooks (ver [QUICKSTART.md](QUICKSTART.md)).
 
-Para que GitHub refuerce el workflow (no push directo a `main`/`develop`), el repo debe ser **público** o tener GitHub Pro.
+### Desinstalar / revertir
 
 ```bash
-# main y develop — reemplazar {OWNER}/{REPO}
-gh api -X PUT repos/{OWNER}/{REPO}/branches/main/protection --input - <<'EOF'
-{"required_status_checks":null,"enforce_admins":false,"required_pull_request_reviews":{"required_approving_review_count":0,"dismiss_stale_reviews":true},"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}
-EOF
-```
+# Remover submodule
+git submodule deinit -f .aura
+git rm -f .aura
+rm -rf .git/modules/.aura
 
-Ver instrucciones completas → [`QUICKSTART.md`](QUICKSTART.md) Paso 3.
-
----
-
-## Configuración
-
-### OpenCode
-
-```json
-{
-  "instructions": [
-    "AGENTS.md",
-    "protocols/session_start.md"
-  ],
-  "mcp": {
-    "engram": {
-      "type": "local",
-      "command": ["engram", "mcp", "--tools=agent"],
-      "enabled": true
-    }
-  }
-}
-```
-
-### Claude Code
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "Bash(git:*)",
-      "Bash(gh:*)",
-      "Bash(python:*)",
-      "Read(**)",
-      "Write(src/**)"
-    ],
-    "deny": [
-      "Bash(rm -rf:*)",
-      "Write(.env:*)"
-    ]
-  }
-}
+# Revertir CLAUDE.md (eliminar bloque entre marcadores aura:begin/end)
+# Eliminar hooks copiados
+rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1
 ```
 
 ---
 
-## Flujo de Trabajo
+## Ciclo de Trabajo
 
 ```
-/brainstorm      → Diseño colaborativo
-    ↓
-/write-plan      → Plan de implementación detallado
-    ↓
-/execute-plan    → Ejecución tarea por tarea
-    ↓
-Session End      → Guardar memoria, verificar CI
+/idea "objetivo"          Capturar idea o objetivo de alto nivel
+        │
+        ▼
+/idea <N>                 Explorar con perspectivas PM → Planner → Engineer
+        │
+        ▼
+/brainstorm               Diseño colaborativo (si el objetivo necesita spec)
+        │
+        ▼
+/plan-work                Crear issues en GitHub con label ready
+        │
+        ▼
+task_start (automático)   El agente toma el issue y ejecuta
+        │
+        ▼
+/finish-branch            Verificar, commitear y abrir PR
+        │
+        ▼
+/request-review           Solicitar code review formal
+        │
+        ▼
+merge + close issue       Ciclo completo
 ```
 
-### Session Start
-
-1. Verificar git, gh CLI, Engram
-2. Revisar current-session.json
-3. Listar issues con label `ready`
-4. Presentar resumen al usuario
-
-### Session End
-
-1. Detectar tecnología del proyecto
-2. Ejecutar linter + tests
-3. Guardar memoria en Engram
-4. Actualizar current-session.json
-
----
-
-## Principios Clave
-
-| Principio | Descripción |
-|-----------|-------------|
-| **Alma** | Partner, no ejecutor pasivo |
-| **gh CLI > MCP** | Menos tokens por operación |
-| **Diseño antes de código** | Siempre con /brainstorm |
-| **TDD** | Test primero, siempre |
-| **Evolución constante** | Nunca settlearse |
-| **Memoria distribuida** | Engram + JSON |
-
----
-
-## Skills Incluidos
-
-| Skill | Cuándo usarlo |
-|-------|---------------|
-| **brainstorming** | Antes de cualquier trabajo creativo |
-| **writing-plans** | Después de diseño aprobado |
-| **systematic-debugging** | Cuando hay bugs o errores |
-| **test-driven-development** | Al implementar features |
-| **requesting-code-review** | Antes de merge/PR |
-| **finishing-a-development-branch** | Cuando la rama está lista |
+**En cada sesión**, el harness ejecuta automáticamente:
+- Al iniciar: recopila estado git, issues ready, sesión anterior → presenta resumen
+- Al cerrar: guarda memoria en Engram + `current-session.json`
 
 ---
 
@@ -234,57 +105,73 @@ Session End      → Guardar memoria, verificar CI
 
 | Comando | Qué hace |
 |---------|----------|
-| `/brainstorm` | Inicia diseño colaborativo |
-| `/write-plan` | Crea plan de implementación |
-| `/execute-plan` | Ejecuta el plan paso a paso |
+| `/idea <texto>` | Registra un objetivo nuevo (1 turno, no interrumpe) |
+| `/idea <N>` | Explora el objetivo N con 3 perspectivas (PM, Planner, Engineer) |
+| `/idea promote <N>` | Promueve objetivo a `/plan-work` |
+| `/brainstorm` | Diseño colaborativo de una feature o idea |
+| `/plan-work` | Convierte requerimientos en GitHub issues |
+| `/finish-branch` | Prepara rama para PR (checklist + opciones) |
+| `/request-review` | Solicita code review formal en la PR |
+| `/auto-research` | Detecta fricción en el harness y propone mejoras |
+| `/doc-check` | Verifica consistencia de documentación |
+| `/stack` | Detecta o cambia el stack tecnológico de sesión |
 
 ---
 
-## Documentación
+## Estructura
 
-| Archivo | Para qué sirve |
-|---------|---------------|
-| `AGENTS.md` | Alma + reglas + ciclo de sesión |
-| `QUICKSTART.md` | Empezar en 2 minutos |
-| `skills/*/SKILL.md` | Cómo usar cada skill |
-| `opencode/api-keys.md` | Configurar API keys |
+```
+aura-agent-kit/
+├── AGENTS.md              ← Identidad, pilares, router (siempre cargado)
+├── CLAUDE.md              ← Entry point para Claude Code
+├── QUICKSTART.md          ← Guía de inicio rápido
+│
+├── .claude/
+│   ├── settings.json      ← Permisos y registro de hooks
+│   ├── hooks/             ← PS1: session-start, session-resume, session-end
+│   └── rules/             ← Reglas de comportamiento del agente
+│
+├── protocols/             ← session_start, session_end, task_start, router
+├── agents/                ← Especialistas: github, language, infra, reviewer, challenger
+├── skills/                ← Skills invocables: idea-management, issue-planning, brainstorming...
+├── commands/              ← Definición de comandos /idea, /plan-work, /finish-branch...
+│
+└── .agent/
+    └── memory/
+        ├── ideas.md           ← Backlog de objetivos con ciclo de vida
+        └── current-session.json ← Estado de sesión actual
+```
 
 ---
 
-## Nuevas Capacidades v1.1
+## Los 7 Pilares
 
-| Capacidad | Archivo | Descripción |
-|-----------|---------|-------------|
-| **Pilares SDD** | `docs/aura/specs/2026-05-09-harness-pillars.md` | 7 pilares formalizados con anti-patrones |
-| **Challenger Agent** | `agents/challenger.md` | Cuestiona specs antes del go a /write-plan |
-| **Spec Validation** | `skills/spec-validation/SKILL.md` | HARD-GATE técnico pre-implementación |
-| **Auto-Research** | `skills/auto-research/SKILL.md` | Hipótesis documentadas para mejorar el harness |
-| **Router de Contexto** | `protocols/router.md` | Carga diferida — solo lo necesario |
-| **AGENTS.md liviano** | `AGENTS.md` | Spine ~60 líneas (era ~200) |
+| # | Pilar | Regla |
+|---|-------|-------|
+| P1 | CLI > MCP | Si existe CLI que alcanza, no usar MCP |
+| P2 | Diseño antes de código | Sin spec aprobada → sin código |
+| P3 | TDD siempre | Test primero, ver fallar, luego implementar |
+| P4 | Hipótesis antes de cambiar el harness | Sin hipótesis escrita → no modificar protocolos |
+| P5 | Memoria distribuida | Engram + current-session.json al cerrar |
+| P6 | Stack-agnóstico | Detectar stack antes de asumir herramientas |
+| P7 | Evolución con validación | Proponer mejoras como opción, nunca imponer |
 
 ---
 
-## Changelog
+## Actualizar el harness
 
-| Versión | Fecha | Cambios |
-|---------|-------|---------|
-| 1.1.0 | 2026-05-09 | Pilares SDD, challenger agent, spec-validation, auto-research liviano, router de contexto, AGENTS.md spine |
-| 1.0.0 | 2026-05-01 | Versión inicial con skills de Superpowers |
+```bash
+# Si instalaste como submodule
+git -C .aura pull origin main
+
+# Volver a copiar hooks si cambiaron
+cp .aura/.claude/hooks/*.ps1 .claude/hooks/
+```
 
 ---
 
 ## Licencia
 
-MIT - Ver archivo LICENSE
+MIT — Ver [LICENSE](LICENSE)
 
----
-
-## Créditos
-
-Creado por **Diego Morales** (@diegosvart) para **Aura Insight IT**.
-
-> "Instrumento de precisión: afínalo a tu flujo."
-
----
-
-*El kit evoluciona. Tu agente sugerirá mejoras en cada sesión.*
+Creado por [Diego Morales](https://github.com/diegosvart) · Aura Insight IT

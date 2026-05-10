@@ -23,24 +23,33 @@ gh auth login
 
 ## Paso 2 — Instalar
 
-### Proyecto nuevo
+### Opción A — Script automático (recomendado)
+
+Desde la raíz de tu proyecto:
 
 ```bash
-git clone https://github.com/diegosvart/aura-agent-kit.git mi-proyecto
-cd mi-proyecto
-claude .
+# Windows
+pwsh -File .aura/install.ps1
+
+# macOS / Linux
+bash .aura/install.sh
 ```
 
-### Proyecto existente
+El script:
+- Agrega el harness como submodule en `.aura/`
+- Hace append en `CLAUDE.md` con marcadores `<!-- aura:begin/end -->` (no sobreescribe)
+- Copia los hooks a `.claude/hooks/` (no sobreescribe los existentes)
+
+### Opción B — Manual
 
 ```bash
-# Agregar como submodule
+# 1. Agregar submodule
 git submodule add https://github.com/diegosvart/aura-agent-kit.git .aura
 
-# Registrar entry point en CLAUDE.md
+# 2. Registrar entry point en CLAUDE.md (append-only)
 printf '\n<!-- aura:begin -->\n@.aura/CLAUDE.md\n<!-- aura:end -->\n' >> CLAUDE.md
 
-# Copiar hooks
+# 3. Copiar hooks
 mkdir -p .claude/hooks
 cp .aura/.claude/hooks/*.ps1 .claude/hooks/
 ```
@@ -54,11 +63,16 @@ Agregar al `.claude/settings.json` de tu proyecto (mergear si ya existe):
 ```json
 {
   "hooks": {
-    "SessionStart": [
-      { "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/session-start.ps1" }] }
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/context-guard.ps1", "timeout": 5 }] }
     ],
-    "SessionStart[resume]": [
-      { "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/session-resume.ps1" }] }
+    "PreToolUse": [
+      { "matcher": "Bash",       "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1", "timeout": 5 }] },
+      { "matcher": "PowerShell", "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1", "timeout": 5 }] }
+    ],
+    "SessionStart": [
+      { "matcher": "startup", "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/session-start.ps1", "timeout": 30 }] },
+      { "matcher": "resume",  "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/session-resume.ps1", "timeout": 30 }] }
     ],
     "SessionEnd": [
       { "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/session-end.ps1", "timeout": 60 }] }
@@ -69,7 +83,31 @@ Agregar al `.claude/settings.json` de tu proyecto (mergear si ya existe):
 
 ---
 
-## Paso 4 — Primera sesión
+## Paso 4 — Identidad local (opcional pero recomendado)
+
+```bash
+cp .aura/AGENTS.local.example.md AGENTS.local.md
+# Editar AGENTS.local.md con tu rol, nombre y cómo operás
+```
+
+Este archivo es gitignoreado — es tuyo, no del repositorio.
+
+---
+
+## Paso 5 — Reglas opt-in
+
+`.aura/CLAUDE.md` carga solo `harness-core.md` por defecto. Para activar reglas adicionales, editar `.aura/CLAUDE.md` en tu proyecto y descomentar las que quieras:
+
+```markdown
+@.aura/rules/design-flow.md      # Brainstorm antes de planificar
+@.aura/rules/repo-integrity.md   # Detectar trabajo stranded
+@.aura/rules/routing-menu.md     # Menú post-tarea
+@.aura/rules/coding.md           # Convenciones de código
+```
+
+---
+
+## Paso 6 — Primera sesión
 
 ```bash
 claude .
@@ -98,8 +136,9 @@ Si no aparece → verificar Paso 3.
 |----------|----------|
 | Hooks no se ejecutan | Verificar paths en `settings.json` y que `pwsh` está en PATH |
 | `gh` no autenticado | `gh auth login` |
-| Agente no sigue protocolos | Verificar que `CLAUDE.md` existe en la raíz |
-| Conflicto con CLAUDE.md existente | Usar marcadores `<!-- aura:begin/end -->` en lugar de reemplazar |
+| Agente no sigue protocolos | Verificar que `CLAUDE.md` contiene el bloque `<!-- aura:begin -->` |
+| Conflicto con CLAUDE.md existente | El script usa append-only — revisar marcadores manualmente |
+| Submodule desactualizado | `git submodule update --remote .aura` |
 
 ---
 
@@ -110,5 +149,5 @@ git submodule deinit -f .aura
 git rm -f .aura
 rm -rf .git/modules/.aura
 # Eliminar bloque <!-- aura:begin --> ... <!-- aura:end --> de CLAUDE.md
-rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1
+rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1
 ```

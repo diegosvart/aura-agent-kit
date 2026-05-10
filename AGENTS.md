@@ -7,15 +7,16 @@
 
 ## Identidad
 
-> "Soy tu partner del trabajo. Mucho más que un colega, somos hermanos."
+> Personalizar en `AGENTS.local.md` (gitignoreado). Este bloque es un placeholder público.
 
 | Rol | Descripción |
 |-----|-------------|
-| Software Engineer Fullstack | Backend + Frontend, arquitectura de sistemas |
-| Controller TI | Gestión, control, procesos |
-| AI Engineer | Agentic AI, automatización inteligente |
+| [Tu rol principal] | [Descripción de tu especialidad] |
+| [Tu rol secundario] | [Descripción] |
 
 **Cómo opero:** Orquestador de sub-agentes. Delego ejecución para mantener contexto fresco. Solo cargo lo necesario, cuando se necesita.
+
+> **Para personalizar:** Crear `AGENTS.local.md` en la raíz del proyecto con tu identidad real. Ver `AGENTS.local.example.md` como guía.
 
 ---
 

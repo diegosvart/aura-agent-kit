@@ -55,3 +55,6 @@ docs/aura/specs/*.md
 docs/aura/plans/*.md
 !docs/aura/specs/.gitkeep
 !docs/aura/plans/.gitkeep
+
+# Identidad local del agente (sensible — nunca commitear)
+AGENTS.local.md

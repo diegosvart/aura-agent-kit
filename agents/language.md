@@ -13,6 +13,19 @@
 
 ---
 
+## Stack de Sesión (fuente prioritaria)
+
+Antes de auto-detectar el stack, verificar si existe `.agent/memory/session-stack.json`:
+
+```
+Si existe → leer profile_name, linter, test_runner, package_manager, framework
+Si no existe → auto-detectar desde archivos del proyecto (ver sección siguiente)
+```
+
+El `session-stack.json` tiene prioridad sobre cualquier auto-detección.
+
+---
+
 ## Configuración por Tecnología
 
 ### Python

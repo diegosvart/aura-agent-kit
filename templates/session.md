@@ -11,6 +11,7 @@
 | **Fecha** | {{FECHA_ISO}} |
 | **Proyecto** | {{PROJECT_NAME}} |
 | **Rama** | {{BRANCH}} |
+| **Stack** | {{STACK_PROFILE}} |
 | **Duración** | {{DURACIÓN}} (opcional) |
 
 ---

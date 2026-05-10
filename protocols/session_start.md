@@ -167,7 +167,7 @@ Presentar al usuario la próxima acción recomendada y esperar su respuesta:
 | Respuesta del usuario | Acción |
 |-----------------------|--------|
 | "Continuamos" / confirma next_step | Invocar `protocols/task_start.md` con el issue pendiente |
-| "Algo nuevo" / describe trabajo nuevo | Invocar `/plan-work` → `skills/issue-planning/SKILL.md` |
+| "Algo nuevo" / describe trabajo nuevo | Preguntar: "¿Tenés un diseño o spec previa?" → Si sí: `/plan-work`. Si no: recomendar `/brainstorm` primero |
 | "Quiero ver el estado" / "revisemos" | Listar issues abiertos con `gh issue list --state open` y presentar opciones |
 | No hay next_step ni issues ready | Invocar `/plan-work` automáticamente |
 

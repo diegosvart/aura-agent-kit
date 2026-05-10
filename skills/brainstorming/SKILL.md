@@ -20,7 +20,7 @@ Complete these in order:
 5. **Write design doc** — save to `docs/aura/specs/YYYY-MM-DD-<topic>-design.md`
 6. **Spec self-review** — check for placeholders, contradictions, scope
 7. **User reviews written spec** — ask user to review before proceeding
-8. **Transition to implementation** — invoke writing-plans skill
+8. **Transition to implementation** — preguntar si pasar a `/plan-work` (issue-planning)
 
 ## The Process
 
@@ -56,7 +56,9 @@ After spec review passes, ask user to review:
 Wait for response. Only proceed once approved.
 
 **Implementation:**
-- Invoke the writing-plans skill to create implementation plan
+- Preguntar: "¿Pasamos a planificar los issues con `/plan-work`?"
+  - Sí → Invocar `skills/issue-planning/SKILL.md` vía `/plan-work`
+  - No → Guardar spec en `docs/aura/specs/` y cerrar. Los issues se pueden crear en otra sesión.
 
 ## Key Principles
 

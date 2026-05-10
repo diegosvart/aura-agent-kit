@@ -142,8 +142,17 @@ Presentar tabla de cierre:
 | #N+1 | <título> | 🔲 Pendiente (ready) |
 ```
 
-Si hay rama con commits sin PR → preguntar: "¿Querés crear la PR ahora con `/finish-branch`?"
-Si hay PR abierta sin reviewer → preguntar: "¿Solicitamos review con `/request-review`?"
+Verificar activamente si hay trabajo listo para PR:
+
+```bash
+BRANCH=$(git branch --show-current)
+COMMITS=$(git log origin/develop..HEAD --oneline 2>/dev/null | wc -l)
+PR_COUNT=$(gh pr list --head "$BRANCH" --state open --json number -q 'length' 2>/dev/null || echo 0)
+```
+
+- Si `$COMMITS > 0` y `$PR_COUNT == 0` → **Proponer:** "Hay $COMMITS commit(s) sin PR. ¿Creamos la PR ahora con `/finish-branch`?"
+- Si hay PR abierta sin reviewer → **Proponer:** "¿Solicitamos review con `/request-review`?"
+- Si la PR fue aprobada y mergeada → **Proponer:** cerrar el issue asociado
 
 ---
 

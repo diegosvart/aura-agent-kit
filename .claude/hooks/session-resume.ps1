@@ -4,7 +4,7 @@
 
 $output = @{}
 
-# current-session.json
+# Raíz del proyecto
 $projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $sessionFile = Join-Path $projectRoot ".agent\memory\current-session.json"
 
@@ -29,7 +29,7 @@ if (Test-Path $sessionFile) {
     $output.last_session = $null
 }
 
-# Git: rama actual y últimos commits
+# Git: rama, últimos commits, cambios, diff stat
 try {
     $branch = git branch --show-current 2>$null
     $output.branch = if ($branch) { $branch.Trim() } else { "unknown" }
@@ -39,8 +39,21 @@ try {
 
     $statusLines = git status --short 2>$null
     $output.uncommitted_files = if ($statusLines) { @($statusLines).Count } else { 0 }
+
+    $diffStat = git diff --stat 2>$null
+    $output.diff_stat = if ($diffStat) { ($diffStat | Select-Object -Last 1).Trim() } else { "sin cambios" }
 } catch {
     $output.git_error = $_.Exception.Message
+}
+
+# Ramas mergeadas en develop (para que el agente sepa si hay limpieza pendiente)
+try {
+    $output.merged_branches = @(git branch --merged develop 2>$null |
+        Where-Object { $_ -notmatch "^\*|main|develop" } |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_ -ne "" })
+} catch {
+    $output.merged_branches = @()
 }
 
 $output | ConvertTo-Json -Depth 5

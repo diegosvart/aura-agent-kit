@@ -49,6 +49,7 @@ Reglas del menú:
 - **Siempre usar `gh` CLI** para operaciones GitHub (no MCP GitHub cuando existe CLI equivalente)
 - **Al detectar rama sucia** (cambios sin commit al inicio): mostrar `git diff --stat` y preguntar
 - **Al detectar gh no autenticado**: informar y saltear pasos que requieren gh (no fallar silenciosamente)
+- **Declarar especialistas activos**: al iniciar exploración con `/idea <N>`, brainstorm, spec-validation u otro skill multimodal, declarar explícitamente qué está activando. Ejemplo: `Activando: idea-management [PM → Planner → Engineer]`
 
 ---
 

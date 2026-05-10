@@ -53,6 +53,7 @@
 | Rama lista para PR | `/finish-branch` → `skills/finishing-a-development-branch/SKILL.md` |
 | Solicitar code review | `/request-review` → `skills/requesting-code-review/SKILL.md` |
 | Cambios en documentación | `/doc-check` → `agents/doc-guardian.md` |
+| Gestionar objetivos / ideas | `/idea` → `skills/idea-management/SKILL.md` |
 | Mejorar el harness | `/auto-research` → `skills/auto-research/SKILL.md` |
 | Cierre de sesión | `protocols/session_end.md` |
 

@@ -122,7 +122,52 @@ Si durante la sesión se tomó una decisión arquitectural:
 
 ---
 
-## Paso 6 — Presentar Opciones para Próxima Sesión
+## Paso 6 — Verificar Issues de la Sesión
+
+```bash
+# Issues cerrados durante esta sesión (aproximado por fecha)
+gh issue list --state closed --limit 10 --json number,title,closedAt
+
+# Issues aún abiertos con label ready
+gh issue list --label ready --state open --json number,title
+```
+
+Presentar tabla de cierre:
+
+```
+## Issues esta sesión
+| # | Título | Estado |
+|---|--------|--------|
+| #N | <título> | ✅ Cerrado |
+| #N+1 | <título> | 🔲 Pendiente (ready) |
+```
+
+Verificar activamente si hay trabajo listo para PR:
+
+```bash
+BRANCH=$(git branch --show-current)
+COMMITS=$(git log origin/develop..HEAD --oneline 2>/dev/null | wc -l)
+PR_COUNT=$(gh pr list --head "$BRANCH" --state open --json number -q 'length' 2>/dev/null || echo 0)
+```
+
+- Si `$COMMITS > 0` y `$PR_COUNT == 0` → **Proponer:** "Hay $COMMITS commit(s) sin PR. ¿Creamos la PR ahora con `/finish-branch`?"
+- Si hay PR abierta sin reviewer → **Proponer:** "¿Solicitamos review con `/request-review`?"
+- Si la PR fue aprobada y mergeada → **Proponer:** cerrar el issue asociado
+
+---
+
+## Paso 7 — Integridad Documental (si aplica)
+
+Si durante la sesión se crearon o modificaron archivos `.md`:
+```
+Invocar /doc-check para verificar integridad antes de cerrar.
+```
+Si el reporte es ÍNTEGRO → continuar.
+Si REQUIERE CORRECCIÓN → corregir antes de commitear.
+
+---
+
+## Paso 8 — Presentar Opciones para Próxima Sesión
 
 ```
 ## Sesión Lista para Cerrar
@@ -130,13 +175,29 @@ Si durante la sesión se tomó una decisión arquitectural:
 ✓ Tests pasando
 ✓ Rama: {{rama}}
 ✓ Memoria guardada
+✓ Issues verificados
 
 ## ¿Qué sigue?
 1. [next_step] — continuar con lo pendiente
-2. Nueva tarea — planificar algo nuevo
+2. Nueva tarea — /plan-work para planificar
 3. Revisión — mirar estado del proyecto
 4. otra cosa — especificar
 ```
+
+---
+
+## Paso 9 — Auto-Research (si aplica)
+
+Antes de cerrar, dedicar 30 segundos a observar:
+
+- ¿Hubo algún paso que se repitió manualmente más de una vez esta sesión?
+- ¿Algún protocolo o skill no aplicó bien al contexto?
+- ¿El usuario tuvo que corregir al agente en algo recurrente?
+
+**Si sí** → proponer `/auto-research` antes de cerrar:
+> "Observé [fricción concreta]. ¿Querés que lo registremos como experimento de mejora del harness?"
+
+**Si no** → cerrar normalmente.
 
 ---
 

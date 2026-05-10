@@ -68,6 +68,11 @@ After verification, present to user:
    - Branch deleted locally and remotely
    - Only if work is not needed
 
+5. **Request Review** → Solicitar code review formal
+   - Invoca pre-review con `agents/reviewer.md`
+   - Luego abre review request en la PR con `/request-review`
+   - Recomendado antes de merge a develop en proyectos de equipo
+
 ### Recommendation: [X]
 **Reason:** [based on context]
 ```
@@ -95,8 +100,19 @@ git branch -d branch-name
 git push origin --delete branch-name
 ```
 
+### Option 5: Request Review
+```bash
+# Pre-review con reviewer agent
+# Leer agents/reviewer.md para checklist de calidad
+
+# Luego asignar reviewer a la PR
+gh pr edit <PR_NUMBER> --add-reviewer <REVIEWER>
+# O usar /request-review skill
+```
+
 ## Remember
 
 - Always verify before presenting options
 - Don't assume user's preference - ask
 - Be ready to explain each option
+- If Option 1 (Create PR) is chosen, always offer Option 5 (Request Review) as next step

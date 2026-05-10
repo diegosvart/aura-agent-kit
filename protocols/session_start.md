@@ -5,6 +5,19 @@
 
 ---
 
+## Hook Fast-Path (leer primero)
+
+Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`, `issues_ready`, `last_session` presentes):
+
+- **Saltear pasos 2, 3 y 4** — los datos ya están disponibles en el hook output
+- **Ejecutar directamente paso 5** (mem_context) y luego paso 6 (resumen)
+- **Repo health** (branch protection checks) → omitir; solo ejecutar bajo demanda o una vez por semana
+- Esto reduce las tool calls de ~10 a **1** (solo mem_context)
+
+Si el hook output NO está presente → ejecutar el protocolo completo desde el Paso 2.
+
+---
+
 ## Paso 1 — Leer Contexto (obligatorio)
 
 Leer en paralelo:
@@ -60,6 +73,46 @@ git remote prune origin --dry-run
 
 Incluir en el resumen si hay ramas que requieren limpieza.
 
+### Integridad Repo-Remote (si gh autenticado)
+
+Ejecutar solo si `gh auth status` pasó en Paso 2.
+
+Invocar `skills/repo-integrity/SKILL.md` con la lista de ramas candidatas (las que tienen commits ahead de develop).
+
+Si se detecta trabajo stranded → **DETENER aquí**. No continuar al Paso 4 hasta que el usuario resuelva.
+
+### Salud del Repositorio (si gh autenticado)
+
+Ejecutar solo si `gh auth status` pasó en Paso 2:
+
+```bash
+# Visibilidad del repo
+gh repo view --json visibility -q .visibility
+
+# Protección de main
+gh api repos/{{OWNER}}/{{REPO}}/branches/main/protection \
+  --jq '{force_push: .allow_force_pushes.enabled, deletions: .allow_deletions.enabled, require_pr: (.required_pull_request_reviews != null)}' \
+  2>/dev/null || echo "main: sin protección"
+
+# Protección de develop
+gh api repos/{{OWNER}}/{{REPO}}/branches/develop/protection \
+  --jq '{force_push: .allow_force_pushes.enabled, deletions: .allow_deletions.enabled, require_pr: (.required_pull_request_reviews != null)}' \
+  2>/dev/null || echo "develop: sin protección"
+```
+
+Incluir en el resumen ejecutivo (Paso 6) con este formato:
+
+```
+## Salud del Repositorio
+| Check             | Estado                          |
+|-------------------|---------------------------------|
+| Visibilidad       | public ✓  / private ⚠          |
+| main protegida    | ✓ require PR, no force push     |
+| develop protegida | ✓ require PR, no force push     |
+```
+
+Si algún check falla → sugerir el comando exacto para corregirlo (ver `agents/github.md`).
+
 ---
 
 ## Paso 4 — Issues Listos (si aplica)
@@ -114,6 +167,10 @@ mem_context(
 |---|--------|--------|
 | ... | ... | ... |
 
+## Ideas en Backlog
+> N ideas — revisar con `/ideas` o abrir `.agent/memory/ideas.md`
+> (Si ideas_count == 0: omitir esta sección)
+
 ## Próxima Acción Recomendada
 **Issue #N** — [título]
 Rama sugerida: `{{TIPO}}/{{CODIGO}}-{{descripcion}}`
@@ -124,9 +181,76 @@ Rama sugerida: `{{TIPO}}/{{CODIGO}}-{{descripcion}}`
 
 ---
 
-## Paso 7 — Confirmar con Usuario
+## Paso 7 — Stack de Sesión
 
-> "¿Continuamos con [next_step] o hay algo nuevo?"
+Determinar el stack tecnológico antes de presentar el menú:
+
+**7a — Detección automática:**
+```
+Buscar en la raíz del proyecto:
+  pyproject.toml / setup.py  → Python
+  package.json               → Node.js / TypeScript
+  Cargo.toml                 → Rust
+  go.mod                     → Go
+```
+
+Si se detecta → mostrar: `Stack detectado: [lenguaje/framework]. ¿Correcto? [S/n]`
+
+**7b — Sin detección:** Invocar `skills/stack-selection/SKILL.md` (lista de 24 perfiles).
+
+**7c — Ya existe `.agent/memory/session-stack.json`:** Leer y confirmar con el usuario que sigue siendo válido.
+
+Una vez confirmado, el stack queda disponible para todos los pasos siguientes.
+
+---
+
+## Paso 8 — Capability Menu
+
+Presentar el menú contextual. Incluir solo las secciones que aplican:
+
+```
+## ¿Qué hacemos hoy?
+
+**Stack activo:** [nombre del perfil detectado o seleccionado]
+
+### Continuar trabajo          ← solo si hay issues con label `ready`
+  ✓ Issue #N — [título]
+  ✓ Issue #M — [título]
+
+### Nuevo trabajo
+  📋 Planificar nuevas tareas       → /plan-work
+  💡 Brainstorm de idea             → /brainstorm
+  🚀 Crear proyecto desde cero      → wizard nuevo proyecto
+
+### Calidad y documentación
+  📖 Verificar documentación        → /doc-check
+  🔍 Code review                    → /request-review
+  ✅ Cerrar rama lista              → /finish-branch
+
+### Investigación y mejora
+  🔬 Auto-research del harness      → /auto-research
+  🐛 Debug de problema              → systematic-debugging
+  🔧 Cambiar stack de sesión        → /stack
+
+> Escribí el número del issue, el nombre de la opción, o describí qué querés hacer.
+```
+
+**Tabla de derivación:**
+
+| Respuesta del usuario | Acción |
+|-----------------------|--------|
+| Número de issue / "continuamos" | Invocar `protocols/task_start.md` con el issue |
+| "Planificar" / "algo nuevo" / describe trabajo | Preguntar: "¿Tenés un diseño o spec previa?" → Si sí: `/plan-work`. Si no: recomendar `/brainstorm` primero |
+| "Brainstorm" | Invocar `/brainstorm` |
+| "Proyecto nuevo" / "desde cero" | Invocar stack-selection → wizard de estructura inicial |
+| "Doc-check" / "documentación" | Invocar `/doc-check` |
+| "Review" / "code review" | Invocar `/request-review` |
+| "Cerrar rama" / "finish" | Invocar `/finish-branch` |
+| "Auto-research" | Invocar `/auto-research` |
+| "/stack" / "cambiar stack" | Invocar `skills/stack-selection/SKILL.md` |
+| No hay issues ready ni next_step | Invocar `/plan-work` automáticamente |
+
+**Regla:** No comenzar trabajo sin que el usuario haya confirmado la dirección.
 
 ---
 

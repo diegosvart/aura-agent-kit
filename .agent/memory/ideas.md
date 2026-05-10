@@ -42,3 +42,23 @@ _(sin iterar)_
 
 ### Iteraciones
 - [2026-05-10] Decisión: harness como submodule en `.aura/`. Rules movidas a opt-in (`.aura/rules/`). Mínimo viable = spine + ciclo + hooks + harness-core. Doc acotada sin exponer modelo de negocio. Validado por Opus. Ejecución en dos etapas: docs primero (esta sesión), refactorización de arquitectura como issue separado.
+
+---
+
+## [005] Visibilidad en tiempo real del trabajo del agente
+**Estado:** raw
+**Capturado:** 2026-05-10
+**Contexto:** El usuario no puede ver qué especialista está activo ni el estado interno del agente durante la ejecución. Posible solución: .agent/status.json actualizado en cada paso, visible en el editor.
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [006] Timeline de sesiones en resumen de session_start
+**Estado:** raw
+**Capturado:** 2026-05-10
+**Contexto:** Engram ya tiene mem_timeline con historia cronológica. Integrarla al resumen ejecutivo de session_start como "Últimas N sesiones: [fecha] — [foco]" daría visibilidad inmediata del progreso sin tool calls adicionales.
+
+### Iteraciones
+_(sin iterar)_

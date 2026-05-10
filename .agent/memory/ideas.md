@@ -72,3 +72,33 @@ _(sin iterar)_
 
 ### Iteraciones
 _(sin iterar)_
+
+---
+
+## [008] Comando /compact — compresión de contexto mid-session
+**Estado:** raw  
+**Capturado:** 2026-05-10  
+**Contexto:** Derivado de evidencia MIT 2025 sobre degradación por ruido. Mid-session: comprimir historial de conversación a resumen estructurado + limpiar tool outputs ya consumidos. Reduce degradación sin cerrar sesión. El documento lo llama "handoffs limpios". Diferente a /clear — no borra, resume.
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [009] Verificación antes de guardar en Engram
+**Estado:** raw  
+**Capturado:** 2026-05-10  
+**Contexto:** Hoy se guarda a Engram sin verificar que lo que el agente cree que hizo coincide con lo que realmente está en el repo (git log, archivos). Un paso de verificación pre-mem_session_summary: comparar afirmaciones del resumen vs estado real del repo. Evita que Engram acumule memorias falsas o inexactas.
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [010] Contenido externo como dato no confiable
+**Estado:** raw  
+**Capturado:** 2026-05-10  
+**Contexto:** El harness no distingue entre contexto interno (protocolos, rules) y contenido externo (GitHub issues, PRs, archivos del usuario, outputs de APIs). NCSC y OWASP documentan que LLMs no separan "datos" de "instrucciones" — prompt injection no se elimina, solo se reduce. Necesitamos delimitar, etiquetar y validar todo contenido externo antes de que el agente actúe sobre él.
+
+### Iteraciones
+_(sin iterar)_

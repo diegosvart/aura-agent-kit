@@ -1,18 +1,15 @@
 {
-  "last_updated": "2026-05-10T23:00:00-04:00",
-  "branch": "develop",
-  "focus": "Harness v1.2.0 completo. PRs #16 y #17 mergeadas a main.",
-  "next_step": "Issue #15 parte 2: arquitectura .aura/, rules opt-in, install.ps1. Luego iterar ideas #007-#010.",
+  "last_updated": "2026-05-11T12:00:00-04:00",
+  "branch": "feature/issue-15-aura-dir",
+  "focus": "Fix session_end: Paso 3 pre-Engram verification implementado. Quick Win #009 done. Issue #23 creado para #001.",
+  "next_step": "Mergear PR a develop (session_end fix). Luego Quick win #001 — Issue #23: validar hooks en Claude Code desktop.",
   "pending": [
-    "Issue #15 parte 2: .aura/ submodule, rules opt-in, script instalación — crear feature branch",
-    "Idea #007: protocolo cierre automático cuando contexto > 60%",
-    "Idea #008: comando /compact mid-session",
-    "Idea #009: verificación pre-Engram (git vs resumen agente)",
-    "Idea #010: etiquetado contenido externo no confiable",
-    "Próxima sesión: respetar flujo git — siempre feature branch, nunca commit directo a develop"
+    "Quick win #001 — Issue #23: verificar hooks PS1 en Claude Code desktop",
+    "Idea #003 — session-end hook + integración directa con Engram",
+    "Idea #007 — Protocolo de cierre por límite de contexto"
   ],
   "required_reads": [
     ".agent/memory/ideas.md",
-    "skills/idea-management/SKILL.md"
+    "protocols/session_end.md"
   ]
 }

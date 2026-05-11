@@ -63,7 +63,53 @@ fi
 
 ---
 
-## Paso 3 — Guardar Memoria en Engram
+## Paso 3 — Verificación de Estado GitHub (pre-Engram)
+
+> Ejecutar SOLO si `gh_authenticated == true` (del hook output).
+> Si gh no autenticado → marcar `gh_verified: false` y continuar con advertencia.
+
+### Fast-path
+
+Si el hook ya provee `recently_merged_prs` y `recently_closed_issues` → usar esos datos directamente y saltear el Paso 3.1.
+
+### 3.1 — Capturar estado real (si no hay fast-path)
+
+```powershell
+# PRs mergeadas recientemente
+gh pr list --state merged --limit 10 --json number,title,mergedAt,headRefName
+
+# PRs aún abiertas
+gh pr list --state open --limit 20 --json number,title,headRefName
+
+# Issues cerrados recientemente
+gh issue list --state closed --limit 10 --json number,title,closedAt
+
+# Issues listos (trabajo real pendiente)
+gh issue list --label ready --state open --json number,title
+```
+
+### 3.2 — Construir pending_verified
+
+Revisar cada item que se planea incluir en `pending`:
+
+- Si menciona "Mergear/PR #N" y PR #N está mergeada → **eliminar**
+- Si menciona "Cerrar/Issue #N" y issue #N está cerrado → **eliminar**
+- Si menciona PR abierta o issue abierto → **conservar**
+- Si es trabajo local (código, docs) sin referencia GitHub → **conservar**
+
+Si se eliminó algún item → agregar nota al `## Accomplished` del Paso 4 (Engram):
+> "Verificación pre-Engram: PR #N ya mergeada — eliminado de pending."
+
+### 3.3 — Si gh no autenticado
+
+```
+pending_verified = pending_raw  (sin filtrar)
+⚠ Advertencia en current-session.json: "gh_verified: false — pending puede tener items desactualizados"
+```
+
+---
+
+## Paso 4 — Guardar Memoria en Engram
 
 ```bash
 mem_session_summary(
@@ -91,7 +137,7 @@ mem_session_summary(
 
 ---
 
-## Paso 4 — Actualizar current-session.json
+## Paso 5 — Actualizar current-session.json
 
 Archivo: `.agent/memory/current-session.json`
 
@@ -110,10 +156,12 @@ Archivo: `.agent/memory/current-session.json`
 - Max 4 items en `pending`
 - Max 4 items en `required_reads`
 - No incluir lista `completed` — eso vive en Engram
+- Usar EXCLUSIVAMENTE `pending_verified` del Paso 3. Nunca escribir este array sin verificar contra GitHub.
+- Si `gh_verified: false` → incluir advertencia como último item: `"⚠ gh no autenticado — verificar manualmente"`
 
 ---
 
-## Paso 5 — Docs/ADRs (si corresponde)
+## Paso 6 — Docs/ADRs (si corresponde)
 
 Si durante la sesión se tomó una decisión arquitectural:
 - Crear/actualizar ADR en `docs/adr/`
@@ -122,15 +170,9 @@ Si durante la sesión se tomó una decisión arquitectural:
 
 ---
 
-## Paso 6 — Verificar Issues de la Sesión
+## Paso 7 — Verificar Issues de la Sesión
 
-```bash
-# Issues cerrados durante esta sesión (aproximado por fecha)
-gh issue list --state closed --limit 10 --json number,title,closedAt
-
-# Issues aún abiertos con label ready
-gh issue list --label ready --state open --json number,title
-```
+> Usar los datos de `gh_reality` capturados en el Paso 3. No ejecutar comandos `gh` adicionales.
 
 Presentar tabla de cierre:
 
@@ -156,7 +198,7 @@ PR_COUNT=$(gh pr list --head "$BRANCH" --state open --json number -q 'length' 2>
 
 ---
 
-## Paso 7 — Integridad Documental (si aplica)
+## Paso 8 — Integridad Documental (si aplica)
 
 Si durante la sesión se crearon o modificaron archivos `.md`:
 ```
@@ -167,7 +209,7 @@ Si REQUIERE CORRECCIÓN → corregir antes de commitear.
 
 ---
 
-## Paso 8 — Presentar Opciones para Próxima Sesión
+## Paso 9 — Presentar Opciones para Próxima Sesión
 
 ```
 ## Sesión Lista para Cerrar
@@ -186,7 +228,7 @@ Si REQUIERE CORRECCIÓN → corregir antes de commitear.
 
 ---
 
-## Paso 9 — Auto-Research (si aplica)
+## Paso 10 — Auto-Research (si aplica)
 
 Antes de cerrar, dedicar 30 segundos a observar:
 
@@ -218,6 +260,7 @@ Antes de cerrar, dedicar 30 segundos a observar:
 | Tests fallan | Corregir antes de cerrar |
 | Engram no disponible | Guardar en current-session.json como backup |
 | Rama develop/main | Crear rama o cambiar de rama |
+| `pending` con items ya mergeados/cerrados | Ejecutar Paso 3 completo antes de continuar — nunca saltear la verificación GitHub |
 
 ---
 

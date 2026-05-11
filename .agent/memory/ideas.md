@@ -94,10 +94,13 @@ _(sin iterar)_
 ---
 
 ## [009] Verificación antes de guardar en Engram
-**Estado:** raw  
+**Estado:** done  
 **Capturado:** 2026-05-10  
 **Prioridad:** Quick win — impacto alto, esfuerzo bajo  
 **Contexto:** Hoy se guarda a Engram sin verificar que lo que el agente cree que hizo coincide con lo que realmente está en el repo (git log, archivos). Un paso de verificación pre-mem_session_summary: comparar afirmaciones del resumen vs estado real del repo. Evita que Engram acumule memorias falsas o inexactas.
+
+### Iteraciones
+- **2026-05-11**: Implementado como Paso 3 de `protocols/session_end.md` (Verificación de Estado GitHub pre-Engram). Consulta PRs mergeadas, PRs abiertas, issues cerrados y issues ready antes de construir `pending_verified`. El hook `session-end.ps1` también fue actualizado con fast-path (`recently_merged_prs`, `recently_closed_issues`). Status: done.
 
 ### Iteraciones
 _(sin iterar)_

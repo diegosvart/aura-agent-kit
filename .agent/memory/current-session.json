@@ -1,15 +1,12 @@
 {
-  "last_updated": "2026-05-11T12:00:00-04:00",
+  "last_updated": "2026-05-11T12:37:00-04:00",
   "branch": "feature/issue-15-aura-dir",
-  "focus": "Fix session_end: Paso 3 pre-Engram verification implementado. Quick Win #009 done. Issue #23 creado para #001.",
-  "next_step": "Mergear PR a develop (session_end fix). Luego Quick win #001 — Issue #23: validar hooks en Claude Code desktop.",
+  "focus": "Issue #15 activo: arquitectura de distribución — harness como submodule en .aura/. Issue #23 cerrado: hooks PS1 verificados y funcionando correctamente.",
+  "next_step": "Crear PR para feature/issue-15-aura-dir con los fixes acumulados: .gitignore actualizado, Issue #23 cerrado.",
   "pending": [
-    "Quick win #001 — Issue #23: verificar hooks PS1 en Claude Code desktop",
-    "Idea #003 — session-end hook + integración directa con Engram",
-    "Idea #007 — Protocolo de cierre por límite de contexto"
+    "Idea #003 — session-end hook + integración directa con Engram"
   ],
   "required_reads": [
-    ".agent/memory/ideas.md",
-    "protocols/session_end.md"
+    ".agent/memory/ideas.md"
   ]
 }

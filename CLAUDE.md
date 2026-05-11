@@ -64,6 +64,16 @@ Si el usuario describe trabajo nuevo sin spec existente:
 
 ---
 
+## Reglas del Harness
+
+@.aura/rules/harness-core.md
+@.aura/rules/design-flow.md
+@.aura/rules/repo-integrity.md
+@.aura/rules/routing-menu.md
+@.aura/rules/coding.md
+
+---
+
 ## Configuración de Permisos
 
 Ver `.claude/settings.json`.

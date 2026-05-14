@@ -1,8 +1,8 @@
 {
-  "last_updated": "2026-05-11T12:37:00-04:00",
-  "branch": "feature/issue-15-aura-dir",
-  "focus": "Issue #15 activo: arquitectura de distribución — harness como submodule en .aura/. Issue #23 cerrado: hooks PS1 verificados y funcionando correctamente.",
-  "next_step": "Crear PR para feature/issue-15-aura-dir con los fixes acumulados: .gitignore actualizado, Issue #23 cerrado.",
+  "last_updated": "2026-05-11T13:00:00-04:00",
+  "branch": "develop",
+  "focus": "PR #25 mergeada — arquitectura .aura/ + hooks verificados. Issues #15 y #23 cerrados.",
+  "next_step": "Planificar próximo trabajo: explorar Idea #003 (session-end hook + integración directa con Engram) o abrir nuevo issue.",
   "pending": [
     "Idea #003 — session-end hook + integración directa con Engram"
   ],

@@ -72,13 +72,13 @@ _(sin iterar)_
 ---
 
 ## [007] Protocolo de cierre por límite de contexto
-**Estado:** raw
+**Estado:** refined
 **Capturado:** 2026-05-10
 **Prioridad:** Hacer — impacto alto, esfuerzo medio  
 **Contexto:** A 71% de contexto (141k/200k) con 14.5k libres el autocompact comprime y puede perder nuance. Necesitamos un mecanismo que detecte cuando el contexto supera ~65% y dispare automáticamente el protocolo de cierre de sesión (guardar Engram + current-session.json + avisar al usuario).
 
 ### Iteraciones
-_(sin iterar)_
+- [2026-05-14] Alcance refinado: no es cierre de sesión sino checkpoint post-PR. Flujo: después de PR confirmada → mem_session_summary → current-session.json actualizado → si contexto extenso sugerir /compact. Trigger fijo post-PR (no condicional por umbral porque el agente no puede leer tokens directamente). El check preciso del 60% requeriría hook PostToolUse. Evidencia directa en este repo: a 100k+ el agente ignoró reglas workflow y ejecutó push directo a main. Veredicto: GO. Diseño mínimo: nuevo paso en finish-branch + protocolo task-checkpoint.md.
 
 ---
 
@@ -134,6 +134,17 @@ _(sin iterar)_
 **Capturado:** 2026-05-10  
 **Prioridad:** Hacer — impacto alto, esfuerzo medio  
 **Contexto:** El flujo actual de /idea no busca similitudes antes de capturar una nueva idea. Sin revisión activa del backlog, es posible registrar la misma idea dos veces con distinta redacción. Necesitamos que /idea haga búsqueda semántica o keyword en ideas.md antes de guardar, y alerte si hay solapamiento probable.
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [013] Integración con MCP de Perplexity para búsquedas web
+**Estado:** raw  
+**Capturado:** 2026-05-14  
+**Prioridad:** Planificar — impacto alto, esfuerzo medio  
+**Contexto:** (pendiente de exploración)
 
 ### Iteraciones
 _(sin iterar)_

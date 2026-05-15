@@ -68,6 +68,7 @@
 - **Nunca commitear** `.env`, keys, tokens
 - **Preferir `gh` CLI** sobre MCP GitHub (~80 tokens vs ~800 tokens)
 - **Al cerrar sesión**: Engram + `current-session.json` siempre
+- **Nunca modificar la BD**: ver `.aura/.claude/rules/data-safety.md`
 
 ---
 

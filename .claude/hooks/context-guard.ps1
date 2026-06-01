@@ -41,38 +41,15 @@ if (-not $transcript_path -or -not (Test-Path $transcript_path)) {
     exit 0
 }
 
-# Leer y parsear el transcript JSONL
-$total_chars = 0
+# Estimacion rapida por tamaño de archivo (evita timeout con transcripts grandes)
+# file_bytes / 4 ≈ tokens (misma ratio chars/tokens, instantaneo)
+$estimated_tokens = 0
 try {
-    Get-Content $transcript_path | ForEach-Object {
-        $entry = $_ | ConvertFrom-Json -ErrorAction SilentlyContinue
-        if ($entry) {
-            # Sumar contenido de mensajes (text blocks y tool results)
-            if ($entry.content) {
-                if ($entry.content -is [string]) {
-                    $total_chars += $entry.content.Length
-                } elseif ($entry.content -is [array]) {
-                    foreach ($block in $entry.content) {
-                        if ($block.text)    { $total_chars += $block.text.Length }
-                        if ($block.content) {
-                            if ($block.content -is [string]) {
-                                $total_chars += $block.content.Length
-                            } elseif ($block.content -is [array]) {
-                                foreach ($inner in $block.content) {
-                                    if ($inner.text) { $total_chars += $inner.text.Length }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    $file_size = (Get-Item $transcript_path).Length
+    $estimated_tokens = [int]($file_size / 4)
 } catch {
     exit 0
 }
-
-$estimated_tokens = [int]($total_chars / 4)
 
 if ($estimated_tokens -lt $THRESHOLD_WARN) {
     exit 0

@@ -56,6 +56,7 @@
 | Cambios en documentación | `/doc-check` → `agents/doc-guardian.md` |
 | Gestionar objetivos / ideas | `/idea` → `skills/idea-management/SKILL.md` |
 | Mejorar el harness | `/auto-research` → `skills/auto-research/SKILL.md` |
+| Reporte de un plan estratégico | `/plan-report` → `.claude/agents/plan-reporter.md` |
 | Cierre de sesión | `protocols/session_end.md` |
 
 ---

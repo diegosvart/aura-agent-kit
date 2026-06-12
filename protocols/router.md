@@ -25,7 +25,7 @@
 | **Gestionar objetivos / ideas** | `skills/idea-management/SKILL.md` via `/idea` | Usuario escribe `/idea`, registra idea, o quiere explorar/promover un objetivo |
 | **Mejorar el harness** | `skills/auto-research/SKILL.md` + `docs/aura/specs/2026-05-09-harness-pillars.md` | Fricción detectada, patrón repetitivo |
 | **Seleccionar / cambiar stack** | `skills/stack-selection/SKILL.md` via `/stack` | Sin session-stack.json, inicio de proyecto nuevo, o usuario quiere cambiar stack |
-| **Reporte de plan estratégico** | `.claude/agents/plan-reporter.md` via `/plan-report` | Usuario pide reporte de gestión, tareas accionables, análisis de riesgo de un plan |
+| **Reporte de plan estratégico** | `skills/plan-reporting/SKILL.md` via `/plan-report` (ejecutado por `plan-reporter`) | Usuario pide reporte de gestión, tareas accionables, análisis de riesgo de un plan |
 | **Cierre de sesión** | `protocols/session_end.md` | "Terminamos", "cerramos", fin de trabajo |
 
 ---

@@ -2,6 +2,14 @@
 
 > **Cuándo:** Al cerrar cada sesión de trabajo.
 > **Obligatorio:** Sí.
+>
+> **Alcance (desde 2026-07-13):** este protocolo registra el estado de la SESIÓN (dónde
+> quedó parado el trabajo, memoria de continuidad). **Ya NO es el único lugar donde se
+> documenta "qué se implementó"** — eso vive en `.agent/memory/project-log.md` y se
+> actualiza en el momento del merge a develop (ver `.aura/agents/github.md`, sección "Al
+> Mergear una PR a Develop"), sin depender de que esta sesión llegue a cerrarse formalmente.
+> Motivo del cambio: depender solo de la frase de cierre para documentar avances demostró
+> ser poco confiable — sesiones que no cerraban formalmente no dejaban ningún registro.
 
 ---
 
@@ -120,6 +128,11 @@ Si durante la sesión se tomó una decisión arquitectural:
 - Documentar en `docs/` si es necesario
 - Referenciar en el commit/PR
 
+> Nota: si el trabajo de la sesión ya se mergeó a develop, el resumen "qué se agregó" para
+> el proyecto ya debería estar en `.agent/memory/project-log.md` (ver `agents/github.md`).
+> Este paso es sobre decisiones arquitecturales que ameritan un ADR formal, no un duplicado
+> de esa bitácora.
+
 ---
 
 ## Paso 6 — Verificar Issues de la Sesión
@@ -231,10 +244,15 @@ Si hay `session-end` hook en la configuración del IDE:
 
 ## Post-merge a develop (caso especial)
 
-Si durante esta sesión se mergeó un PR a develop:
-1. Cerrar el issue referenciado:
+Si durante esta sesión se mergeó un PR a develop, el registro "qué se agregó" (ledger de
+planes + `project-log.md`) **ya debería estar hecho** en el momento del merge — ver
+`.aura/agents/github.md` sección "Al Mergear una PR a Develop". Si por algún motivo no se
+hizo en su momento, hacerlo ahora antes de cerrar:
+1. Actualizar el ledger de planes (`.agent/memory/plans/<...>.md` → `status: done`) si
+   corresponde.
+2. Append a `.agent/memory/project-log.md` si no hay entrada para ese PR todavía.
+3. Cerrar el issue referenciado:
    ```bash
    gh issue close {{N}} --comment "Implementado en PR #{{PR}} (merged a develop {{FECHA}})"
    ```
-2. Mover item en Project board de Todo → Done
-3. Documentar en el resumen de sesión
+4. Mover item en Project board de Todo → Done

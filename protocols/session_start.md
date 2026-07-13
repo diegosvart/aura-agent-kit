@@ -25,6 +25,8 @@ Leer en paralelo:
 - `{{PROJECT_CONTEXT}}` (archivo de contexto del proyecto)
 - `{{MATRIZ_PLANIFICACION}}` (si existe)
 - `.agent/memory/current-session.json` (si existe)
+- `.agent/memory/project-log.md` (si existe) — qué se agregó al proyecto en los últimos
+  merges, independiente de si las sesiones anteriores cerraron formalmente
 - `docs/adr/README.md` (decisiones arquitecturales)
 
 ---

@@ -143,6 +143,38 @@ gh repo edit {OWNER}/{REPO} --visibility public --accept-visibility-change-conse
 
 ---
 
+## Al Mergear una PR a Develop (obligatorio, NO depende de cierre de sesión)
+
+> **Por qué existe esta regla:** la documentación de "qué se implementó" solía depender de
+> que el usuario dijera una frase de cierre de sesión (`session_end.md`) — poco confiable en
+> la práctica (sesiones que terminan sin frase de cierre no dejaban registro). Se movió el
+> trigger al evento objetivo que el agente controla directamente: el merge mismo.
+
+Inmediatamente después de un `gh pr merge` exitoso (o al confirmar que un PR ya fue
+mergeado, aunque no lo haya mergeado esta sesión):
+
+1. **Actualizar el ledger de planes** si el trabajo mergeado corresponde a un plan aprobado:
+   buscar el archivo en `.agent/memory/plans/<fecha>-<slug>.md` y actualizar su frontmatter
+   a `status: done`, `pr: #N`, `commit: <hash del merge>`, `completed_at: <fecha>`. Si no
+   existe un plan formal para ese trabajo, omitir este paso (no crear uno retroactivo salvo
+   pedido explícito).
+2. **Append a `.agent/memory/project-log.md`** — agregar un bloque nuevo ARRIBA de todo
+   (orden cronológico inverso), nunca editar bloques anteriores. Formato:
+   ```
+   ## {{FECHA}} — PR #{{N}} — {{título del PR}}
+
+   **Plan:** {{path al ledger si existe, o "no hubo plan formal"}}
+   **Qué se agregó:** 2-3 líneas en lenguaje de negocio — qué cambió para el usuario/proyecto,
+   no un resumen técnico de diff.
+   **Archivos clave:** lista breve (3-6 archivos) de lo más relevante.
+   ```
+3. **Cerrar el issue asociado** si aplica (ya existía esta regla, ver arriba).
+
+Este paso es **independiente** de si la sesión se cierra formalmente — se ejecuta en el
+momento del merge, dentro del mismo turno en que se confirma el merge.
+
+---
+
 ## gh CLI vs MCP GitHub
 
 **Prefiere gh CLI sobre MCP GitHub** — menor consumo de tokens.

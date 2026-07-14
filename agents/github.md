@@ -124,13 +124,19 @@ gh repo edit {OWNER}/{REPO} --visibility public --accept-visibility-change-conse
 
 ### Pre-commit (obligatorio)
 1. Verificar que NO estamos en develop o main
-2. Ejecutar linter (detectado según tecnología)
-3. Ejecutar tests (detectados según tecnología)
+2. **Barrido de contenido sensible** — aplicar `.claude/rules/sensitive-data-safety.md`
+   sobre `git diff --cached`. Si detecta algo → DETENER y seguir el flujo "Qué hacer al
+   detectar" de esa regla, no continuar al commit.
+3. Ejecutar linter (detectado según tecnología)
+4. Ejecutar tests (detectados según tecnología)
 
 ### Pre-push
 1. Verificar upstream branch
-2. Confirmar que PR apunta a develop (no main)
-3. No hacer force push a ramas compartidas
+2. **Barrido de contenido sensible** — aplicar `.claude/rules/sensitive-data-safety.md`
+   sobre los mensajes de commit de la rama (`git log develop..HEAD`) y el cuerpo del PR a
+   crear/actualizar. Si detecta algo → DETENER y seguir el flujo "Qué hacer al detectar".
+3. Confirmar que PR apunta a develop (no main)
+4. No hacer force push a ramas compartidas
 
 ---
 

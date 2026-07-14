@@ -10,9 +10,14 @@
 Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`, `issues_ready`, `last_session` presentes):
 
 - **Saltear pasos 2, 3 y 4** — los datos ya están disponibles en el hook output
+- **Excepción:** correr igual `gh repo view --json visibility -q .visibility` y aplicar el
+  **Gate de datos sensibles** (ver Paso 3 → "Salud del Repositorio") — es una sola llamada
+  barata y protege contra el escenario que motivó esa regla; no se salta ni con hook output
+  presente
 - **Ejecutar directamente paso 5** (mem_context) y luego paso 6 (resumen)
-- **Repo health** (branch protection checks) → omitir; solo ejecutar bajo demanda o una vez por semana
-- Esto reduce las tool calls de ~10 a **1** (solo mem_context)
+- **Repo health** (branch protection de main/develop) → omitir; solo ejecutar bajo demanda o
+  una vez por semana
+- Esto reduce las tool calls de ~10 a **2** (visibilidad + mem_context)
 
 Si el hook output NO está presente → ejecutar el protocolo completo desde el Paso 2.
 
@@ -27,6 +32,8 @@ Leer en paralelo:
 - `.agent/memory/current-session.json` (si existe)
 - `.agent/memory/project-log.md` (si existe) — qué se agregó al proyecto en los últimos
   merges, independiente de si las sesiones anteriores cerraron formalmente
+- `.agent/memory/objectives.md` (si existe) — Norte (largo plazo) vs ASAP (bloqueante ahora);
+  se edita in-place, a diferencia de `project-log.md`
 - `docs/adr/README.md` (decisiones arquitecturales)
 
 ---
@@ -106,14 +113,31 @@ Incluir en el resumen ejecutivo (Paso 6) con este formato:
 
 ```
 ## Salud del Repositorio
-| Check             | Estado                          |
-|-------------------|---------------------------------|
-| Visibilidad       | public ✓  / private ⚠          |
-| main protegida    | ✓ require PR, no force push     |
-| develop protegida | ✓ require PR, no force push     |
+| Check             | Estado                                |
+|-------------------|----------------------------------------|
+| Visibilidad       | private ✓  / public ⚠ (requiere confirmación) |
+| main protegida    | ✓ require PR, no force push           |
+| develop protegida | ✓ require PR, no force push           |
 ```
 
 Si algún check falla → sugerir el comando exacto para corregirlo (ver `agents/github.md`).
+
+#### Gate de datos sensibles (si `visibility == public`)
+
+Si la visibilidad es **pública** y el proyecto maneja datos de un cliente real
+(heurística: existe `output/` gitignored, o config local-only en `config/*.json`
+gitignored, o el objetivo del proyecto es reverse-engineering de una BD real) →
+**DETENER aquí, antes del Paso 6.** No presentar el resumen ejecutivo ni el Paso 6 hasta
+que el usuario responda.
+
+Preguntar textualmente:
+> "El repo es **público** y este proyecto maneja datos de un cliente real. ¿Confirmás que
+> no hay datos sensibles versionados, o preferís pasarlo a privado ahora
+> (`gh repo edit --visibility private`)?"
+
+Ver `.claude/rules/sensitive-data-safety.md` para el catálogo completo de qué cuenta
+como sensible. Registrar la respuesta del usuario en la sección "Advertencias" del
+resumen ejecutivo.
 
 ---
 

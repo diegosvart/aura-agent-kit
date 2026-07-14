@@ -10,9 +10,14 @@
 Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`, `issues_ready`, `last_session` presentes):
 
 - **Saltear pasos 2, 3 y 4** — los datos ya están disponibles en el hook output
+- **Excepción:** correr igual `gh repo view --json visibility -q .visibility` y aplicar el
+  **Gate de datos sensibles** (ver Paso 3 → "Salud del Repositorio") — es una sola llamada
+  barata y protege contra el escenario que motivó esa regla; no se salta ni con hook output
+  presente
 - **Ejecutar directamente paso 5** (mem_context) y luego paso 6 (resumen)
-- **Repo health** (branch protection checks) → omitir; solo ejecutar bajo demanda o una vez por semana
-- Esto reduce las tool calls de ~10 a **1** (solo mem_context)
+- **Repo health** (branch protection de main/develop) → omitir; solo ejecutar bajo demanda o
+  una vez por semana
+- Esto reduce las tool calls de ~10 a **2** (visibilidad + mem_context)
 
 Si el hook output NO está presente → ejecutar el protocolo completo desde el Paso 2.
 

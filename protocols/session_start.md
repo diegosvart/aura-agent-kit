@@ -27,6 +27,8 @@ Leer en paralelo:
 - `.agent/memory/current-session.json` (si existe)
 - `.agent/memory/project-log.md` (si existe) — qué se agregó al proyecto en los últimos
   merges, independiente de si las sesiones anteriores cerraron formalmente
+- `.agent/memory/objectives.md` (si existe) — Norte (largo plazo) vs ASAP (bloqueante ahora);
+  se edita in-place, a diferencia de `project-log.md`
 - `docs/adr/README.md` (decisiones arquitecturales)
 
 ---
@@ -106,14 +108,31 @@ Incluir en el resumen ejecutivo (Paso 6) con este formato:
 
 ```
 ## Salud del Repositorio
-| Check             | Estado                          |
-|-------------------|---------------------------------|
-| Visibilidad       | public ✓  / private ⚠          |
-| main protegida    | ✓ require PR, no force push     |
-| develop protegida | ✓ require PR, no force push     |
+| Check             | Estado                                |
+|-------------------|----------------------------------------|
+| Visibilidad       | private ✓  / public ⚠ (requiere confirmación) |
+| main protegida    | ✓ require PR, no force push           |
+| develop protegida | ✓ require PR, no force push           |
 ```
 
 Si algún check falla → sugerir el comando exacto para corregirlo (ver `agents/github.md`).
+
+#### Gate de datos sensibles (si `visibility == public`)
+
+Si la visibilidad es **pública** y el proyecto maneja datos de un cliente real
+(heurística: existe `output/` gitignored, o config local-only en `config/*.json`
+gitignored, o el objetivo del proyecto es reverse-engineering de una BD real) →
+**DETENER aquí, antes del Paso 6.** No presentar el resumen ejecutivo ni el Paso 6 hasta
+que el usuario responda.
+
+Preguntar textualmente:
+> "El repo es **público** y este proyecto maneja datos de un cliente real. ¿Confirmás que
+> no hay datos sensibles versionados, o preferís pasarlo a privado ahora
+> (`gh repo edit --visibility private`)?"
+
+Ver `.claude/rules/sensitive-data-safety.md` para el catálogo completo de qué cuenta
+como sensible. Registrar la respuesta del usuario en la sección "Advertencias" del
+resumen ejecutivo.
 
 ---
 

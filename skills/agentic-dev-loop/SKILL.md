@@ -42,19 +42,51 @@ tiene el label `ready` por convención de `session_start`.
 
 ---
 
+## Paso 0 — Bootstrap de stack (una sola vez por repo)
+
+Si `.agent/memory/session-stack.json` no existe, generarlo antes de correr el loop por primera
+vez en este repo: detectar el stack (P6) y completar `{"stack": "...", "lint": "...",
+"typecheck": "...", "test": "..."}` (el campo `typecheck` puede quedar vacío si el stack no
+aplica). Esto es una detección manual **una sola vez** — todas las corridas siguientes del loop
+lo reutilizan gratis vía `scripts/verify.sh`, en vez de que cada agente redetecte el stack.
+
+## Scripts de orquestación (sin gastar razonamiento de agente)
+
+Los pasos de este skill que son lógica determinística sobre output de `gh`/`git` — elegir
+issue, resolver tier, cerrar el ciclo, ubicar candidatos/PR — están implementados como scripts
+en `skills/agentic-dev-loop/scripts/` (solo `bash`+`gh`, sin dependencias externas). El
+orquestador (sesión interactiva o, a futuro, un runner headless/cron) **ejecuta el script y usa
+su output directo** — no le pide a un agente que "razone" estos pasos. Esto es la extensión de
+**P1 (CLI > MCP)**: si un script determinístico alcanza, no gastar un agente en decidirlo.
+
+| Script | Reemplaza | Contrato |
+|---|---|---|
+| `pick-next-issue.sh <owner>/<repo>` | Fase 1, Paso 1 | stdout = número de issue elegido (vacío si ninguno apto); corrige a `blocked` los `ready` con dependencia abierta |
+| `resolve-tier.sh <owner>/<repo> <issue>` | Fase 1, Paso 3 | stdout = `haiku` \| `sonnet` \| `opus` |
+| `close-cycle.sh <owner>/<repo> <issue>` | Fase 1, Paso 5 | aplica el label (`review` o `ready`) según haya o no PR abierto con `Closes #N` |
+| `find-review-candidates.sh <owner>/<repo>` | Fase 2, Paso 1 | stdout = JSON de issues `review` |
+| `find-pr-for-issue.sh <owner>/<repo> <issue>` | Fase 2, Paso 2 | stdout = número de PR (exit 1 si no hay) |
+| `verify.sh` | corridas sueltas de lint/typecheck/test | resumen corto pass/fail; solo muestra el fragmento de error si algo falla — nunca vuelca output crudo completo en éxito |
+
+**Nota de diseño importante (descubierta validando `pick-next-issue.sh` contra un repo real):**
+si el *default branch* del repo (el que dispara el autocierre de `Closes #N`) es distinto de la
+rama de integración a la que mergean los PRs del loop (ej. default `main`, PRs a `develop`),
+**el issue nunca se autocierra al mergear** y queda `OPEN` indefinidamente. Por eso
+`pick-next-issue.sh` no confía solo en `gh issue view N --json state`: también busca un PR
+*mergeado* con `Closes #N` (`gh pr list --search "Closes #N" --state merged`) como señal
+alternativa de que la dependencia está resuelta. Cualquier lógica nueva que dependa de "¿está
+cerrado el issue N?" debe usar el mismo criterio doble, no solo el estado del issue.
+
+---
+
 ## Fase 1 — Dev-runner (desarrollo, no supervisado)
 
 ### Paso 1 — Elegir issue
 ```bash
-gh issue list --repo <OWNER>/<REPO> --label ready --state open --json number,title,body --limit 30
-gh issue list --repo <OWNER>/<REPO> --label in-progress --state open --json number
+skills/agentic-dev-loop/scripts/pick-next-issue.sh <OWNER>/<REPO>
 ```
-- Si ya hay un issue `in-progress` → **no tomar ninguno nuevo**, terminar esta fase (evita
-  pisar una cadena de dependencias con corridas concurrentes).
-- Si no: de los `ready`, elegir el de **menor número** cuyo "Depende de: Issue N" (si existe en
-  el body) esté cerrado (`gh issue view N --json state -q .state` → `CLOSED`). Saltar los que
-  tengan una dependencia abierta (deberían tener `blocked`, no `ready` — si aparece uno así,
-  corregir el label a `blocked` y seguir con el próximo).
+Si no imprime nada, no hay issue apto (ya hay uno `in-progress`, o ningún `ready` tiene sus
+dependencias resueltas) — terminar esta fase.
 
 ### Paso 2 — Marcar in-progress (antes de lanzar el agente)
 ```bash
@@ -62,23 +94,28 @@ gh issue edit <N> --repo <OWNER>/<REPO> --remove-label ready --add-label in-prog
 ```
 
 ### Paso 3 — Resolver tier de modelo (D3 de la spec)
-- Default: **Haiku**.
-- Si el body del issue trae `**Complejidad:** alta` (o similar marca explícita de
-  `issue-planning`) → arrancar directo en **Sonnet**.
-- Si un intento previo en este mismo issue fue registrado como fallido (comentario del
-  dev-runner en el issue) → escalar al siguiente tier (Haiku→Sonnet→Opus) en el reintento.
+```bash
+skills/agentic-dev-loop/scripts/resolve-tier.sh <OWNER>/<REPO> <N>
+```
+Default **Haiku**; escala a **Sonnet** si el body trae `**Complejidad:** alta` o si ya hay 1
+comentario de bloqueo/fallo previo en el issue; a **Opus** si hay 2 o más.
 
 ### Paso 4 — Lanzar el agente de desarrollo
 Prompt autocontenido (el agente parte de cero — sin memoria de esta sesión):
 - Body completo del issue (ya trae objetivo, archivos, tareas RED→GREEN, DoD).
-- Comandos de verificación resueltos desde `.agent/memory/session-stack.json` (lint, typecheck
-  si aplica, test) — nunca asumir `ruff`/`pytest` a menos que el stack lo confirme.
+- Instrucción explícita de usar `skills/agentic-dev-loop/scripts/verify.sh` para lint/typecheck/
+  test en cada iteración RED→GREEN, en vez de correr los comandos sueltos e ir volcando su
+  output completo al contexto — el script ya resuelve los comandos desde
+  `.agent/memory/session-stack.json` (Paso 0) y devuelve un resumen corto; solo muestra el
+  fragmento de error si algo falla. Correr la suite completa (no acotada a archivos tocados)
+  únicamente en la verificación final antes de commitear — es el gate real, pero no hace falta
+  pagarlo completo en cada iteración intermedia.
 - Instrucciones operativas:
   1. `git fetch && git checkout develop && git pull && git checkout -b feature/issue-<N>-<slug-corto>`.
   2. Implementar **exactamente** las tareas listadas (RED→GREEN si el issue las trae así), sin
      tocar archivos fuera de la lista "Archivos" salvo que el DoD lo exija explícitamente.
-  3. Correr lint/typecheck/test; deben quedar verdes antes de commitear (tests gateados por
-     entorno real, ej. `@skipif`, se respetan tal cual están — no forzarlos a correr).
+  3. `verify.sh` debe quedar en verde antes de commitear (tests gateados por entorno real, ej.
+     `@skipif`, se respetan tal cual están — no forzarlos a correr).
   4. Commit con mensaje convencional, push a la rama remota.
   5. Abrir PR hacia `develop` con `Closes #<N>` en el body y un resumen de los cambios.
   6. Si en algún punto queda bloqueado (dependencia no resuelta que no se había detectado,
@@ -86,8 +123,17 @@ Prompt autocontenido (el agente parte de cero — sin memoria de esta sesión):
      terminar sin PR.
 
 ### Paso 5 — Cerrar el ciclo
-- **Si el agente abrió PR:** `gh issue edit <N> --remove-label in-progress --add-label review`.
-- **Si el agente no abrió PR (bloqueo):** `gh issue edit <N> --remove-label in-progress --add-label ready` (o `blocked` si identificó una dependencia real) y confirmar que el comentario de bloqueo quedó en el issue.
+```bash
+skills/agentic-dev-loop/scripts/close-cycle.sh <OWNER>/<REPO> <N>
+```
+Aplica automáticamente `review` (si encuentra PR abierto con `Closes #N`) o `ready` (si no) —
+en el segundo caso, confirmar además que el agente dejó un comentario de bloqueo en el issue.
+
+### Paso 5.5 — Registrar consumo (ambas fases)
+Guardar tokens y tool-calls que reportó el agente (dev-runner y, más adelante, verifier) como
+observación en Engram (`mem_save`, `project=<repo>`, ej. `type=pattern` con un tag de métricas)
+para trackear si el costo por issue baja con las optimizaciones de este skill, o si conviene
+revisar el enfoque antes de escalar el loop a más issues.
 
 ---
 
@@ -97,16 +143,14 @@ Se dispara igual por cron que a demanda ("cerré/revisá el issue N").
 
 ### Paso 1 — Ubicar candidatos
 ```bash
-gh issue list --repo <OWNER>/<REPO> --label review --state open --json number,title,body
+skills/agentic-dev-loop/scripts/find-review-candidates.sh <OWNER>/<REPO>
 ```
 O, si el usuario indica un issue puntual, usar ese directamente aunque no tenga el label
 `review` todavía (caso "cerré el issue a mano, revisalo").
 
 ### Paso 2 — Ubicar el PR asociado
 ```bash
-gh pr list --repo <OWNER>/<REPO> --search "Closes #<N>" --json number,headRefName,state
-# fallback si el texto de Closes no matchea la búsqueda:
-gh pr list --repo <OWNER>/<REPO> --head feature/issue-<N>- --json number
+skills/agentic-dev-loop/scripts/find-pr-for-issue.sh <OWNER>/<REPO> <N>
 ```
 
 ### Paso 3 — Auditar (mismo método que un code review manual)
@@ -114,8 +158,8 @@ No confiar en el resumen del PR. Para cada tarea del DoD del issue:
 1. Leer el diff real (`git diff develop..<rama> -- <archivos>` o `gh pr diff <N>`).
 2. Confirmar que el comportamiento descrito existe en el código, no solo que se tocó el
    archivo correcto.
-3. Correr lint/typecheck/test localmente sobre la rama (comandos resueltos vía
-   `session-stack.json`, igual que en la Fase 1).
+3. Correr `skills/agentic-dev-loop/scripts/verify.sh` localmente sobre la rama — mismo wrapper
+   que usa la Fase 1, mismo resumen corto en vez de output crudo completo.
 4. Listar hallazgos concretos (archivo, línea, qué falla) si algo no cumple.
 
 ### Paso 4 — Veredicto
@@ -144,6 +188,7 @@ varios issues `review` en la misma corrida — auditar no muta código, solo lee
 | Issue `ready` con dependencia abierta | Corregir a `blocked`, no confiar en que el dev-runner lo detecte siempre |
 | `gh` no autenticado en corrida programada (cron/headless) | Las integraciones autenticadas interactivamente pueden no estar disponibles en ejecuciones remotas — validar esto manualmente antes de programar el cron, no asumir que funciona igual que en sesión interactiva |
 | El dev-runner abre PR pero no pushea (o viceversa) | Tratar como fallo — el issue debe quedar `ready`/`blocked` con comentario, nunca `review` sin PR real |
+| Un issue "resuelto" (PR mergeado) queda `OPEN` indefinidamente | Pasa cuando el *default branch* del repo (el que dispara el autocierre de `Closes #N`) es distinto de la rama a la que mergean los PRs (ej. default `main`, loop mergea a `develop`). `pick-next-issue.sh` ya compensa esto buscando un PR *mergeado* además del estado del issue — no asumir que "issue closed" es la única señal válida de dependencia resuelta en ningún script/skill nuevo |
 
 ---
 

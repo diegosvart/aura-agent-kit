@@ -20,7 +20,11 @@
 | `review` | PR abierto, esperando auditoría | dev-runner al terminar | los otros 4 |
 | `changes-requested` | La verificación encontró que no cumple el DoD | verifier | los otros 4 |
 
-Un issue solo debe tener **uno** de estos cinco labels a la vez. Si un repo no tiene alguno de
+Un issue solo debe tener **uno** de estos cinco labels a la vez. Aparte de estos, el label
+estándar de GitHub `bug` (si el repo lo tiene, que es el caso por default) funciona como señal
+de **prioridad**: `pick-next-issue.sh` toma un `ready` con `bug` antes que cualquier `ready` sin
+ese label, sin importar el número de issue (fix antes que feat). `issue-planning/SKILL.md`
+aplica `bug` al crear un issue que describe un defecto/corrección. Si un repo no tiene alguno de
 estos labels todavía, crearlo antes de la primera corrida:
 ```bash
 gh label create in-progress --repo <OWNER>/<REPO> --description "El dev-runner lo está trabajando" --color 0e8a16
@@ -61,21 +65,23 @@ su output directo** — no le pide a un agente que "razone" estos pasos. Esto es
 
 | Script | Reemplaza | Contrato |
 |---|---|---|
-| `pick-next-issue.sh <owner>/<repo>` | Fase 1, Paso 1 | stdout = número de issue elegido (vacío si ninguno apto); corrige a `blocked` los `ready` con dependencia abierta |
+| `pick-next-issue.sh <owner>/<repo>` | Fase 1, Paso 1 | stdout = número de issue elegido (vacío si ninguno apto); prioriza `ready`+`bug` sobre el resto (fix antes que feat); corrige a `blocked` los `ready` con dependencia abierta |
 | `resolve-tier.sh <owner>/<repo> <issue>` | Fase 1, Paso 3 | stdout = `haiku` \| `sonnet` \| `opus` |
-| `close-cycle.sh <owner>/<repo> <issue>` | Fase 1, Paso 5 | aplica el label (`review` o `ready`) según haya o no PR abierto con `Closes #N` |
+| `close-cycle.sh <owner>/<repo> <issue>` | Fase 1, Paso 5 | aplica `review` si hay PR abierto con `Closes #N`, `ready` si no hay PR (ni abierto ni mergeado); si el único PR encontrado ya está mergeado, no toca ningún label (issue ya resuelto) |
 | `find-review-candidates.sh <owner>/<repo>` | Fase 2, Paso 1 | stdout = JSON de issues `review` |
-| `find-pr-for-issue.sh <owner>/<repo> <issue>` | Fase 2, Paso 2 | stdout = número de PR (exit 1 si no hay) |
+| `find-pr-for-issue.sh <owner>/<repo> <issue>` | Fase 2, Paso 2 | stdout = número de PR, abierto o mergeado (exit 1 si no hay ninguno) |
 | `verify.sh` | corridas sueltas de lint/typecheck/test | resumen corto pass/fail; solo muestra el fragmento de error si algo falla — nunca vuelca output crudo completo en éxito |
 
 **Nota de diseño importante (descubierta validando `pick-next-issue.sh` contra un repo real):**
 si el *default branch* del repo (el que dispara el autocierre de `Closes #N`) es distinto de la
 rama de integración a la que mergean los PRs del loop (ej. default `main`, PRs a `develop`),
-**el issue nunca se autocierra al mergear** y queda `OPEN` indefinidamente. Por eso
-`pick-next-issue.sh` no confía solo en `gh issue view N --json state`: también busca un PR
-*mergeado* con `Closes #N` (`gh pr list --search "Closes #N" --state merged`) como señal
-alternativa de que la dependencia está resuelta. Cualquier lógica nueva que dependa de "¿está
-cerrado el issue N?" debe usar el mismo criterio doble, no solo el estado del issue.
+**el issue nunca se autocierra al mergear** y queda `OPEN` indefinidamente. Por eso ningún script
+de este skill confía solo en `gh issue view N --json state` ni en buscar únicamente PRs
+*abiertos*: `pick-next-issue.sh` busca también un PR *mergeado* con `Closes #N`
+(`gh pr list --search "Closes #N" --state merged`) al resolver dependencias, y `close-cycle.sh`/
+`find-pr-for-issue.sh` hacen lo mismo antes de asumir que un issue no tiene PR. Cualquier lógica
+nueva que dependa de "¿está cerrado el issue N?" o "¿tiene PR el issue N?" debe usar el mismo
+criterio doble (abierto O mergeado), no solo el estado del issue ni solo PRs abiertos.
 
 ---
 
@@ -189,6 +195,7 @@ varios issues `review` en la misma corrida — auditar no muta código, solo lee
 | `gh` no autenticado en corrida programada (cron/headless) | Las integraciones autenticadas interactivamente pueden no estar disponibles en ejecuciones remotas — validar esto manualmente antes de programar el cron, no asumir que funciona igual que en sesión interactiva |
 | El dev-runner abre PR pero no pushea (o viceversa) | Tratar como fallo — el issue debe quedar `ready`/`blocked` con comentario, nunca `review` sin PR real |
 | Un issue "resuelto" (PR mergeado) queda `OPEN` indefinidamente | Pasa cuando el *default branch* del repo (el que dispara el autocierre de `Closes #N`) es distinto de la rama a la que mergean los PRs (ej. default `main`, loop mergea a `develop`). `pick-next-issue.sh` ya compensa esto buscando un PR *mergeado* además del estado del issue — no asumir que "issue closed" es la única señal válida de dependencia resuelta en ningún script/skill nuevo |
+| `close-cycle.sh` corrompe un issue con `ready`+`review` a la vez | Ocurría al re-correrlo sobre un issue cuyo PR ya está mergeado (mismo gap del default branch, arriba): el script solo buscaba PRs *abiertos* con `Closes #N`, no encontraba nada, y devolvía el issue a `ready` encima del `review` que ya tenía. Se detectó corriendo el script contra el Issue #27 real. Fix: `close-cycle.sh` y `find-pr-for-issue.sh` ahora buscan también PRs *mergeados* antes de asumir que no hay ninguno; si encuentran uno mergeado, `close-cycle.sh` no toca ningún label y avisa que no debería haberse re-ejecutado sobre ese issue |
 
 ---
 

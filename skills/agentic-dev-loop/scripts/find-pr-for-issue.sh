@@ -6,7 +6,7 @@ set -euo pipefail
 REPO="${1:?Uso: find-pr-for-issue.sh <owner>/<repo> <issue>}"
 ISSUE="${2:?Uso: find-pr-for-issue.sh <owner>/<repo> <issue>}"
 
-pr_number=$(gh pr list --repo "$REPO" --search "Closes #$ISSUE" --json number --jq '.[0].number // empty')
+pr_number=$(gh pr list --repo "$REPO" --search "Closes #$ISSUE" --state all --json number --jq '.[0].number // empty')
 
 if [ -z "$pr_number" ]; then
   pr_number=$(gh pr list --repo "$REPO" --json number,headRefName \

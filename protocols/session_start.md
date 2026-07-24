@@ -36,6 +36,20 @@ Leer en paralelo:
   se edita in-place, a diferencia de `project-log.md`
 - `docs/adr/README.md` (decisiones arquitecturales)
 
+### Chequeo de ubicación de `AGENTS.local.md`
+
+`.aura/CLAUDE.md` carga la identidad local vía `@../AGENTS.local.md` — es decir, el
+archivo debe vivir en la **raíz del proyecto consumidor**, no dentro de `.aura/`. Si no
+existe `AGENTS.local.md` en la raíz pero sí existe `.aura/AGENTS.local.md`, el import
+falla en silencio y la identidad del agente nunca carga. Verificar:
+
+```bash
+test -f AGENTS.local.md || test -f .aura/AGENTS.local.md && echo "ADVERTENCIA: AGENTS.local.md está en .aura/, no en la raíz — moverlo con: mv .aura/AGENTS.local.md AGENTS.local.md"
+```
+
+Si se detecta esta condición, incluirla en la sección "Advertencias" del resumen ejecutivo
+(Paso 6) antes de continuar.
+
 ---
 
 ## Paso 2 — Estado del Entorno

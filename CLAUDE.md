@@ -53,7 +53,7 @@ Si el usuario describe trabajo nuevo sin spec existente:
 
 ## Identidad y Pilares
 
-@AGENTS.local.md
+@../AGENTS.local.md
 @AGENTS.md
 
 ---

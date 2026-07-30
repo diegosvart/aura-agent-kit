@@ -1,12 +1,16 @@
 {
-  "last_updated": "2026-05-11T13:00:00-04:00",
+  "last_updated": "2026-07-30T00:00:00-04:00",
   "branch": "develop",
-  "focus": "PR #25 mergeada — arquitectura .aura/ + hooks verificados. Issues #15 y #23 cerrados.",
-  "next_step": "Planificar próximo trabajo: explorar Idea #003 (session-end hook + integración directa con Engram) o abrir nuevo issue.",
+  "focus": "PR #48 mergeada a develop (commit e72eb21). Batch 1 de issues (#44-47) listo para que el loop lo corra como prueba de fuego.",
+  "next_step": "Correr /run-dev-loop sobre la cadena #44-47.",
   "pending": [
-    "Idea #003 — session-end hook + integración directa con Engram"
+    "Correr /run-dev-loop sobre la cadena #44-47",
+    "Revertir #30-34 a ready cuando el Batch 1 termine",
+    "Crear Batch 2 (contribucion + guardrail + docs versionado) despues del Batch 1"
   ],
   "required_reads": [
+    "docs/aura/specs/2026-07-30-harness-self-update.md",
+    "skills/agentic-dev-loop/SKILL.md",
     ".agent/memory/ideas.md"
   ]
 }

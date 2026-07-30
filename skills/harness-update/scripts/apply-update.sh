@@ -89,6 +89,10 @@ try:
 except Exception as e:
     raise ValueError(f"No se pudo resincronizar CLAUDE.md: {e}") from e
 PYTHON_RESYNC
+      if [ $? -ne 0 ]; then
+        echo "ERROR: Resync de CLAUDE.md falló" >&2
+        exit 1
+      fi
     fi
   fi
 fi
@@ -142,6 +146,10 @@ try:
 except Exception as e:
     raise ValueError(f"No se pudo leer CHANGELOG.md: {e}") from e
 PYTHON_CHANGELOG
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Lectura de CHANGELOG.md falló" >&2
+    exit 1
+  fi
 fi
 
 echo ""

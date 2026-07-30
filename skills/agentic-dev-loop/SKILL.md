@@ -26,6 +26,7 @@ estos labels todavía, crearlo antes de la primera corrida:
 gh label create in-progress --repo <OWNER>/<REPO> --description "El dev-runner lo está trabajando" --color 0e8a16
 gh label create review --repo <OWNER>/<REPO> --description "PR abierto, esperando auditoría" --color fbca04
 gh label create changes-requested --repo <OWNER>/<REPO> --description "No cumple el DoD, requiere ajuste" --color d93f0b
+gh label create blocked --repo <OWNER>/<REPO> --description "Depende de algo no resuelto" --color b60205
 ```
 
 ---

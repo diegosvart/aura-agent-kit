@@ -17,25 +17,31 @@ ready_numbers=$(gh issue list --repo "$REPO" --label ready --state open --json n
 for number in $ready_numbers; do
   body=$(gh issue view "$number" --repo "$REPO" --json body --jq '.body')
 
-  dep_line=$(echo "$body" | grep -m1 -i "Depende de:" || true)
+  # El formato canónico ("- **Depende de:** Issue N", ver skills/issue-planning/SKILL.md) trae
+  # el número en la misma línea; pero issues creados a mano suelen usar un encabezado
+  # ("## Depende de") con el número en la línea siguiente, y "Issue #N" (con "#") en vez de
+  # "Issue N". Buscar en ambas líneas y tolerar el "#" opcional cubre los dos formatos reales.
+  dep_block=$(echo "$body" | grep -m1 -i -A1 "Depende de" || true)
 
-  if [ -z "$dep_line" ] || echo "$dep_line" | grep -qi "nada"; then
+  if [ -z "$dep_block" ] || echo "$dep_block" | grep -qi "nada"; then
     echo "$number"
     exit 0
   fi
 
-  dep_num=$(echo "$dep_line" | grep -oE 'Issue [0-9]+' | head -1 | grep -oE '[0-9]+' || true)
+  dep_num=$(echo "$dep_block" | grep -oE 'Issue #?[0-9]+' | head -1 | grep -oE '[0-9]+' || true)
 
   if [ -z "$dep_num" ]; then
-    echo "Issue #$number tiene dependencia no parseable (\"$dep_line\") — se omite, revisar manualmente." >&2
+    echo "Issue #$number tiene dependencia no parseable (\"$dep_block\") — se omite, revisar manualmente." >&2
     continue
   fi
 
-  dep_gh_number=$(gh issue list --repo "$REPO" --state all --json number,title \
-    --jq ".[] | select(.title | test(\"^Issue $dep_num \")) | .number" | head -1)
+  # "Issue #N" / "Issue N" en el body es una referencia directa al número de issue de GitHub
+  # (no un título con prefijo "Issue N: ..." — los issues reales usan títulos conventional
+  # commit, ej. "feat(goal): ..."). Confirmar que existe antes de usarlo.
+  dep_gh_number=$(gh issue view "$dep_num" --repo "$REPO" --json number --jq '.number' 2>/dev/null || true)
 
   if [ -z "$dep_gh_number" ]; then
-    echo "Issue #$number depende de \"Issue $dep_num\" pero no se encontró un issue de GitHub con ese prefijo de título — se omite." >&2
+    echo "Issue #$number depende de \"Issue $dep_num\" pero no existe un issue de GitHub con ese número — se omite." >&2
     continue
   fi
 

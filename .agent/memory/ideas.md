@@ -148,3 +148,24 @@ _(sin iterar)_
 
 ### Iteraciones
 _(sin iterar)_
+
+---
+
+## [015] Cerrar el loop de `agentic-dev-loop`: `changes-requested` no vuelve a `ready`
+**Estado:** raw
+**Capturado:** 2026-07-30
+**Prioridad:** Hacer — impacto alto, esfuerzo medio
+**Contexto:** Validando el flujo completo del loop (Preparar → Planificar → Ejecutar → Revisar →
+Entregar) contra las fases documentadas en `skills/agentic-dev-loop/SKILL.md` se confirmó un
+gap real: dentro de una misma corrida hay un micro-loop de ajuste (`verify.sh` en cada
+iteración RED→GREEN) y entre corridas hay un macro-loop de ajuste (issue vuelto a `ready` con
+comentario de bloqueo → `resolve-tier.sh` escala el modelo en el próximo intento) — pero el
+veredicto negativo de la Fase 2 (Verifier, label `changes-requested`) **no vuelve a alimentar
+ese ciclo**. `pick-next-issue.sh` solo mira el label `ready`; nada en el skill ni en los
+scripts documenta cómo un issue en `changes-requested` regresa a un segundo intento del
+dev-runner. Hoy el loop se detiene ahí y depende de intervención manual. No se aborda en el
+spec de `harness-update` (`docs/aura/specs/2026-07-30-harness-self-update.md`) — es un gap de
+`agentic-dev-loop` en sí mismo, tema aparte.
+
+### Iteraciones
+_(sin iterar)_

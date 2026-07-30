@@ -1,10 +1,11 @@
 {
-  "last_updated": "2026-07-30T00:00:00-04:00",
-  "branch": "develop",
-  "focus": "PR #48 mergeada a develop (commit e72eb21). Batch 1 de issues (#44-47) listo para que el loop lo corra como prueba de fuego.",
-  "next_step": "Correr /run-dev-loop sobre la cadena #44-47.",
+  "last_updated": "2026-07-30T12:30:00-04:00",
+  "branch": "docs/agentic-dev-loop-errores-comunes-batch1",
+  "focus": "Batch 1 (#44-47) en marcha: #44 cerrado (PR #49), #45 ready, #46/#47 blocked. Bug de pick-next-issue.sh arreglado (PR #50, mergeada). PR #51 (docs) abierta, pendiente de merge.",
+  "next_step": "Mergear PR #51, luego seguir /run-dev-loop sobre Issue #45.",
   "pending": [
-    "Correr /run-dev-loop sobre la cadena #44-47",
+    "Mergear PR #51 (https://github.com/diegosvart/aura-agent-kit/pull/51)",
+    "Correr /run-dev-loop sobre Issue #45 (ready), luego #46 y #47 en cadena",
     "Revertir #30-34 a ready cuando el Batch 1 termine",
     "Crear Batch 2 (contribucion + guardrail + docs versionado) despues del Batch 1"
   ],

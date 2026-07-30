@@ -4,6 +4,25 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-07-30 — PR #56 — fix(harness-update): endurecer apply-update.sh contra 3 fallas silenciosas
+
+**Plan:** no hubo plan formal (fast-follow del Issue #55, encontrado en revisión adversarial
+post-merge de PR #53)
+**Qué se agregó:** El script de aplicación de actualizaciones del harness (`apply-update.sh`) ya
+no esconde fallos reales: si falla el checkout de un tag (ej. porque `.aura/` quedó con cambios
+sin commitear), ahora muestra el motivo real de git en vez de un mensaje genérico indistinguible
+de "el tag no existe"; si falta el bloque de configuración `aura:begin/aura:end` (local o en la
+fuente), ahora avisa en vez de saltear el paso en silencio; y se eliminó un detalle de bash que
+podía hacer abortar el script sin motivo aparente en un fast-follow futuro.
+**Archivos clave:** skills/harness-update/scripts/apply-update.sh
+
+## 2026-07-30 — PR #54 — docs(project-log): registrar PR #53 en la bitácora de proyecto
+
+**Plan:** no hubo plan formal (actualización retroactiva post-merge)
+**Qué se agregó:** Bitácora del proyecto puesta al día con la entrada de PR #53 (scripts de
+auto-actualización del harness) que no se había registrado antes de mergear esa PR.
+**Archivos clave:** .agent/memory/project-log.md
+
 ## 2026-07-30 — PR #53 — feat(harness-update): scripts check-update.sh y apply-update.sh + skill + comando
 
 **Plan:** docs/aura/specs/2026-07-30-harness-self-update.md (D2, D4, D5) — no hay ledger formal

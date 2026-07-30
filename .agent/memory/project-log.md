@@ -4,6 +4,23 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-07-30 — PR #53 — feat(harness-update): scripts check-update.sh y apply-update.sh + skill + comando
+
+**Plan:** docs/aura/specs/2026-07-30-harness-self-update.md (D2, D4, D5) — no hay ledger formal
+en `.agent/memory/plans/` para este issue puntual
+**Qué se agregó:** El harness ahora puede detectar y aplicar sus propias actualizaciones:
+`check-update.sh` compara la versión local contra la última publicada, y `apply-update.sh` trae
+el tag nuevo, sobreescribe los hooks del proyecto y resincroniza el bloque de configuración en
+`CLAUDE.md`, dejando un resumen de qué cambió. Se agregó también el comando `/harness-update`
+para disparar esto a demanda.
+**Primera corrida real del ciclo dev-runner → verifier con 2 rondas de fix:** la primera versión
+del script tenía un bug real (los mensajes de error de Python quedaban silenciados y el script
+igual reportaba éxito); el segundo intento arregló eso pero el fallo seguía sin propagarse al
+código de salida del script. Ambos se corrigieron antes de mergear — quedó documentado en el
+Issue #45 y en Engram como aprendizaje del proceso.
+**Archivos clave:** skills/harness-update/SKILL.md, skills/harness-update/scripts/check-update.sh,
+skills/harness-update/scripts/apply-update.sh, commands/harness-update.md
+
 ## 2026-07-30 — PR #51 — docs(agentic-dev-loop): documentar bugs reales del Batch 1 (#44-47)
 
 **Plan:** no hubo plan formal (documentación de hallazgos en vivo de la corrida del loop)

@@ -4,6 +4,16 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-07-30 — PR #51 — docs(agentic-dev-loop): documentar bugs reales del Batch 1 (#44-47)
+
+**Plan:** no hubo plan formal (documentación de hallazgos en vivo de la corrida del loop)
+**Qué se agregó:** La tabla "Errores Comunes" de la skill del loop de desarrollo automático
+ahora documenta dos problemas reales encontrados en la primera corrida sobre la cadena
+#44-47: el bug de regex sin anclar (ya resuelto en PR #50) y el caso de un issue que queda
+abierto indefinidamente tras mergear su PR, sin nada que lo cierre automáticamente — con el
+paso manual para resolverlo.
+**Archivos clave:** skills/agentic-dev-loop/SKILL.md
+
 ## 2026-07-30 — PR #50 — fix(agentic-dev-loop): anclar regex de "Depende de" a heading/bullet
 
 **Plan:** no hubo plan formal (bug encontrado en vivo, corriendo el loop sobre #44-47)

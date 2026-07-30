@@ -65,3 +65,6 @@ docs/aura/experiments/
 
 # Backups de sesión (generados por hook session-end)
 .agent/memory/backups/
+
+# Cache de detección de actualización del harness (generado por hook session-start)
+.agent/memory/harness-update-check.json

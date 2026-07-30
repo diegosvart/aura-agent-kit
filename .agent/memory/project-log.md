@@ -4,6 +4,19 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-07-30 — Release v2.0.0 — PR #58, #59, #60
+
+**Plan:** docs/aura/specs/2026-07-30-harness-self-update.md (D1, D2)
+**Qué se agregó:** El harness quedó liberado como v2.0.0 en `main` — primer release real desde
+el bootstrap de versionado (v1.4.0). Incluye el ciclo completo de auto-actualización: detección
+automática (hook `session-start.ps1`, cacheada 6h, expone `harness_update_available`/
+`harness_latest_version`) y aplicación manual (`/harness-update`). También se corrigió un bug de
+hardening real encontrado en vivo: en máquinas Windows con WSL instalado, `Get-Command bash`
+puede resolver al relay de WSL en vez de Git Bash y fallar en silencio — el hook ahora resuelve
+`bash.exe` explícitamente desde la instalación de Git for Windows. Motivado por la necesidad de
+probar `/harness-update` desde un repo consumidor externo apuntando a un tag real.
+**Archivos clave:** .claude/hooks/session-start.ps1, CHANGELOG.md, .gitignore
+
 ## 2026-07-30 — PR #56 — fix(harness-update): endurecer apply-update.sh contra 3 fallas silenciosas
 
 **Plan:** no hubo plan formal (fast-follow del Issue #55, encontrado en revisión adversarial

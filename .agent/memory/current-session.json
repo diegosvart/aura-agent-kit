@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-07-30T19:00:00-04:00",
-  "branch": "release/v2.0.0",
-  "focus": "Batch 1 (#44-47) completo hasta #46: #44, #45, #46 cerrados y mergeados (PR #49, #53/#56, #58). Liberando v2.0.0 (develop -> main) para probar el flujo de auto-actualizacion del harness (/harness-update) desde un repo consumidor externo.",
-  "next_step": "Verificar /harness-update en un repo consumidor externo contra el tag v2.0.0. Luego continuar con Issue #47 (docs aviso de una linea en session_start.md), ya unblocked.",
+  "last_updated": "2026-07-30T19:10:00-04:00",
+  "branch": "develop",
+  "focus": "Batch 1 (#44-47): #44, #45 y #46 cerrados y mergeados. Release v2.0.0 liberado en main (PR #58, #59, #60) para probar /harness-update desde un repo consumidor externo. Issue #47 desbloqueado (label ready).",
+  "next_step": "Verificar /harness-update en un repo consumidor externo apuntando al tag v2.0.0. Luego Issue #47 (docs aviso de una linea en session_start.md Paso 6).",
   "pending": [
     "Verificar apply-update.sh / check-update.sh desde un repo consumidor real apuntando a v2.0.0",
-    "Issue #47 (docs aviso de una linea en session_start.md) listo para trabajar",
-    "Borrar rama remota feat/issue-46-harness-update-flags (ya mergeada, quedo un commit huerfano post-merge)",
+    "Issue #47 listo para trabajar (label ready)",
+    "Revertir #30-34 a ready cuando el Batch 1 termine",
     "Crear Batch 2 (contribucion + guardrail + docs versionado) despues del Batch 1"
   ],
   "required_reads": [

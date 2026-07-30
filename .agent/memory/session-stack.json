@@ -1,0 +1,6 @@
+{
+  "stack": "bash-scripts + markdown (aura-agent-kit no tiene stack de codigo detectable)",
+  "lint": "command -v shellcheck >/dev/null 2>&1 && find skills -path '*/scripts/*.sh' -exec shellcheck {} + || echo 'shellcheck no disponible en este PATH, omitiendo'",
+  "typecheck": "",
+  "test": ""
+}

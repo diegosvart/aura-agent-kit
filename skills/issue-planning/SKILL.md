@@ -61,6 +61,31 @@ Presentar al usuario la lista propuesta antes de crear:
 ¿Aprobás esta lista o querés ajustar algo?
 ```
 
+**Si existe un spec previo** (`docs/aura/specs/*.md`, ej. salido de `/brainstorm`): no re-narrar
+el "por qué" de cada issue — el spec ya lo tiene, con rationale y trade-offs por decisión. El
+body del issue debe cargar solo el "qué" (accionable), y apuntar al spec para el "por qué":
+
+```markdown
+## Descripción
+<una oración — qué se construye>
+
+Ver <D<N>> en `docs/aura/specs/<archivo>.md` para el rationale completo.
+
+## Archivos
+- <path 1>
+- <path 2>
+
+## Criterios de Aceptación
+- [ ] <copiado verbatim del criterio de aceptación correspondiente del spec>
+- [ ] <ídem>
+```
+
+Esto evita pagar el costo de redactar el "qué/por qué" dos veces (spec + issue) y evita que
+diverjan con el tiempo. El agente ejecutor lee el spec solo si necesita resolver una ambigüedad
+real — no se le fuerza ese contexto por defecto. La sección **Archivos** es obligatoria cuando
+el issue está destinado a `agentic-dev-loop` (es una precondición explícita de ese skill —
+issues sin esta sección no son "loop-ready" aunque tengan label `ready`).
+
 ### Paso 5 — Crear issues en GitHub (tras aprobación)
 Para cada issue aprobado, además de `ready` agregar `bug` si el issue describe un defecto o
 corrección de algo que ya existe, o `enhancement` si es trabajo nuevo. Esta señal la usa

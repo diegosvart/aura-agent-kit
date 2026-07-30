@@ -65,7 +65,7 @@ if [ -f "CLAUDE.md" ] && grep -q "aura:begin" CLAUDE.md 2>/dev/null; then
     aura_block=$(sed -n '/aura:begin/,/aura:end/p' "$AURA_PATH/CLAUDE.md" 2>/dev/null || echo "")
     if [ -n "$aura_block" ]; then
       # Usar python para hacer el reemplazo preservando la estructura
-      python3 << 'PYTHON_RESYNC'
+      python3 - "$AURA_PATH/CLAUDE.md" << 'PYTHON_RESYNC'
 import re
 import sys
 
@@ -87,7 +87,7 @@ try:
             f.write(new_content)
         print("  (Bloque aura:begin/aura:end resincronizado)")
 except Exception as e:
-    print(f"  WARN: No se pudo resincronizar CLAUDE.md: {e}", file=sys.stderr)
+    raise ValueError(f"No se pudo resincronizar CLAUDE.md: {e}") from e
 PYTHON_RESYNC
     fi
   fi
@@ -109,13 +109,15 @@ if [ -f "$AURA_PATH/CHANGELOG.md" ]; then
   echo "=== CHANGELOG ==="
   # Extraer solo las entradas del tag que se acaba de aplicar
   # Formato esperado: ## [tag] - YYYY-MM-DD
-  python3 << 'PYTHON_CHANGELOG'
+  python3 - "$VERSION_TAG" "$AURA_PATH/CHANGELOG.md" << 'PYTHON_CHANGELOG'
 import re
 import sys
 
-tag = sys.argv[1] if len(sys.argv) > 1 else ""
 try:
-    with open(sys.argv[2], 'r', encoding='utf-8') as f:
+    tag = sys.argv[1]
+    changelog_path = sys.argv[2]
+
+    with open(changelog_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
 
     # Buscar la sección del tag
@@ -138,7 +140,7 @@ try:
     else:
         print(f"  (No hay entradas para {tag} en CHANGELOG.md)")
 except Exception as e:
-    print(f"  (No se pudo leer CHANGELOG.md: {e})", file=sys.stderr)
+    raise ValueError(f"No se pudo leer CHANGELOG.md: {e}") from e
 PYTHON_CHANGELOG
 fi
 

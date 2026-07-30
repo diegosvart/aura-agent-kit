@@ -26,7 +26,11 @@ try_pick_from() {
     # el número en la misma línea; pero issues creados a mano suelen usar un encabezado
     # ("## Depende de") con el número en la línea siguiente, y "Issue #N" (con "#") en vez de
     # "Issue N". Buscar en ambas líneas y tolerar el "#" opcional cubre los dos formatos reales.
-    dep_block=$(echo "$body" | grep -m1 -i -A1 "Depende de" || true)
+    # El anclado a inicio de línea (con el prefijo de heading/bullet) evita falsos positivos con
+    # texto libre que contiene la frase "depende de" fuera de la sección real (caso real: Issue
+    # #45 tiene un criterio de aceptación "Ningún script depende de jq externo" que aparece antes
+    # de la sección "## Depende de" y era matcheado primero por un grep sin anclar).
+    dep_block=$(echo "$body" | grep -m1 -i -A1 -E '^(#{1,6}[[:space:]]*|-[[:space:]]*\*\*)Depende de' || true)
 
     if [ -z "$dep_block" ] || echo "$dep_block" | grep -qi "nada"; then
       echo "$number"

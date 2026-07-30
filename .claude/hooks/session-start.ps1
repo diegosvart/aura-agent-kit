@@ -148,5 +148,69 @@ try {
     $output.ideas_count = 0
 }
 
+# Detección de actualización disponible del harness (D2 — cacheado, silencioso si falla)
+# Ver docs/aura/specs/2026-07-30-harness-self-update.md
+try {
+    $auraPath = Join-Path $projectRoot ".aura"
+    $cacheFile = Join-Path $projectRoot ".agent\memory\harness-update-check.json"
+    $ttlHours = 6
+    $cache = $null
+
+    if (Test-Path $cacheFile) {
+        try {
+            $cache = Get-Content $cacheFile -Raw | ConvertFrom-Json
+        } catch {
+            $cache = $null
+        }
+    }
+
+    $cacheIsFresh = $false
+    if ($cache -and $cache.last_checked) {
+        $lastChecked = Get-Date $cache.last_checked
+        $cacheIsFresh = ((Get-Date).ToUniversalTime() - $lastChecked.ToUniversalTime()).TotalHours -lt $ttlHours
+    }
+
+    # Resolver bash de Git for Windows explícitamente — en máquinas con WSL instalado,
+    # `Get-Command bash` puede resolver al relay de System32\bash.exe (WSL) en vez de
+    # Git Bash, que falla si no hay distro configurada aunque "haya bash en PATH".
+    $gitBash = $null
+    $gitCmd = (Get-Command git -ErrorAction SilentlyContinue).Source
+    if ($gitCmd) {
+        $gitRoot = Split-Path (Split-Path $gitCmd -Parent) -Parent
+        $candidate = Join-Path $gitRoot "bin\bash.exe"
+        if (Test-Path $candidate) { $gitBash = $candidate }
+    }
+
+    if ($cacheIsFresh) {
+        if ($cache.harness_update_available) {
+            $output.harness_update_available = $true
+            $output.harness_latest_version = $cache.harness_latest_version
+        }
+    } elseif ((Test-Path (Join-Path $auraPath ".git")) -and $gitBash -and (Get-Command git -ErrorAction SilentlyContinue)) {
+        $checkScript = Join-Path $projectRoot "skills\harness-update\scripts\check-update.sh"
+        $remoteTag = ""
+        if (Test-Path $checkScript) {
+            $remoteTag = (& $gitBash $checkScript $auraPath 2>$null | Select-Object -Last 1)
+        }
+        $localTag = (git -C $auraPath describe --tags --abbrev=0 2>$null)
+
+        $updateAvailable = [bool]($remoteTag -and ($remoteTag -ne $localTag))
+
+        $newCache = @{
+            last_checked              = (Get-Date).ToUniversalTime().ToString("o")
+            harness_update_available  = $updateAvailable
+            harness_latest_version    = if ($updateAvailable) { $remoteTag } else { $null }
+        }
+        $newCache | ConvertTo-Json | Set-Content -Path $cacheFile -Encoding utf8
+
+        if ($updateAvailable) {
+            $output.harness_update_available = $true
+            $output.harness_latest_version = $remoteTag
+        }
+    }
+} catch {
+    # Silencioso — sin red, sin .aura/, o cualquier falla: no se setea el campo (D2)
+}
+
 # Output como JSON para que Claude lo use como contexto
 $output | ConvertTo-Json -Depth 5

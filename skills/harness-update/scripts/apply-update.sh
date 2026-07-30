@@ -29,8 +29,10 @@ git -C "$AURA_PATH" fetch --tags origin >/dev/null 2>&1 || {
 
 # Checkout del tag
 echo "[2/4] Checkout de $VERSION_TAG en .aura/..."
-if ! git -C "$AURA_PATH" checkout "$VERSION_TAG" >/dev/null 2>&1; then
+checkout_err=$(git -C "$AURA_PATH" checkout "$VERSION_TAG" 2>&1 >/dev/null)
+if [ $? -ne 0 ]; then
   echo "ERROR: No se puede hacer checkout a $VERSION_TAG" >&2
+  echo "$checkout_err" >&2
   exit 1
 fi
 
@@ -48,7 +50,7 @@ if [ -d "$AURA_PATH/.claude/hooks" ]; then
       if ! diff -q "$hook_file" "$target" >/dev/null 2>&1; then
         cp "$hook_file" "$target"
         echo "  - Actualizado: $hook_name"
-        ((hooks_changed++))
+        ((++hooks_changed))
       fi
     fi
   done
@@ -93,8 +95,14 @@ PYTHON_RESYNC
         echo "ERROR: Resync de CLAUDE.md falló" >&2
         exit 1
       fi
+    else
+      echo "  ($AURA_PATH/CLAUDE.md sin bloque aura:begin/aura:end — resync omitido)"
     fi
+  else
+    echo "  ($AURA_PATH/CLAUDE.md no existe — resync omitido)"
   fi
+else
+  echo "  (CLAUDE.md local sin bloque aura:begin/aura:end — resync omitido)"
 fi
 
 # Leer CHANGELOG para reportar lo que se aplicó

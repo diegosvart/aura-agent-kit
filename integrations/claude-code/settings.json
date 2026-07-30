@@ -55,11 +55,11 @@
       "Bash(git clean -f:*)",
       "PowerShell(Remove-Item -Recurse *)",
 
-      "Write(.env:*)",
-      "Write(.env.*:*)",
-      "Write(*.pem:*)",
-      "Write(*.key:*)",
-      "Write(*.secret:*)"
+      "Edit(.env:*)",
+      "Edit(.env.*:*)",
+      "Edit(*.pem:*)",
+      "Edit(*.key:*)",
+      "Edit(*.secret:*)"
     ]
   }
 }

@@ -87,7 +87,7 @@ Write-Host @"
 
 Próximos pasos:
   1. Agregar hooks a .claude/settings.json (ver .aura/QUICKSTART.md Paso 3)
-  2. Personalizar identidad en AGENTS.local.md (ver .aura/AGENTS.local.example.md)
+  2. Personalizar identidad en AGENTS.local.md EN LA RAIZ DEL PROYECTO (no dentro de .aura/) — ver .aura/AGENTS.local.example.md
   3. Iniciar sesión: claude .
 
 "@ -ForegroundColor White

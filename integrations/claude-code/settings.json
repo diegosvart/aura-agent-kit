@@ -9,7 +9,7 @@
 
       "Read(**)",
 
-      "Write(**)",
+      "Edit(**)",
 
       "Bash(python:*)",
       "Bash(node:*)",

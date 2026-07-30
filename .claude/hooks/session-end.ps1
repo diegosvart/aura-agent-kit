@@ -70,5 +70,23 @@ if ($ghAuthenticated -and $output.branch -ne "unknown") {
     } catch { }
 }
 
+# PRs mergeadas recientemente — fast-path para Paso 3 de session_end
+$output.recently_merged_prs = @()
+if ($ghAuthenticated) {
+    try {
+        $mergedJson = gh pr list --state merged --limit 5 --json number,title,mergedAt 2>$null
+        if ($mergedJson) { $output.recently_merged_prs = ($mergedJson | ConvertFrom-Json) }
+    } catch { }
+}
+
+# Issues cerrados recientemente — fast-path para Paso 3 de session_end
+$output.recently_closed_issues = @()
+if ($ghAuthenticated) {
+    try {
+        $closedJson = gh issue list --state closed --limit 5 --json number,title,closedAt 2>$null
+        if ($closedJson) { $output.recently_closed_issues = ($closedJson | ConvertFrom-Json) }
+    } catch { }
+}
+
 # Output JSON para que el agente ejecute el protocolo session_end.md con contexto
 $output | ConvertTo-Json -Depth 5

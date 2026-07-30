@@ -1,17 +1,17 @@
 {
-  "last_updated": "2026-05-10T22:30:00-04:00",
-  "branch": "develop",
-  "focus": "Harness v1.2.0 — identidad local, skill /idea, docs. Cerrado por límite de contexto (71%).",
-  "next_step": "1) PR develop→main (commits post-PR#16). 2) Issue #15 parte 2: .aura/ + rules opt-in + script instalación. 3) Protocolo cierre por contexto.",
+  "last_updated": "2026-07-30T19:00:00-04:00",
+  "branch": "release/v2.0.0",
+  "focus": "Batch 1 (#44-47) completo hasta #46: #44, #45, #46 cerrados y mergeados (PR #49, #53/#56, #58). Liberando v2.0.0 (develop -> main) para probar el flujo de auto-actualizacion del harness (/harness-update) desde un repo consumidor externo.",
+  "next_step": "Verificar /harness-update en un repo consumidor externo contra el tag v2.0.0. Luego continuar con Issue #47 (docs aviso de una linea en session_start.md), ya unblocked.",
   "pending": [
-    "Abrir PR develop→main con commits: identidad local + ideas #005/#006",
-    "Issue #15 parte 2: arquitectura .aura/, rules opt-in, install.ps1/sh",
-    "Nueva idea #007: protocolo de cierre por límite de contexto (detectar >70%, guardar y avisar)",
-    "Probar QUICKSTART en proyecto limpio desde cero"
+    "Verificar apply-update.sh / check-update.sh desde un repo consumidor real apuntando a v2.0.0",
+    "Issue #47 (docs aviso de una linea en session_start.md) listo para trabajar",
+    "Borrar rama remota feat/issue-46-harness-update-flags (ya mergeada, quedo un commit huerfano post-merge)",
+    "Crear Batch 2 (contribucion + guardrail + docs versionado) despues del Batch 1"
   ],
   "required_reads": [
-    "skills/idea-management/SKILL.md",
-    ".agent/memory/ideas.md",
-    "protocols/session_start.md"
+    "docs/aura/specs/2026-07-30-harness-self-update.md",
+    "skills/harness-update/SKILL.md",
+    ".agent/memory/ideas.md"
   ]
 }

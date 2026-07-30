@@ -58,3 +58,13 @@ docs/aura/plans/*.md
 
 # Identidad local del agente (sensible — nunca commitear)
 AGENTS.local.md
+
+# Claude Code worktrees y experimentos locales
+.claude/worktrees/
+docs/aura/experiments/
+
+# Backups de sesión (generados por hook session-end)
+.agent/memory/backups/
+
+# Cache de detección de actualización del harness (generado por hook session-start)
+.agent/memory/harness-update-check.json

@@ -1,7 +1,10 @@
 # Identidad del Agente — Local (ejemplo)
 
-> Copiar como `AGENTS.local.md` y personalizar. Este archivo SÍ se commitea (es el ejemplo público).
-> `AGENTS.local.md` NO se commitea — es tu identidad privada.
+> Copiar a la **raíz del proyecto consumidor** (NO dentro de `.aura/`) como
+> `AGENTS.local.md`, y personalizar ahí. Este archivo SÍ se commitea (es el ejemplo
+> público, vive en `.aura/`). `AGENTS.local.md` NO se commitea — es tu identidad
+> privada, y `.aura/CLAUDE.md` la carga vía `@../AGENTS.local.md` (relativo a `.aura/`,
+> por eso apunta un nivel arriba, a la raíz del proyecto).
 
 ---
 

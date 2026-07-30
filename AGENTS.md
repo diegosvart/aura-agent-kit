@@ -56,6 +56,9 @@
 | Cambios en documentación | `/doc-check` → `agents/doc-guardian.md` |
 | Gestionar objetivos / ideas | `/idea` → `skills/idea-management/SKILL.md` |
 | Mejorar el harness | `/auto-research` → `skills/auto-research/SKILL.md` |
+| Reporte de un plan estratégico | `/plan-report` → `skills/plan-reporting/SKILL.md` → `.claude/agents/plan-reporter.md` |
+| Loop de desarrollo + verificación de issues | `/run-dev-loop` → `skills/agentic-dev-loop/SKILL.md` |
+| Manejo de datos sensibles / repo público | `.claude/rules/sensitive-data-safety.md` |
 | Cierre de sesión | `protocols/session_end.md` |
 
 ---
@@ -68,6 +71,16 @@
 - **Nunca commitear** `.env`, keys, tokens
 - **Preferir `gh` CLI** sobre MCP GitHub (~80 tokens vs ~800 tokens)
 - **Al cerrar sesión**: Engram + `current-session.json` siempre
+- **Nunca modificar la BD**: ver `.aura/.claude/rules/data-safety.md`
+- **Nunca versionar datos corporativos del cliente**: ver
+  `.aura/.claude/rules/sensitive-data-safety.md`
+- **Al aprobar un plan** (ExitPlanMode u equivalente): copiarlo a
+  `.agent/memory/plans/<fecha>-<slug>.md` con frontmatter `status: approved`. Nunca
+  sobreescribir un plan existente — cada aprobación es un archivo nuevo. Al mergear el PR
+  que lo implementa, actualizar el MISMO archivo a `status: done` (ver
+  `agents/github.md` → "Al Mergear una PR a Develop"). Esto es independiente del cierre de
+  sesión — un plan puede quedar `done` aunque la sesión que lo implementó nunca se cierre
+  formalmente.
 
 ---
 
@@ -75,6 +88,11 @@
 
 - **Primaria:** Engram (`mem_session_summary` al cerrar)
 - **Backup:** `.agent/memory/current-session.json`
+- **Ledger de planes:** `.agent/memory/plans/` — un archivo por plan aprobado, nunca se pisa
+- **Bitácora de proyecto:** `.agent/memory/project-log.md` — qué se agregó, actualizada en
+  cada merge a develop (no depende del cierre de sesión)
+- **Objetivos:** `.agent/memory/objectives.md` — Norte (largo plazo) vs ASAP (bloqueante
+  ahora); se edita in-place, no es append-only
 - **Formato Engram:** `What / Why / Where / Learned`
 
 ---

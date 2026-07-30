@@ -110,9 +110,25 @@ gh pr edit <PR_NUMBER> --add-reviewer <REVIEWER>
 # O usar /request-review skill
 ```
 
+## Post-PR: Task Checkpoint
+
+**Cuándo:** Inmediatamente después de confirmar que la PR fue creada o mergeada (Opción 1).  
+**Obligatorio:** Sí — corre siempre, no es condicional.
+
+Ejecutar `protocols/task-checkpoint.md` en orden:
+
+1. `mem_session_summary` — guardar resumen de la tarea completada en Engram
+2. Actualizar `.agent/memory/current-session.json` — `next_step` apuntando al próximo trabajo
+3. Evaluar señales de contexto extenso y sugerir `/compact` si corresponde
+
+Ver protocolo completo: `protocols/task-checkpoint.md`
+
+---
+
 ## Remember
 
 - Always verify before presenting options
 - Don't assume user's preference - ask
 - Be ready to explain each option
 - If Option 1 (Create PR) is chosen, always offer Option 5 (Request Review) as next step
+- After PR is confirmed → always run `protocols/task-checkpoint.md`

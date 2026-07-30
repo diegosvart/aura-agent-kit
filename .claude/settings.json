@@ -1,5 +1,38 @@
 {
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File .claude/hooks/context-guard.ps1",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "matcher": "startup",
@@ -44,7 +77,7 @@
 
       "Read(**)",
 
-      "Write(**)",
+      "Edit(**)",
 
       "Bash(python:*)",
       "Bash(node:*)",
@@ -90,11 +123,11 @@
       "Bash(git clean -f:*)",
       "PowerShell(Remove-Item -Recurse *)",
 
-      "Write(.env)",
-      "Write(.env.*)",
-      "Write(*.pem)",
-      "Write(*.key)",
-      "Write(*.secret)"
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(*.pem)",
+      "Edit(*.key)",
+      "Edit(*.secret)"
     ]
   }
 }

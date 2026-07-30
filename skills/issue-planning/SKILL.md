@@ -61,15 +61,44 @@ Presentar al usuario la lista propuesta antes de crear:
 ¿Aprobás esta lista o querés ajustar algo?
 ```
 
+**Si existe un spec previo** (`docs/aura/specs/*.md`, ej. salido de `/brainstorm`): no re-narrar
+el "por qué" de cada issue — el spec ya lo tiene, con rationale y trade-offs por decisión. El
+body del issue debe cargar solo el "qué" (accionable), y apuntar al spec para el "por qué":
+
+```markdown
+## Descripción
+<una oración — qué se construye>
+
+Ver <D<N>> en `docs/aura/specs/<archivo>.md` para el rationale completo.
+
+## Archivos
+- <path 1>
+- <path 2>
+
+## Criterios de Aceptación
+- [ ] <copiado verbatim del criterio de aceptación correspondiente del spec>
+- [ ] <ídem>
+```
+
+Esto evita pagar el costo de redactar el "qué/por qué" dos veces (spec + issue) y evita que
+diverjan con el tiempo. El agente ejecutor lee el spec solo si necesita resolver una ambigüedad
+real — no se le fuerza ese contexto por defecto. La sección **Archivos** es obligatoria cuando
+el issue está destinado a `agentic-dev-loop` (es una precondición explícita de ese skill —
+issues sin esta sección no son "loop-ready" aunque tengan label `ready`).
+
 ### Paso 5 — Crear issues en GitHub (tras aprobación)
-Para cada issue aprobado:
+Para cada issue aprobado, además de `ready` agregar `bug` si el issue describe un defecto o
+corrección de algo que ya existe, o `enhancement` si es trabajo nuevo. Esta señal la usa
+`pick-next-issue.sh` (skill `agentic-dev-loop`) para priorizar fixes sobre features al elegir
+el próximo issue a tomar — sin ella, un fix queda en la cola por orden de número como cualquier
+otro issue.
 
 ```bash
 gh issue create \
   --repo <OWNER>/<REPO> \
   --title "<título>" \
   --body "<descripción>\n\n## Criterios de Aceptación\n- [ ] <AC1>\n- [ ] <AC2>" \
-  --label "ready"
+  --label "ready,bug"          # o "ready,enhancement" si es trabajo nuevo
 ```
 
 ### Paso 6 — Presentar resumen
@@ -100,7 +129,9 @@ Después de presentar el resumen y obtener confirmación del usuario:
 1. **No crear issues sin aprobación** — siempre mostrar la lista primero
 2. **Máximo una pregunta por turno** — no bombardear al usuario
 3. **Un issue = una unidad entregable** — no mezclar concerns
-4. **Siempre label `ready`** — para que session_start los detecte
+4. **Siempre label `ready`** — para que session_start los detecte. Sumar `bug` o `enhancement`
+   según corresponda — es la señal que usa `agentic-dev-loop` para priorizar fixes sobre
+   features
 5. **Ordenar por dependencias** — no proponer orden arbitrario
 6. **Si hay más de 5 issues** — preguntar si prefiere trabajarlos en batches
 

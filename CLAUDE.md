@@ -53,7 +53,7 @@ Si el usuario describe trabajo nuevo sin spec existente:
 
 ## Identidad y Pilares
 
-@AGENTS.local.md
+@../AGENTS.local.md
 @AGENTS.md
 
 ---
@@ -61,6 +61,16 @@ Si el usuario describe trabajo nuevo sin spec existente:
 ## Router de Contexto
 
 @protocols/router.md
+
+---
+
+## Reglas del Harness
+
+@.aura/rules/harness-core.md
+@.aura/rules/design-flow.md
+@.aura/rules/repo-integrity.md
+@.aura/rules/routing-menu.md
+@.aura/rules/coding.md
 
 ---
 

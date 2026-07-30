@@ -45,7 +45,8 @@ Reglas del menú:
 
 - **No ejecutar nada sin aprobación del usuario** — presentar plan, esperar confirmación
 - **No comenzar trabajo nuevo sin que el usuario confirme la dirección**
-- **Nunca commitear directamente a `develop` o `main`**
+- **Nunca commitear directamente a `develop` o `main`** — enforcement duro vía `.claude/hooks/git-guard.ps1` (PreToolUse hook, bloquea antes de ejecutar)
+- **Monitorear contexto activamente** — `.claude/hooks/context-guard.ps1` emite warning en 60k tokens y alerta urgente en 80k. Al recibir alerta: compactar con `/compact` o ejecutar `session_end`
 - **Siempre usar `gh` CLI** para operaciones GitHub (no MCP GitHub cuando existe CLI equivalente)
 - **Al detectar rama sucia** (cambios sin commit al inicio): mostrar `git diff --stat` y preguntar
 - **Al detectar gh no autenticado**: informar y saltear pasos que requieren gh (no fallar silenciosamente)

@@ -25,6 +25,9 @@
 | **Gestionar objetivos / ideas** | `skills/idea-management/SKILL.md` via `/idea` | Usuario escribe `/idea`, registra idea, o quiere explorar/promover un objetivo |
 | **Mejorar el harness** | `skills/auto-research/SKILL.md` + `docs/aura/specs/2026-05-09-harness-pillars.md` | Fricción detectada, patrón repetitivo |
 | **Seleccionar / cambiar stack** | `skills/stack-selection/SKILL.md` via `/stack` | Sin session-stack.json, inicio de proyecto nuevo, o usuario quiere cambiar stack |
+| **Reporte de plan estratégico** | `skills/plan-reporting/SKILL.md` via `/plan-report` (ejecutado por `plan-reporter`) | Usuario pide reporte de gestión, tareas accionables, análisis de riesgo de un plan |
+| **Loop de desarrollo + verificación de issues** | `skills/agentic-dev-loop/SKILL.md` via `/run-dev-loop` | Usuario pide correr/automatizar el desarrollo de issues `ready`, o avisa que cerró/mergeó un issue y hay que revisarlo |
+| **Manejo de datos sensibles / repo público** | `.claude/rules/sensitive-data-safety.md` | Repo público con datos de cliente, antes de commit/push, o session_start detecta `visibility=public` |
 | **Cierre de sesión** | `protocols/session_end.md` | "Terminamos", "cerramos", fin de trabajo |
 
 ---
@@ -53,6 +56,8 @@
 | Cierre con cambios en .md | `session_end.md` → `/doc-check` |
 | Cierre con fricción detectada | `session_end.md` → `/auto-research` |
 | Mejora al harness | `/auto-research` → `harness-pillars.md` → `challenger.md` |
+| Reporte de plan + análisis | `/plan-report` → `plan-reporter` → scripts/plan_report.py |
+| Loop de issues ready → review | `/run-dev-loop` → `agentic-dev-loop` (Fase 1 dev-runner → Fase 2 verifier) |
 
 ---
 

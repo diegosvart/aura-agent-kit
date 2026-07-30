@@ -1,17 +1,17 @@
 {
-  "last_updated": "2026-07-30T18:10:00-04:00",
-  "branch": "develop",
-  "focus": "Batch 1 (#44-47) en curso: #44 y #45 cerrados y mergeados (PR #49, #53). #45 tuvo 2 rondas de fix reales (dev-runner -> verifier) mas un fast-follow de hardening (Issue #55 -> PR #56) encontrado en revision adversarial post-merge. #46 vuelto a ready (dependia de #45, ya resuelto). #47 sigue blocked (depende de #46). PR #57 (docs, bitacora de PR #54/#56) abierta, pendiente de merge.",
-  "next_step": "Mergear PR #57, luego correr /run-dev-loop sobre Issue #46.",
+  "last_updated": "2026-07-30T19:00:00-04:00",
+  "branch": "release/v2.0.0",
+  "focus": "Batch 1 (#44-47) completo hasta #46: #44, #45, #46 cerrados y mergeados (PR #49, #53/#56, #58). Liberando v2.0.0 (develop -> main) para probar el flujo de auto-actualizacion del harness (/harness-update) desde un repo consumidor externo.",
+  "next_step": "Verificar /harness-update en un repo consumidor externo contra el tag v2.0.0. Luego continuar con Issue #47 (docs aviso de una linea en session_start.md), ya unblocked.",
   "pending": [
-    "Mergear PR #57 (https://github.com/diegosvart/aura-agent-kit/pull/57)",
-    "Correr /run-dev-loop sobre Issue #46 (ready), luego #47 cuando #46 cierre",
-    "Revertir #30-34 a ready cuando el Batch 1 termine",
+    "Verificar apply-update.sh / check-update.sh desde un repo consumidor real apuntando a v2.0.0",
+    "Issue #47 (docs aviso de una linea en session_start.md) listo para trabajar",
+    "Borrar rama remota feat/issue-46-harness-update-flags (ya mergeada, quedo un commit huerfano post-merge)",
     "Crear Batch 2 (contribucion + guardrail + docs versionado) despues del Batch 1"
   ],
   "required_reads": [
     "docs/aura/specs/2026-07-30-harness-self-update.md",
-    "skills/agentic-dev-loop/SKILL.md",
+    "skills/harness-update/SKILL.md",
     ".agent/memory/ideas.md"
   ]
 }

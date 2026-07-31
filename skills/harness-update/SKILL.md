@@ -38,6 +38,8 @@ para detectar actualizaciones.
    - Checkout del tag en `.aura/`
    - Copia de `.claude/hooks/*.ps1` (sobreescritura directa, sin confirmación — D5)
    - Resincronización del bloque `aura:begin/aura:end` en `CLAUDE.md` (si existe)
+   - Sincronización de patrones muertos `Write(...)` → `Edit(...)` en `permissions.allow`/
+     `permissions.deny` de `.claude/settings.json` (si existe y aplica — ver tabla abajo)
    - Imprime resumen de lo que cambió + entradas relevantes del CHANGELOG
 
 ---
@@ -47,7 +49,27 @@ para detectar actualizaciones.
 | Script | Hace | Contrato |
 |---|---|---|
 | `check-update.sh [aura_path]` | Compara tag local vs. remoto en `.aura/` | stdout = versión nueva, o vacío si al día |
-| `apply-update.sh <tag> [aura_path]` | Checkout + copia de hooks + resync de CLAUDE.md | exit 0 si éxito, exit 1 si error; imprime resumen |
+| `apply-update.sh <tag> [aura_path]` | Checkout + copia de hooks + resync de CLAUDE.md + resync de permisos en `.claude/settings.json` | exit 0 si éxito, exit 1 si error; imprime resumen |
+
+### Resync de `.claude/settings.json` (patrones muertos `Write(...)`)
+
+`apply-update.sh` reemplaza, de forma determinística y acotada (mismo principio que el resync
+de `aura:begin/aura:end` en `CLAUDE.md`), los siguientes patrones muertos que Claude Code ya no
+aplica (el tool real es `Edit`, no `Write`) por su equivalente vigente:
+
+| Patrón muerto | Reemplazo |
+|---|---|
+| `Write(**)` | `Edit(**)` |
+| `Write(.env)` | `Edit(.env)` |
+| `Write(.env.*)` | `Edit(.env.*)` |
+| `Write(*.pem)` | `Edit(*.pem)` |
+| `Write(*.key)` | `Edit(*.key)` |
+| `Write(*.secret)` | `Edit(*.secret)` |
+
+Si `.claude/settings.json` no existe, o no contiene ninguno de estos patrones, el paso no hace
+nada y no falla. Ninguna otra línea o regla del archivo se modifica. El resumen final reporta si
+se aplicó (`Permisos settings.json: sincronizados (N patrones)`) o no
+(`Permisos settings.json: sin cambios`).
 
 ---
 
@@ -73,6 +95,7 @@ disponible en ese caso.
 - [ ] `/harness-update` ejecuta `check-update.sh` y `apply-update.sh` sin error
 - [ ] Hooks en `.claude/hooks/` se actualizan si hay cambios
 - [ ] Bloque `aura:begin/aura:end` en `CLAUDE.md` se resincroniza si existe
+- [ ] Patrones muertos `Write(...)` en `.claude/settings.json` se resincronizan a `Edit(...)` si existen
 - [ ] Resumen de cambios + CHANGELOG se imprime correctamente
 
 ---

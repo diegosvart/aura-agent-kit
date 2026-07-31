@@ -8,12 +8,29 @@
 #
 # Claude Code inyecta el input del tool como JSON en stdin:
 #   { "tool_name": "Bash", "tool_input": { "command": "git commit -m ..." } }
+#
+# Hipotesis (P4): un commit directo a develop pasó sin bloqueo real en una sesión — se sospecha
+# que uno de los dos catch de abajo (parseo de stdin, o resolución de `git`) falló en silencio
+# (fail-open) sin dejar rastro. Mantenemos el fail-open (bloquear todo el flujo si el hook mismo
+# falla sería peor que no bloquear ese commit puntual), pero ahora queda logueado para poder
+# diagnosticarlo la próxima vez en vez de que el fallo sea invisible.
+function Write-GuardLog {
+    param([string]$Reason)
+    try {
+        $logPath = Join-Path $PSScriptRoot "git-guard.log"
+        $timestamp = [DateTime]::Now.ToString("yyyy-MM-dd HH:mm:ss")
+        Add-Content -Path $logPath -Value "[$timestamp] FAIL-OPEN: $Reason" -ErrorAction SilentlyContinue
+    } catch {
+        # Si ni el log funciona, no hay nada más que hacer — no debe bloquear el flujo.
+    }
+}
 
 $input_json = $null
 try {
     $raw = [Console]::In.ReadToEnd()
     $input_json = $raw | ConvertFrom-Json
 } catch {
+    Write-GuardLog "No se pudo parsear stdin como JSON ($($_.Exception.Message)) — hook no evaluó el comando."
     exit 0
 }
 
@@ -40,6 +57,7 @@ $branch = ""
 try {
     $branch = (git branch --show-current 2>$null).Trim()
 } catch {
+    Write-GuardLog "No se pudo resolver 'git branch --show-current' ($($_.Exception.Message)) — comando '$command' no evaluado."
     exit 0
 }
 

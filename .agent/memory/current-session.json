@@ -1,17 +1,17 @@
 {
-  "last_updated": "2026-07-30T19:10:00-04:00",
+  "last_updated": "2026-07-31T00:00:00-04:00",
   "branch": "develop",
-  "focus": "Batch 1 (#44-47): #44, #45 y #46 cerrados y mergeados. Release v2.0.0 liberado en main (PR #58, #59, #60) para probar /harness-update desde un repo consumidor externo. Issue #47 desbloqueado (label ready).",
-  "next_step": "Verificar /harness-update en un repo consumidor externo apuntando al tag v2.0.0. Luego Issue #47 (docs aviso de una linea en session_start.md Paso 6).",
+  "focus": "Issues #47 y #62 refinados a estado loop-ready para /run-dev-loop. Issue #62 (apply-update.sh no sincroniza permisos del consumidor) tiene diseno fijado y Complejidad alta.",
+  "next_step": "PRIORIDAD: correr /run-dev-loop en aura-agent-kit. Debe tomar Issue #62 primero (label bug, tier Sonnet por Complejidad alta), luego Issue #47 (docs, tier Haiku).",
   "pending": [
-    "Verificar apply-update.sh / check-update.sh desde un repo consumidor real apuntando a v2.0.0",
-    "Issue #47 listo para trabajar (label ready)",
+    "Ejecutar /run-dev-loop: Issue #62 primero, luego #47 (confirmado por pick-next-issue.sh)",
+    "crawler-mcp-diagram: usuario debe testear PR #89 (update a v2.0.0) completo y decidir mergear",
     "Revertir #30-34 a ready cuando el Batch 1 termine",
     "Crear Batch 2 (contribucion + guardrail + docs versionado) despues del Batch 1"
   ],
   "required_reads": [
-    "docs/aura/specs/2026-07-30-harness-self-update.md",
-    "skills/harness-update/SKILL.md",
+    "skills/agentic-dev-loop/SKILL.md",
+    "skills/harness-update/scripts/apply-update.sh",
     ".agent/memory/ideas.md"
   ]
 }

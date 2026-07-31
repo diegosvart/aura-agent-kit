@@ -4,6 +4,31 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-07-31 — PR #64 — docs(harness-update): aviso de una línea en session_start Paso 6
+
+**Plan:** no hubo plan formal (Issue #47 del Batch 1, refinado a loop-ready)
+**Qué se agregó:** El protocolo de inicio de sesión ahora documenta cómo avisar, en una sola
+línea dentro de "Advertencias", que hay una versión nueva del harness disponible — sin volcar
+el CHANGELOG completo en cada sesión. El detalle completo sigue apareciendo solo al correr
+`/harness-update` a demanda. Cierre manual del Issue #47 (ver nota de gap de default branch
+abajo).
+**Archivos clave:** protocols/session_start.md
+
+## 2026-07-31 — PR #63 — fix(harness-update): apply-update.sh no sincroniza reglas de permisos (.claude/settings.json)
+
+**Plan:** no hubo plan formal (Issue #62 del Batch 1, refinado a loop-ready, Complejidad alta)
+**Qué se agregó:** Se cerró un gap de seguridad silencioso: `/harness-update` ahora también
+sincroniza `.claude/settings.json` en el repo consumidor, reemplazando los patrones de permisos
+obsoletos `Write(...)` (que Claude Code ya no aplica) por su equivalente vigente `Edit(...)` en
+las 6 reglas conocidas (`.env`, `.env.*`, `*.pem`, `*.key`, `*.secret`, `**`). Antes, un fix de
+seguridad en el harness fuente (ej. PR #48) nunca llegaba a los repos consumidores vía
+actualización automática — quedaba inerte hasta aplicarse a mano. Encontrado en vivo
+verificando `crawler-mcp-diagram` tras su update a v2.0.0.
+**Primera corrida real del loop `/run-dev-loop` con dos issues consecutivos (Batch 1, #62 y
+#47):** ambos verificados en Fase 2 sin hallazgos; ambos issues quedaron `OPEN` tras el merge
+por el gap conocido de default branch (`main` vs. `develop`) — cerrados manualmente.
+**Archivos clave:** skills/harness-update/scripts/apply-update.sh, skills/harness-update/SKILL.md
+
 ## 2026-07-30 — Release v2.0.0 — PR #58, #59, #60
 
 **Plan:** docs/aura/specs/2026-07-30-harness-self-update.md (D1, D2)

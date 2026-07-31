@@ -1,17 +1,15 @@
 {
   "last_updated": "2026-07-31T00:00:00-04:00",
   "branch": "develop",
-  "focus": "Issues #47 y #62 refinados a estado loop-ready para /run-dev-loop. Issue #62 (apply-update.sh no sincroniza permisos del consumidor) tiene diseno fijado y Complejidad alta.",
-  "next_step": "PRIORIDAD: correr /run-dev-loop en aura-agent-kit. Debe tomar Issue #62 primero (label bug, tier Sonnet por Complejidad alta), luego Issue #47 (docs, tier Haiku).",
+  "focus": "Batch 1 completo: /run-dev-loop corrio Issues #62 y #47 de punta a punta (dev-runner + verifier), PR #63 y PR #64 mergeados a develop, issues cerrados manualmente por el gap de default branch (main vs develop).",
+  "next_step": "Decidir Batch 2 (contribucion + guardrail + docs versionado) y/o revertir Issues #30-34 (blocked) a ready si sus dependencias ya estan resueltas.",
   "pending": [
-    "Ejecutar /run-dev-loop: Issue #62 primero, luego #47 (confirmado por pick-next-issue.sh)",
     "crawler-mcp-diagram: usuario debe testear PR #89 (update a v2.0.0) completo y decidir mergear",
-    "Revertir #30-34 a ready cuando el Batch 1 termine",
-    "Crear Batch 2 (contribucion + guardrail + docs versionado) despues del Batch 1"
+    "Revisar Issues #30-34 (label blocked) y revertir a ready los que ya no tengan dependencia abierta",
+    "Crear Batch 2 (contribucion + guardrail + docs versionado)"
   ],
   "required_reads": [
     "skills/agentic-dev-loop/SKILL.md",
-    "skills/harness-update/scripts/apply-update.sh",
     ".agent/memory/ideas.md"
   ]
 }

@@ -7,7 +7,7 @@
 
 ## Hook Fast-Path (leer primero)
 
-Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`, `issues_ready`, `last_session` presentes):
+Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`, `issues_ready`, `last_session`, `harness_update_available`, `harness_latest_version` presentes):
 
 - **Saltear pasos 2, 3 y 4** — los datos ya están disponibles en el hook output
 - **Excepción:** correr igual `gh repo view --json visibility -q .visibility` y aplicar el
@@ -18,6 +18,7 @@ Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`
 - **Repo health** (branch protection de main/develop) → omitir; solo ejecutar bajo demanda o
   una vez por semana
 - Esto reduce las tool calls de ~10 a **2** (visibilidad + mem_context)
+- **Nota:** El hook también inyecta `harness_update_available` (boolean) y `harness_latest_version` (string); ver Paso 6 para cómo mostrar la línea de aviso
 
 Si el hook output NO está presente → ejecutar el protocolo completo desde el Paso 2.
 
@@ -217,7 +218,27 @@ Rama sugerida: `{{TIPO}}/{{CODIGO}}-{{descripcion}}`
 
 ## Advertencias
 > ⚠ [Si hay problemas claros]
+> ⚠ Si `harness_update_available: true` (del hook), incluir una sola línea:
+>   `⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — /harness-update para detalle`
+>   (sustituyendo X.Y.Z por `harness_latest_version` y A.B.C por la versión local actual del harness)
 ```
+
+### Nota sobre la línea de aviso de actualización del harness
+
+Si el hook `session-start.ps1` inyecta `harness_update_available: true`, incluir en la
+sección "Advertencias" del Resumen Ejecutivo una sola línea con el formato exacto:
+
+```
+⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — /harness-update para detalle
+```
+
+**Importante:**
+- Sustituir `X.Y.Z` con el valor de `harness_latest_version` (del hook)
+- Sustituir `A.B.C` con la versión local actual del harness (de `version.txt` o similar)
+- Esta línea va **siempre en la sección "Advertencias"**, no como bloque separado
+- El detalle completo del CHANGELOG **NO se vuelca** en el resumen ejecutivo — solo aparece
+  al correr `/harness-update` explícitamente
+- Esto evita repetir el mismo bloque de texto sesión tras sesión mientras el usuario no actualiza
 
 ---
 

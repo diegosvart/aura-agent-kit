@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Fase 1, Paso 1 del skill agentic-dev-loop, sin gastar razonamiento de agente.
-# Imprime a stdout el número del issue elegido (o nada si no hay ninguno apto).
+# Fase 1, Pasos 1+2 del skill agentic-dev-loop, sin gastar razonamiento de agente.
+# Imprime a stdout el número del issue elegido (o nada si no hay ninguno apto), ya marcado
+# in-progress atómicamente antes de devolverlo — cierra la ventana de carrera que existía
+# entre "elegir" (lectura) y "marcar" (escritura) cuando esos dos pasos vivían separados.
 # Diagnósticos y correcciones de label van a stderr.
 set -euo pipefail
 
@@ -33,6 +35,7 @@ try_pick_from() {
     dep_block=$(echo "$body" | grep -m1 -i -A1 -E '^(#{1,6}[[:space:]]*|-[[:space:]]*\*\*)Depende de' || true)
 
     if [ -z "$dep_block" ] || echo "$dep_block" | grep -qi "nada"; then
+      gh issue edit "$number" --repo "$REPO" --remove-label ready --add-label in-progress >&2
       echo "$number"
       return 0
     fi
@@ -67,6 +70,7 @@ try_pick_from() {
       continue
     fi
 
+    gh issue edit "$number" --repo "$REPO" --remove-label ready --add-label in-progress >&2
     echo "$number"
     return 0
   done

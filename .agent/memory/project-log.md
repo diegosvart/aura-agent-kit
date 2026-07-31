@@ -4,6 +4,12 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-07-31 — PR #69 — fix(agentic-dev-loop): scriptear apertura de PR/rechazo de review + hardening de enforcement (Tier 1)
+
+**Plan:** `.claude/plans/quiero-darle-prioridad-a-silly-gosling.md` (aprobado, sesión 2026-07-31)
+**Qué se agregó:** Se corrigieron dos bugs reales detectados en otro proyecto que usa este harness (PRs abiertos contra `main` en vez de `develop`, y contaminación cruzada de working directory entre dev-runners), más un endurecimiento de seguridad tras un incidente de commit directo a `develop`. `agentic-dev-loop` ahora abre PRs y rechaza reviews vía scripts deterministas (`open-pr.sh`, `reject-review.sh`) en vez de prosa que el agente reconstruye, y `pick-next-issue.sh` marca `in-progress` atómicamente. `git-guard.ps1` deja rastro cuando falla en silencio, y la plantilla de distribución del harness (`integrations/claude-code/settings.json`) ya no nace sin hooks de seguridad. El resto del barrido (11 candidatos a script encontrados) quedó registrado como idea [016] para una sesión futura.
+**Archivos clave:** skills/agentic-dev-loop/scripts/open-pr.sh, skills/agentic-dev-loop/scripts/reject-review.sh, skills/agentic-dev-loop/scripts/pick-next-issue.sh, skills/agentic-dev-loop/SKILL.md, .claude/hooks/git-guard.ps1, integrations/claude-code/settings.json
+
 ## 2026-07-31 — PR #64 — docs(harness-update): aviso de una línea en session_start Paso 6
 
 **Plan:** no hubo plan formal (Issue #47 del Batch 1, refinado a loop-ready)

@@ -1,6 +1,7 @@
 ---
-status: approved
+status: done
 approved_at: 2026-08-01
+done_at: 2026-08-01
 ---
 
 # Plan — Idea [016]: 3 capas restantes del barrido de scripting determinístico

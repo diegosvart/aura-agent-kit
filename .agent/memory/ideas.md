@@ -173,7 +173,9 @@ _(sin iterar)_
 ---
 
 ## [016] Resto del barrido de scripting determinístico del harness (post Tier 1, Issue #66)
-**Estado:** refined
+**Estado:** done (5/5 — classify-branch.sh PR #72, post-merge.sh PR #75,
+apply-branch-protection.sh PR #77, new-branch-for-issue.sh PR #79, git hooks nativos PR #81 —
+todo mergeado a develop 2026-08-01)
 **Capturado:** 2026-07-31
 **Prioridad:** Hacer — impacto alto (volumen de tokens), esfuerzo medio-alto
 **Contexto:** Un barrido completo del harness (3 agentes Explore en paralelo, motivado por el

@@ -294,8 +294,8 @@ hizo en su momento, hacerlo ahora antes de cerrar:
 1. Actualizar el ledger de planes (`.agent/memory/plans/<...>.md` → `status: done`) si
    corresponde.
 2. Append a `.agent/memory/project-log.md` si no hay entrada para ese PR todavía.
-3. Cerrar el issue referenciado:
+3. Verificar el merge y cerrar el issue referenciado (no reconstruir en prosa):
    ```bash
-   gh issue close {{N}} --comment "Implementado en PR #{{PR}} (merged a develop {{FECHA}})"
+   skills/agentic-dev-loop/scripts/post-merge.sh <owner>/<repo> {{N}} {{PR}}
    ```
 4. Mover item en Project board de Todo → Done

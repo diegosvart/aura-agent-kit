@@ -174,7 +174,15 @@ mergeado, aunque no lo haya mergeado esta sesión):
    no un resumen técnico de diff.
    **Archivos clave:** lista breve (3-6 archivos) de lo más relevante.
    ```
-3. **Cerrar el issue asociado** si aplica (ya existía esta regla, ver arriba).
+3. **Verificar el merge y cerrar el issue asociado** invocando el script (no reconstruir en
+   prosa — cubre el gap conocido de default branch `main` vs. `develop`, que hace que GitHub
+   no autocierre el issue):
+   ```bash
+   skills/agentic-dev-loop/scripts/post-merge.sh <owner>/<repo> <issue_n> <pr_n>
+   ```
+   Es idempotente (si el issue ya está cerrado, no hace nada) y falla explícitamente (exit 1,
+   sin cerrar el issue) si el PR no está mergeado o fue mergeado contra una rama distinta de
+   `develop`.
 
 Este paso es **independiente** de si la sesión se cierra formalmente — se ejecuta en el
 momento del merge, dentro del mismo turno en que se confirma el merge.

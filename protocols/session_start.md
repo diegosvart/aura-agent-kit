@@ -101,7 +101,7 @@ Incluir en el resumen si hay ramas que requieren limpieza.
 
 Ejecutar solo si `gh auth status` pasó en Paso 2.
 
-Invocar `skills/repo-integrity/SKILL.md` con la lista de ramas candidatas (las que tienen commits ahead de develop).
+Invocar `skills/repo-integrity/SKILL.md` con la lista de ramas candidatas (las que tienen commits ahead de develop). El skill clasifica cada rama vía `skills/repo-integrity/scripts/classify-branch.sh <owner>/<repo> <rama>` (no reconstruir el algoritmo en prosa).
 
 Si se detecta trabajo stranded → **DETENER aquí**. No continuar al Paso 4 hasta que el usuario resuelva.
 

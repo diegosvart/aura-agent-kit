@@ -4,6 +4,22 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-08-01 — PR #72 — feat(repo-integrity): scriptear classify-branch.sh (Pasos B-D del algoritmo de detección)
+
+**Plan:** sin plan formal previo (Issue #71, primer ítem de la idea [016] — refinada con
+contexto y prioridad clara en la sesión de Tier 1, 2026-07-31)
+**Qué se agregó:** El algoritmo de detección de trabajo stranded de `skills/repo-integrity/SKILL.md`
+(Pasos B, C, D) ahora corre vía `skills/repo-integrity/scripts/classify-branch.sh` en vez de que
+el agente lo reconstruya en prosa cada sesión — es el script de mayor volumen del barrido (hasta
+10 corridas por sesión, uno por rama candidata en `protocols/session_start.md` Paso 3). De paso
+se encontró un bug real: el Paso B documentado usaba `git log --oneline`, que solo muestra el
+subject y pierde el keyword `Closes #N` cuando va en el body del commit (convención real de este
+repo, ej. commit `21fd2e8`). El script usa `git log --format=%B` (mensaje completo). Issue #71
+quedó `OPEN` tras el merge por el gap conocido de default branch (`main` vs. `develop`) — cerrado
+manualmente.
+**Archivos clave:** skills/repo-integrity/scripts/classify-branch.sh, skills/repo-integrity/SKILL.md,
+protocols/session_start.md
+
 ## 2026-07-31 — PR #69 — fix(agentic-dev-loop): scriptear apertura de PR/rechazo de review + hardening de enforcement (Tier 1)
 
 **Plan:** `.claude/plans/quiero-darle-prioridad-a-silly-gosling.md` (aprobado, sesión 2026-07-31)

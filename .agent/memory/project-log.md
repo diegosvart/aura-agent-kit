@@ -4,6 +4,45 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-08-01 — PR #81 — feat(hooks): git hooks nativos (.githooks/pre-push) con auto-setup
+
+**Plan:** `.agent/memory/plans/2026-08-01-idea-016-tres-capas.md` (Issue #80, tercer y último
+ítem de la idea [016])
+**Qué se agregó:** Segunda capa de enforcement de "nunca push directo a develop/main",
+independiente de Claude Code — hasta ahora todo dependía de que Claude Code disparara
+`.claude/hooks/git-guard.ps1`. `.githooks/pre-push` rechaza el push si el remote ref es
+`refs/heads/develop` o `refs/heads/main`; `session-start.ps1` autoconfigura
+`core.hooksPath=.githooks` la primera vez que se abre una sesión en el repo (idempotente,
+fail-open); `apply-update.sh` ahora también sincroniza `.githooks/pre-push` a repos
+consumidores. Bug real encontrado al commitear: `.githooks/pre-push` no tiene extensión `.sh`,
+así que la regla `eol=lf` existente en `.gitattributes` no lo cubría — en Windows se habría
+checkouteado con CRLF, rompiendo el shebang en silencio. Verificado end-to-end en la sesión de
+cierre (2026-08-01): push real contra un remoto falso aislado, con y sin `core.hooksPath`
+configurado, confirmando bloqueo real (no solo simulación con stdin).
+**Archivos clave:** .githooks/pre-push, .claude/hooks/session-start.ps1, .gitattributes,
+skills/harness-update/scripts/apply-update.sh
+
+## 2026-08-01 — PR #79 — feat(github): scriptear new-branch-for-issue.sh
+
+**Plan:** `.agent/memory/plans/2026-08-01-idea-016-tres-capas.md` (Issue #78, segundo ítem de
+la idea [016])
+**Qué se agregó:** Encapsula el bloque de creación de rama de `agents/github.md` (tabla de
+prefijos: feature/fix/chore desde develop, hotfix desde main) para trabajo manual fuera del
+loop de `agentic-dev-loop`. Rechaza explícitamente si la rama ya existe.
+**Archivos clave:** skills/agentic-dev-loop/scripts/new-branch-for-issue.sh, agents/github.md,
+protocols/task_start.md
+
+## 2026-08-01 — PR #77 — feat(github): scriptear apply-branch-protection.sh
+
+**Plan:** `.agent/memory/plans/2026-08-01-idea-016-tres-capas.md` (Issue #76, primer ítem de la
+idea [016], plan de los 3 ítems restantes aprobado en esta misma PR)
+**Qué se agregó:** Encapsula el heredoc JSON de `agents/github.md` ("Aplicar protección si
+falta") que antes el agente reconstruía de memoria — operación de seguridad real, alto riesgo
+si se arma mal el JSON a mano. PUT es idempotente por naturaleza. Verificado funcionalmente
+contra `develop` de este repo.
+**Archivos clave:** skills/agentic-dev-loop/scripts/apply-branch-protection.sh, agents/github.md,
+.agent/memory/plans/2026-08-01-idea-016-tres-capas.md
+
 ## 2026-08-01 — PR #72 — feat(repo-integrity): scriptear classify-branch.sh (Pasos B-D del algoritmo de detección)
 
 **Plan:** sin plan formal previo (Issue #71, primer ítem de la idea [016] — refinada con

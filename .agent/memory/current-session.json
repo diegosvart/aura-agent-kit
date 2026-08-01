@@ -1,16 +1,16 @@
 {
-  "last_updated": "2026-07-31T00:00:00-04:00",
+  "last_updated": "2026-08-01T00:00:00-04:00",
   "branch": "develop",
-  "focus": "Issues #30-32 (skill /goal) cerrados por decision de analisis (superados por agentic-dev-loop). Barrido completo del harness (3 Explore + Plan) sobre un caso real (Issues #75/#76 en otro proyecto) encontro 2 bugs reales de agentic-dev-loop + gap estructural de enforcement (git-guard.ps1 sin git hook nativo, plantilla de distribucion sin hooks). Tier 1 implementado y mergeado: PR #69 (Issue #66) — open-pr.sh, reject-review.sh, pick-next-issue.sh atomico, git-guard.ps1 con logging, fix de packaging.",
-  "next_step": "Idea [016] en ideas.md: resto del barrido (classify-branch.sh de repo-integrity es el de mayor volumen, post-merge.sh, apply-branch-protection.sh, new-branch-for-issue.sh, git hooks nativos). Issues #33/#34 (ADR) siguen ready.",
+  "focus": "Idea [016] completada (5/5): classify-branch.sh (#71/PR#72, mergeada), post-merge.sh (#74/PR#75, mergeada), apply-branch-protection.sh (#76/PR#77, abierta), new-branch-for-issue.sh (#78/PR#79, abierta), git hooks nativos + auto-setup via session-start.ps1 (#80/PR#81, abierta). PRs #70 y #73 mergeadas (verificado post-hoc).",
+  "next_step": "Antes de mergear PR #81: verificacion end-to-end real del hook .githooks/pre-push (crear un commit divergente real, confirmar que un push a develop se bloquea de verdad — solo se probo con stdin simulado esta sesion, el sandbox bloqueo el git reset --hard necesario para limpiar la prueba real). Revisar y decidir merge de PRs #77/#79/#81.",
   "pending": [
-    "crawler-mcp-diagram: usuario debe testear PR #89 (update a v2.0.0) completo y decidir mergear",
-    "Idea [016]: retomar el resto del barrido de scripting determinístico (classify-branch.sh primero por volumen)",
+    "Verificar end-to-end real .githooks/pre-push antes de mergear PR #81 (solo probado con stdin simulado)",
+    "Revisar y mergear (o no) PRs #77, #79, #81 — sin review, decision del usuario",
     "Issues #33/#34 (infra ADR) siguen ready, sin tomar",
-    "Issues #35/#38 sin label de flujo, pendiente triage"
+    "crawler-mcp-diagram: usuario debe testear PR #89 (update a v2.0.0) y decidir mergear"
   ],
   "required_reads": [
-    "skills/agentic-dev-loop/SKILL.md",
-    ".agent/memory/ideas.md"
+    ".agent/memory/plans/2026-08-01-idea-016-tres-capas.md",
+    "skills/agentic-dev-loop/SKILL.md"
   ]
 }

@@ -77,23 +77,16 @@ Verificar al inicio de sesión (Paso 3 de `protocols/session_start.md`).
 
 ### Aplicar protección (si falta)
 
+Invocar el script (no reconstruir el JSON en prosa — es una operación de seguridad real, alto
+riesgo si se arma mal a mano):
+
 ```bash
-# Proteger main o develop — reemplazar {BRANCH} por main o develop
-gh api -X PUT repos/{OWNER}/{REPO}/branches/{BRANCH}/protection --input - <<'EOF'
-{
-  "required_status_checks": null,
-  "enforce_admins": false,
-  "required_pull_request_reviews": {
-    "required_approving_review_count": 0,
-    "dismiss_stale_reviews": true
-  },
-  "restrictions": null,
-  "allow_force_pushes": false,
-  "allow_deletions": false,
-  "required_linear_history": false
-}
-EOF
+skills/agentic-dev-loop/scripts/apply-branch-protection.sh <owner>/<repo> <branch>
 ```
+
+Idempotente — correrlo repetido siempre deja la rama en el mismo estado deseado (`required_pull_request_reviews`
+con 0 approvals obligatorios, `allow_force_pushes: false`, `allow_deletions: false`,
+`dismiss_stale_reviews: true`).
 
 ### Hacer repo público (si privado y sin Pro)
 

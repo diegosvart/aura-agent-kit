@@ -27,6 +27,30 @@ try {
     $output.git_error = $_.Exception.Message
 }
 
+# Auto-setup de git hooks nativos (.githooks/) — segunda capa de enforcement de "nunca
+# push directo a develop/main", independiente de Claude Code. core.hooksPath es config local
+# de Git: no se versiona ni se auto-aplica al clonar. Este bloque lo setea la primera vez que
+# se abre una sesion de Claude Code en el repo (SessionStart si esta versionado y se auto-carga),
+# eliminando el paso manual que antes bloqueaba adoptar hooks nativos. Fail-open, igual que
+# git-guard.ps1 — si esto falla, no debe romper session-start.
+try {
+    $githooksDir = Join-Path $projectRoot ".githooks"
+    if (Test-Path $githooksDir) {
+        $currentHooksPath = (git config --get core.hooksPath 2>$null)
+        if ($currentHooksPath -ne ".githooks") {
+            git config core.hooksPath ".githooks" 2>$null
+            $logPath = Join-Path $PSScriptRoot "session-start.log"
+            $timestamp = [DateTime]::Now.ToString("yyyy-MM-dd HH:mm:ss")
+            Add-Content -Path $logPath -Value "[$timestamp] core.hooksPath configurado a .githooks (era: '$currentHooksPath')" -ErrorAction SilentlyContinue
+            $output.githooks_configured = $true
+        } else {
+            $output.githooks_configured = $false
+        }
+    }
+} catch {
+    # Fail-open — sin rastro si ni el log funciona, no debe bloquear session-start
+}
+
 # gh auth check
 try {
     $null = gh auth status 2>&1

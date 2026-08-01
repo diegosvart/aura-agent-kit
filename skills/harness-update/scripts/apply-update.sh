@@ -36,11 +36,11 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Crear .claude/hooks si no existe
-mkdir -p .claude/hooks
+# Crear .claude/hooks y .githooks si no existen
+mkdir -p .claude/hooks .githooks
 
 # Copiar hooks (sobreescritura directa, sin confirmación per D5)
-echo "[3/5] Sincronizando hooks (.claude/hooks/*.ps1)..."
+echo "[3/5] Sincronizando hooks (.claude/hooks/*.ps1 + .githooks/pre-push)..."
 hooks_changed=0
 if [ -d "$AURA_PATH/.claude/hooks" ]; then
   for hook_file in "$AURA_PATH"/.claude/hooks/*.ps1; do
@@ -54,9 +54,21 @@ if [ -d "$AURA_PATH/.claude/hooks" ]; then
       fi
     fi
   done
-  if [ $hooks_changed -eq 0 ]; then
-    echo "  (Hooks ya están al día)"
+fi
+
+# Sincronizar el hook nativo de Git (.githooks/pre-push) — segunda capa de enforcement
+# independiente de Claude Code (ver session-start.ps1, que setea core.hooksPath).
+if [ -f "$AURA_PATH/.githooks/pre-push" ]; then
+  if ! diff -q "$AURA_PATH/.githooks/pre-push" ".githooks/pre-push" >/dev/null 2>&1; then
+    cp "$AURA_PATH/.githooks/pre-push" ".githooks/pre-push"
+    chmod +x ".githooks/pre-push"
+    echo "  - Actualizado: .githooks/pre-push"
+    ((++hooks_changed))
   fi
+fi
+
+if [ $hooks_changed -eq 0 ]; then
+  echo "  (Hooks ya están al día)"
 fi
 
 # Resincronizar bloque aura:begin/aura:end en CLAUDE.md (si existe)

@@ -55,10 +55,15 @@ git branch -vv | grep ": gone]"
 ```
 
 ### Creación de rama
+
+Invocar el script (no reconstruir en prosa — resuelve prefijo y base correctos según el tipo):
+
 ```bash
-git checkout develop && git pull origin develop
-git checkout -b feature/issue-N-description
+skills/agentic-dev-loop/scripts/new-branch-for-issue.sh <owner>/<repo> <issue_n> <type> <slug>
 ```
+
+`<type>` ∈ `feature|fix|chore` (base `develop`) o `hotfix` (base `main`). stdout imprime el
+nombre de la rama creada. Falla explícitamente (exit 1) si la rama ya existe o el checkout falla.
 
 ---
 

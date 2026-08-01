@@ -1,12 +1,13 @@
 {
   "last_updated": "2026-07-31T00:00:00-04:00",
   "branch": "develop",
-  "focus": "Batch 1 completo: /run-dev-loop corrio Issues #62 y #47 de punta a punta (dev-runner + verifier), PR #63 y PR #64 mergeados a develop, issues cerrados manualmente por el gap de default branch (main vs develop).",
-  "next_step": "Decidir Batch 2 (contribucion + guardrail + docs versionado) y/o revertir Issues #30-34 (blocked) a ready si sus dependencias ya estan resueltas.",
+  "focus": "Issues #30-32 (skill /goal) cerrados por decision de analisis (superados por agentic-dev-loop). Barrido completo del harness (3 Explore + Plan) sobre un caso real (Issues #75/#76 en otro proyecto) encontro 2 bugs reales de agentic-dev-loop + gap estructural de enforcement (git-guard.ps1 sin git hook nativo, plantilla de distribucion sin hooks). Tier 1 implementado y mergeado: PR #69 (Issue #66) — open-pr.sh, reject-review.sh, pick-next-issue.sh atomico, git-guard.ps1 con logging, fix de packaging.",
+  "next_step": "Idea [016] en ideas.md: resto del barrido (classify-branch.sh de repo-integrity es el de mayor volumen, post-merge.sh, apply-branch-protection.sh, new-branch-for-issue.sh, git hooks nativos). Issues #33/#34 (ADR) siguen ready.",
   "pending": [
     "crawler-mcp-diagram: usuario debe testear PR #89 (update a v2.0.0) completo y decidir mergear",
-    "Revisar Issues #30-34 (label blocked) y revertir a ready los que ya no tengan dependencia abierta",
-    "Crear Batch 2 (contribucion + guardrail + docs versionado)"
+    "Idea [016]: retomar el resto del barrido de scripting determinístico (classify-branch.sh primero por volumen)",
+    "Issues #33/#34 (infra ADR) siguen ready, sin tomar",
+    "Issues #35/#38 sin label de flujo, pendiente triage"
   ],
   "required_reads": [
     "skills/agentic-dev-loop/SKILL.md",

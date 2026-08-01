@@ -22,6 +22,14 @@ Cuenta como sensible cualquiera de estos:
 Usar siempre placeholders genéricos en contenido versionado (`<cliente>`, `<empresa>`,
 `ACME`, `<catálogo>`).
 
+**Categoría de riesgo elevado: `.agent/memory/plans/*.md`.** El ledger de planes
+aprobados (`AGENTS.md` → "Al aprobar un plan") SÍ se versiona por defecto (ver
+`docs/aura/adr/ADR-003-politica-versionado-artefactos.md`), pero es el punto donde ya
+ocurrió una fuga real: un plan que documenta una investigación técnica terminó con
+folios/OC reales extraídos de datos de muestra del cliente. Al escribir o actualizar un
+plan, aplicar este mismo checklist ANTES de commitearlo — un plan no es un canal
+distinto de cualquier otro archivo versionado.
+
 ## Barrido pre-commit / pre-push (read-only)
 
 Antes de commitear o pushear, correr un barrido read-only buscando el catálogo de arriba:

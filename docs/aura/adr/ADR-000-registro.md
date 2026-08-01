@@ -7,6 +7,7 @@
 | # | Título | Fecha | Estado | Área |
 |---|--------|-------|--------|------|
 | [001](ADR-001-task-checkpoint.md) | Protocolo de checkpoint mid-session tras cerrar una unidad de trabajo | 2026-05-14 | accepted | harness |
+| [003](ADR-003-politica-versionado-artefactos.md) | Política de versionado de artefactos generados por el agente | 2026-08-01 | accepted | harness |
 
 ## Estados posibles
 

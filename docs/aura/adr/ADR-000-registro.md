@@ -8,6 +8,7 @@
 |---|--------|-------|--------|------|
 | [001](ADR-001-task-checkpoint.md) | Protocolo de checkpoint mid-session tras cerrar una unidad de trabajo | 2026-05-14 | accepted | harness |
 | [003](ADR-003-politica-versionado-artefactos.md) | Política de versionado de artefactos generados por el agente | 2026-08-01 | accepted | harness |
+| [002](ADR-002-adr-en-finish-branch.md) | Integrar escritura de ADR en el flujo de finish-branch | 2026-08-01 | accepted | harness |
 
 ## Estados posibles
 

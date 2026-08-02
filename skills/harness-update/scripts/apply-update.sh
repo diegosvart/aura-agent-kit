@@ -15,8 +15,9 @@ AURA_PATH="${2:-.aura}"
 echo "Aplicando actualización del harness: $VERSION_TAG"
 echo ""
 
-# Validar .aura/
-if [ ! -d "$AURA_PATH/.git" ]; then
+# Validar .aura/ — -e (no -d): en un git submodule .aura/.git es un ARCHIVO
+# gitlink ("gitdir: ..."), no un directorio (caso real: crawler-mcp-diagram)
+if [ ! -e "$AURA_PATH/.git" ]; then
   echo "ERROR: $AURA_PATH no es un checkout git" >&2
   exit 1
 fi

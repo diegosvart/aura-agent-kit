@@ -211,7 +211,9 @@ try {
             $output.harness_latest_version = $cache.harness_latest_version
         }
     } elseif ((Test-Path (Join-Path $auraPath ".git")) -and $gitBash -and (Get-Command git -ErrorAction SilentlyContinue)) {
-        $checkScript = Join-Path $projectRoot "skills\harness-update\scripts\check-update.sh"
+        # El script vive en .aura/ (submodule), no en la raíz del repo consumidor —
+        # $projectRoot\skills\... solo existe en aura-agent-kit mismo (issue #96)
+        $checkScript = Join-Path $auraPath "skills\harness-update\scripts\check-update.sh"
         $remoteTag = ""
         if (Test-Path $checkScript) {
             $remoteTag = (& $gitBash $checkScript $auraPath 2>$null | Select-Object -Last 1)

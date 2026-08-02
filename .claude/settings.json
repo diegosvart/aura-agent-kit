@@ -6,7 +6,7 @@
           {
             "type": "command",
             "command": "pwsh -NonInteractive -File .claude/hooks/context-guard.ps1",
-            "timeout": 5
+            "timeout": 10
           }
         ]
       }

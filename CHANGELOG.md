@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-08-02
+
+### Fixed
+- `session-start.ps1` detectaba `.aura/` como git submodule (Issue #94) pero seguía resolviendo
+  `check-update.sh` con `$projectRoot` en vez de `$auraPath` — el script solo existe dentro de
+  `.aura/skills/...` en cualquier consumidor, por lo que la detección de actualizaciones nunca
+  se ejecutaba en la práctica (Issue #96, PR #97)
+- `SKILL.md` de `harness-update`: corregida la ruta documentada de invocación de
+  `apply-update.sh` (vive en `.aura/`, no en la raíz del consumidor) (PR #97)
+
+### Changed
+- TTL de cache de detección de actualizaciones bajado de 6h a 30min — el chequeo corre fuera
+  del contexto de Claude (subproceso del hook `SessionStart`) y no consume tokens del agente;
+  el único costo real es la latencia de red del `git fetch --tags`, que no justifica esperar
+  6h para detectar una actualización disponible (PR #97)
+
 ## [2.1.0] - 2026-08-02
 
 ### Added

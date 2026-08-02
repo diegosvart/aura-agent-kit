@@ -177,7 +177,11 @@ try {
 try {
     $auraPath = Join-Path $projectRoot ".aura"
     $cacheFile = Join-Path $projectRoot ".agent\memory\harness-update-check.json"
-    $ttlHours = 6
+    # TTL bajo a propósito: el chequeo corre fuera del contexto de Claude (subproceso bash del
+    # hook), no consume tokens del agente — el único costo real es la latencia de red del
+    # `git fetch --tags` (con timeout de 5s, fail-open). 30 min prioriza frescura de detección
+    # sobre evitar ese fetch, sin llegar a 0 para no repetirlo en sesiones muy seguidas.
+    $ttlHours = 0.5
     $cache = $null
 
     if (Test-Path $cacheFile) {

@@ -4,6 +4,151 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-08-02 — PR #87 — docs(harness): definir política de versionado de artefactos
+
+**Plan:** Barrido directo de issues pendientes (Issue #38, sin plan previo — trabajo ad-hoc
+solicitado por el usuario)
+**Qué se agregó:** Nueva sección "Qué se Versiona" en `AGENTS.md` con la tabla de categorías
+(estructura del harness, identidad de sesión, bitácora de proyecto, ledger de planes, backups,
+análisis ad-hoc) y si cada una se versiona por defecto. Resuelve la tensión real detectada entre
+`crawler-mcp-diagram` (versiona planes) y `memo-digital` (no lo hace): se decide mantener el
+versionado del ledger de planes por su valor de trazabilidad, pero se refuerza
+`.claude/rules/sensitive-data-safety.md` marcando `.agent/memory/plans/*.md` como categoría de
+riesgo elevado — es el punto donde ya ocurrió una fuga real de datos de negocio del cliente
+(folios/OC reales en un plan de investigación técnica). ADR-003 documenta la decisión completa.
+**Archivos clave:** AGENTS.md, .claude/rules/sensitive-data-safety.md,
+docs/aura/adr/ADR-003-politica-versionado-artefactos.md
+
+## 2026-08-02 — PR #86 — feat(adr): integrar escritura de ADR en skill finish-branch
+
+**Plan:** Barrido directo de issues pendientes (Issue #34, depende de #33)
+**Qué se agregó:** Nueva sección "Pre-PR: Escribir ADR" en
+`skills/finishing-a-development-branch/SKILL.md`, entre el Health Check y `gh pr create`.
+Obligatoria para ramas `feat/*` y `docs/*`, opcional para `chore/*` y `fix/*` menores. ADR-002
+documenta esta misma decisión, como segundo ejemplo de uso de la infraestructura de #33.
+**Archivos clave:** skills/finishing-a-development-branch/SKILL.md,
+docs/aura/adr/ADR-002-adr-en-finish-branch.md, docs/aura/adr/ADR-000-registro.md
+
+## 2026-08-02 — PR #85 — chore(adr): crear infraestructura ADR
+
+**Plan:** Barrido directo de issues pendientes (Issue #33, ready sin tomar desde 2026-05-31)
+**Qué se agregó:** `docs/aura/adr/` como residuo permanente de decisiones (a diferencia de
+`docs/aura/specs/` y `docs/aura/plans/`, efímeros y gitignoreados): `ADR-TEMPLATE.md` (formato:
+Problema, Contexto, Decisión, Alternativas descartadas, Consecuencias, Archivos afectados),
+`ADR-000-registro.md` (índice) y `ADR-001-task-checkpoint.md` (ADR retroactivo del protocolo de
+checkpoint de Issues #26/#27, como ejemplo de uso). Base de #34 y #38.
+**Archivos clave:** docs/aura/adr/ADR-TEMPLATE.md, docs/aura/adr/ADR-000-registro.md,
+docs/aura/adr/ADR-001-task-checkpoint.md, .gitignore
+
+## 2026-08-02 — PR #84 — chore(context-guard): timeout defensivo 5s->10s
+
+**Plan:** Barrido directo de issues pendientes (Issue #35)
+**Qué se agregó:** El bug de fondo reportado (parseo O(n) de JSONL en `context-guard.ps1`
+causando timeout silencioso con transcripts >1MB) ya estaba corregido desde antes (commits
+`0f1a8da`/`30c53d0`, lectura O(1) por tamaño de archivo). Se aplicó únicamente la mejora
+defensiva adicional sugerida en el issue: subir el timeout del hook `UserPromptSubmit` de 5s a
+10s, sincronizado en `.claude/settings.json` e `integrations/claude-code/settings.json`.
+**Archivos clave:** .claude/settings.json, integrations/claude-code/settings.json
+
+## 2026-08-01 — PR #81 — feat(hooks): git hooks nativos (.githooks/pre-push) con auto-setup
+
+**Plan:** `.agent/memory/plans/2026-08-01-idea-016-tres-capas.md` (Issue #80, tercer y último
+ítem de la idea [016])
+**Qué se agregó:** Segunda capa de enforcement de "nunca push directo a develop/main",
+independiente de Claude Code — hasta ahora todo dependía de que Claude Code disparara
+`.claude/hooks/git-guard.ps1`. `.githooks/pre-push` rechaza el push si el remote ref es
+`refs/heads/develop` o `refs/heads/main`; `session-start.ps1` autoconfigura
+`core.hooksPath=.githooks` la primera vez que se abre una sesión en el repo (idempotente,
+fail-open); `apply-update.sh` ahora también sincroniza `.githooks/pre-push` a repos
+consumidores. Bug real encontrado al commitear: `.githooks/pre-push` no tiene extensión `.sh`,
+así que la regla `eol=lf` existente en `.gitattributes` no lo cubría — en Windows se habría
+checkouteado con CRLF, rompiendo el shebang en silencio. Verificado end-to-end en la sesión de
+cierre (2026-08-01): push real contra un remoto falso aislado, con y sin `core.hooksPath`
+configurado, confirmando bloqueo real (no solo simulación con stdin).
+**Archivos clave:** .githooks/pre-push, .claude/hooks/session-start.ps1, .gitattributes,
+skills/harness-update/scripts/apply-update.sh
+
+## 2026-08-01 — PR #79 — feat(github): scriptear new-branch-for-issue.sh
+
+**Plan:** `.agent/memory/plans/2026-08-01-idea-016-tres-capas.md` (Issue #78, segundo ítem de
+la idea [016])
+**Qué se agregó:** Encapsula el bloque de creación de rama de `agents/github.md` (tabla de
+prefijos: feature/fix/chore desde develop, hotfix desde main) para trabajo manual fuera del
+loop de `agentic-dev-loop`. Rechaza explícitamente si la rama ya existe.
+**Archivos clave:** skills/agentic-dev-loop/scripts/new-branch-for-issue.sh, agents/github.md,
+protocols/task_start.md
+
+## 2026-08-01 — PR #77 — feat(github): scriptear apply-branch-protection.sh
+
+**Plan:** `.agent/memory/plans/2026-08-01-idea-016-tres-capas.md` (Issue #76, primer ítem de la
+idea [016], plan de los 3 ítems restantes aprobado en esta misma PR)
+**Qué se agregó:** Encapsula el heredoc JSON de `agents/github.md` ("Aplicar protección si
+falta") que antes el agente reconstruía de memoria — operación de seguridad real, alto riesgo
+si se arma mal el JSON a mano. PUT es idempotente por naturaleza. Verificado funcionalmente
+contra `develop` de este repo.
+**Archivos clave:** skills/agentic-dev-loop/scripts/apply-branch-protection.sh, agents/github.md,
+.agent/memory/plans/2026-08-01-idea-016-tres-capas.md
+
+## 2026-08-01 — PR #72 — feat(repo-integrity): scriptear classify-branch.sh (Pasos B-D del algoritmo de detección)
+
+**Plan:** sin plan formal previo (Issue #71, primer ítem de la idea [016] — refinada con
+contexto y prioridad clara en la sesión de Tier 1, 2026-07-31)
+**Qué se agregó:** El algoritmo de detección de trabajo stranded de `skills/repo-integrity/SKILL.md`
+(Pasos B, C, D) ahora corre vía `skills/repo-integrity/scripts/classify-branch.sh` en vez de que
+el agente lo reconstruya en prosa cada sesión — es el script de mayor volumen del barrido (hasta
+10 corridas por sesión, uno por rama candidata en `protocols/session_start.md` Paso 3). De paso
+se encontró un bug real: el Paso B documentado usaba `git log --oneline`, que solo muestra el
+subject y pierde el keyword `Closes #N` cuando va en el body del commit (convención real de este
+repo, ej. commit `21fd2e8`). El script usa `git log --format=%B` (mensaje completo). Issue #71
+quedó `OPEN` tras el merge por el gap conocido de default branch (`main` vs. `develop`) — cerrado
+manualmente.
+**Archivos clave:** skills/repo-integrity/scripts/classify-branch.sh, skills/repo-integrity/SKILL.md,
+protocols/session_start.md
+
+## 2026-07-31 — PR #69 — fix(agentic-dev-loop): scriptear apertura de PR/rechazo de review + hardening de enforcement (Tier 1)
+
+**Plan:** `.claude/plans/quiero-darle-prioridad-a-silly-gosling.md` (aprobado, sesión 2026-07-31)
+**Qué se agregó:** Se corrigieron dos bugs reales detectados en otro proyecto que usa este harness (PRs abiertos contra `main` en vez de `develop`, y contaminación cruzada de working directory entre dev-runners), más un endurecimiento de seguridad tras un incidente de commit directo a `develop`. `agentic-dev-loop` ahora abre PRs y rechaza reviews vía scripts deterministas (`open-pr.sh`, `reject-review.sh`) en vez de prosa que el agente reconstruye, y `pick-next-issue.sh` marca `in-progress` atómicamente. `git-guard.ps1` deja rastro cuando falla en silencio, y la plantilla de distribución del harness (`integrations/claude-code/settings.json`) ya no nace sin hooks de seguridad. El resto del barrido (11 candidatos a script encontrados) quedó registrado como idea [016] para una sesión futura.
+**Archivos clave:** skills/agentic-dev-loop/scripts/open-pr.sh, skills/agentic-dev-loop/scripts/reject-review.sh, skills/agentic-dev-loop/scripts/pick-next-issue.sh, skills/agentic-dev-loop/SKILL.md, .claude/hooks/git-guard.ps1, integrations/claude-code/settings.json
+
+## 2026-07-31 — PR #64 — docs(harness-update): aviso de una línea en session_start Paso 6
+
+**Plan:** no hubo plan formal (Issue #47 del Batch 1, refinado a loop-ready)
+**Qué se agregó:** El protocolo de inicio de sesión ahora documenta cómo avisar, en una sola
+línea dentro de "Advertencias", que hay una versión nueva del harness disponible — sin volcar
+el CHANGELOG completo en cada sesión. El detalle completo sigue apareciendo solo al correr
+`/harness-update` a demanda. Cierre manual del Issue #47 (ver nota de gap de default branch
+abajo).
+**Archivos clave:** protocols/session_start.md
+
+## 2026-07-31 — PR #63 — fix(harness-update): apply-update.sh no sincroniza reglas de permisos (.claude/settings.json)
+
+**Plan:** no hubo plan formal (Issue #62 del Batch 1, refinado a loop-ready, Complejidad alta)
+**Qué se agregó:** Se cerró un gap de seguridad silencioso: `/harness-update` ahora también
+sincroniza `.claude/settings.json` en el repo consumidor, reemplazando los patrones de permisos
+obsoletos `Write(...)` (que Claude Code ya no aplica) por su equivalente vigente `Edit(...)` en
+las 6 reglas conocidas (`.env`, `.env.*`, `*.pem`, `*.key`, `*.secret`, `**`). Antes, un fix de
+seguridad en el harness fuente (ej. PR #48) nunca llegaba a los repos consumidores vía
+actualización automática — quedaba inerte hasta aplicarse a mano. Encontrado en vivo
+verificando `crawler-mcp-diagram` tras su update a v2.0.0.
+**Primera corrida real del loop `/run-dev-loop` con dos issues consecutivos (Batch 1, #62 y
+#47):** ambos verificados en Fase 2 sin hallazgos; ambos issues quedaron `OPEN` tras el merge
+por el gap conocido de default branch (`main` vs. `develop`) — cerrados manualmente.
+**Archivos clave:** skills/harness-update/scripts/apply-update.sh, skills/harness-update/SKILL.md
+
+## 2026-07-30 — Release v2.0.0 — PR #58, #59, #60
+
+**Plan:** docs/aura/specs/2026-07-30-harness-self-update.md (D1, D2)
+**Qué se agregó:** El harness quedó liberado como v2.0.0 en `main` — primer release real desde
+el bootstrap de versionado (v1.4.0). Incluye el ciclo completo de auto-actualización: detección
+automática (hook `session-start.ps1`, cacheada 6h, expone `harness_update_available`/
+`harness_latest_version`) y aplicación manual (`/harness-update`). También se corrigió un bug de
+hardening real encontrado en vivo: en máquinas Windows con WSL instalado, `Get-Command bash`
+puede resolver al relay de WSL en vez de Git Bash y fallar en silencio — el hook ahora resuelve
+`bash.exe` explícitamente desde la instalación de Git for Windows. Motivado por la necesidad de
+probar `/harness-update` desde un repo consumidor externo apuntando a un tag real.
+**Archivos clave:** .claude/hooks/session-start.ps1, CHANGELOG.md, .gitignore
+
 ## 2026-07-30 — PR #56 — fix(harness-update): endurecer apply-update.sh contra 3 fallas silenciosas
 
 **Plan:** no hubo plan formal (fast-follow del Issue #55, encontrado en revisión adversarial

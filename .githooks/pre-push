@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Segunda capa de enforcement de "nunca push directo a develop/main", independiente de Claude
+# Code. Espejo del set protegido de .claude/hooks/git-guard.ps1 ($protected = @("develop", "main")).
+# Git invoca este hook con una linea por cada ref actualizada, via stdin:
+#   <local ref> <local sha1> <remote ref> <remote sha1>
+set -euo pipefail
+
+protected_refs="refs/heads/develop refs/heads/main"
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  for ref in $protected_refs; do
+    if [ "$remote_ref" = "$ref" ]; then
+      echo "git-guard (pre-push): push directo a '$remote_ref' bloqueado. Crear una feature branch y abrir PR." >&2
+      exit 1
+    fi
+  done
+done
+
+exit 0

@@ -12,7 +12,7 @@ Si el usuario pide hacer algo nuevo sin Issue:
 1. **Crear Issue primero** — el Issue es la vida del proyecto
 2. **Definir título claro** — qué se va a hacer
 3. **Agregar labels** — `ready`, `agent:*` si aplica
-4. **Crear rama** — `feature/issue-N-descripcion` desde develop
+4. **Crear rama** — `skills/agentic-dev-loop/scripts/new-branch-for-issue.sh <owner>/<repo> N feature descripcion` (desde `develop`; ver `agents/github.md` para los otros tipos: `fix`, `chore`, `hotfix`)
 
 ```
 Usuario: "Quiero agregar autenticación"

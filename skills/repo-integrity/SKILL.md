@@ -17,42 +17,33 @@ git branch --no-merged develop | grep -v "^\*\|main\|develop"
 
 Tomar las primeras 10 (si hay más, indicarlo en el resumen).
 
-### Paso B — Para cada rama candidata: buscar commits que cierren issues
+### Pasos B, C y D — Clasificar cada rama candidata
+
+Para cada rama candidata, invocar el script (no reconstruir en prosa):
 
 ```bash
-# Commits exclusivos de esa rama respecto a develop
-git log develop..<rama> --oneline
+skills/repo-integrity/scripts/classify-branch.sh <owner>/<repo> <rama>
 ```
 
-Detectar cualquier patrón (case-insensitive):
-- `Closes #N`
-- `Fixes #N`
-- `Resolves #N`
+El script encapsula:
+- **Paso B** — busca en el mensaje completo (no solo el subject — el keyword suele ir en el
+  body) de los commits exclusivos de la rama (`git log develop..<rama> --format=%B`) un patrón
+  `Closes/Fixes/Resolves #N` (case-insensitive).
+- **Paso C** — si hay match, `gh issue view <N> --json state`.
+- **Paso D** — si el issue está `CLOSED`, `gh pr list --head <rama> --state merged` filtrando
+  `baseRefName == develop`.
 
-Si no hay patrones → la rama es "trabajo en progreso normal" → no alertar.
+Salida por stdout (una sola línea, parseable):
 
-### Paso C — Para cada issue referenciado: verificar si está cerrado
+| Salida | Significado | Acción |
+|--------|-------------|--------|
+| `CLEAN:no-issue-ref` | Sin referencia a issue en los commits exclusivos | No alertar |
+| `CLEAN:issue-open:<N>` | Issue #N referenciado sigue abierto | No alertar |
+| `CLEAN:merged:<N>:<PR>` | Issue #N cerrado, PR #PR mergeada hacia develop | No alertar |
+| `STRANDED:<N>` | Issue #N cerrado, sin PR mergeada hacia develop | **Alertar y bloquear** |
 
-```bash
-gh issue view <N> --repo <OWNER>/<REPO> --json state -q '.state'
-```
-
-Si `state == "OPEN"` → trabajo en progreso normal → no alertar.  
-Si `state == "CLOSED"` → avanzar al Paso D.
-
-### Paso D — Verificar si existe PR mergeada hacia develop
-
-```bash
-gh pr list \
-  --head <rama> \
-  --state merged \
-  --json number,mergedAt,baseRefName \
-  --repo <OWNER>/<REPO> \
-  --jq '.[] | select(.baseRefName == "develop") | .number'
-```
-
-Si el resultado **tiene datos** → PR fue mergeada → limpio (no alertar).  
-Si el resultado **está vacío** → **TRABAJO STRANDED** → ejecutar Sección de Alerta.
+Exit 0 en cualquier clasificación completada; exit 1 solo si falla una llamada real a `gh`
+(la rama se trata entonces como "pendiente normal", ver Errores Comunes).
 
 ---
 
@@ -124,3 +115,4 @@ Incluir esta línea en el bloque de "Salud de Ramas" del Paso 6.
 | `gh` no autenticado | Omitir este chequeo silenciosamente |
 | Issue no encontrado (404) | Considerar la rama como "pendiente normal" |
 | Rama remota sin tracking local | Omitir — solo chequear ramas con tracking local |
+| `git log --oneline` no detecta `Closes #N` en el body | Bug real encontrado al scriptear el Paso B (Issue #71): la convención real (ver commit 21fd2e8 de este repo) escribe el keyword en el body del mensaje, no en el subject — `--oneline` solo muestra el subject y lo pierde. `classify-branch.sh` usa `git log --format=%B` (mensaje completo) en vez de `--oneline`. |

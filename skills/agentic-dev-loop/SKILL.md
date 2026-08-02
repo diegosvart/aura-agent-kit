@@ -66,11 +66,13 @@ su output directo** — no le pide a un agente que "razone" estos pasos. Esto es
 
 | Script | Reemplaza | Contrato |
 |---|---|---|
-| `pick-next-issue.sh <owner>/<repo>` | Fase 1, Paso 1 | stdout = número de issue elegido (vacío si ninguno apto); prioriza `ready`+`bug` sobre el resto (fix antes que feat); corrige a `blocked` los `ready` con dependencia abierta |
+| `pick-next-issue.sh <owner>/<repo>` | Fase 1, Pasos 1+2 | stdout = número de issue elegido, ya marcado `in-progress` atómicamente (vacío si ninguno apto); prioriza `ready`+`bug` sobre el resto (fix antes que feat); corrige a `blocked` los `ready` con dependencia abierta |
 | `resolve-tier.sh <owner>/<repo> <issue>` | Fase 1, Paso 3 | stdout = `haiku` \| `sonnet` \| `opus` |
+| `open-pr.sh <owner>/<repo> <issue> <branch> <title> <body_file>` | Fase 1, Paso 4 (apertura de PR) | stdout = número de PR creado; `--base develop` hardcodeado (nunca cae al default branch del repo) y `Closes #<issue>` inyectado por el script (nunca reconstruido por el agente) |
 | `close-cycle.sh <owner>/<repo> <issue>` | Fase 1, Paso 5 | aplica `review` si hay PR abierto con `Closes #N`, `ready` si no hay PR (ni abierto ni mergeado); si el único PR encontrado ya está mergeado, no toca ningún label (issue ya resuelto) |
 | `find-review-candidates.sh <owner>/<repo>` | Fase 2, Paso 1 | stdout = JSON de issues `review` |
 | `find-pr-for-issue.sh <owner>/<repo> <issue>` | Fase 2, Paso 2 | stdout = número de PR, abierto o mergeado (exit 1 si no hay ninguno) |
+| `reject-review.sh <owner>/<repo> <issue>` | Fase 2, Paso 4 (veredicto "No pasa") | quita `review`, agrega `changes-requested`, reabre el issue si estaba `CLOSED`; el comentario con los hallazgos se publica antes, por separado (juicio del agente) |
 | `verify.sh` | corridas sueltas de lint/typecheck/test | resumen corto pass/fail; solo muestra el fragmento de error si algo falla — nunca vuelca output crudo completo en éxito |
 
 **Nota de diseño importante (descubierta validando `pick-next-issue.sh` contra un repo real):**
@@ -88,17 +90,15 @@ criterio doble (abierto O mergeado), no solo el estado del issue ni solo PRs abi
 
 ## Fase 1 — Dev-runner (desarrollo, no supervisado)
 
-### Paso 1 — Elegir issue
+### Paso 1 — Elegir issue y marcarlo in-progress
 ```bash
 skills/agentic-dev-loop/scripts/pick-next-issue.sh <OWNER>/<REPO>
 ```
 Si no imprime nada, no hay issue apto (ya hay uno `in-progress`, o ningún `ready` tiene sus
-dependencias resueltas) — terminar esta fase.
-
-### Paso 2 — Marcar in-progress (antes de lanzar el agente)
-```bash
-gh issue edit <N> --repo <OWNER>/<REPO> --remove-label ready --add-label in-progress
-```
+dependencias resueltas) — terminar esta fase. Si imprime un número, ese issue **ya quedó
+marcado `in-progress`** por el propio script (atómico con la elección — cierra la ventana de
+carrera que existía cuando "elegir" y "marcar" eran dos pasos separados); no hace falta ningún
+`gh issue edit` adicional.
 
 ### Paso 3 — Resolver tier de modelo (D3 de la spec)
 ```bash
@@ -118,18 +118,33 @@ Prompt autocontenido (el agente parte de cero — sin memoria de esta sesión):
   únicamente en la verificación final antes de commitear — es el gate real, pero no hace falta
   pagarlo completo en cada iteración intermedia.
 - Instrucciones operativas:
-  1. `git fetch && git checkout develop && git pull && git checkout -b feature/issue-<N>-<slug-corto>`.
+  1. **Aislamiento por worktree (obligatorio si el orquestador es una sesión de Claude Code):**
+     lanzar el agente de desarrollo con `isolation: "worktree"` en el Agent tool. El agente
+     resultante ya parte de un working directory aislado (`git worktree` propio) y debe hacer
+     `git fetch && git checkout develop && git pull && git checkout -b feature/issue-<N>-<slug-corto>`
+     **dentro de ese worktree**, nunca en el checkout compartido del repo. Caso real que motiva
+     esto: en otro proyecto que usa este harness, dos dev-runners corrieron sobre el mismo
+     working directory (sin `isolation: "worktree"`) y el segundo (Issue #76) heredó estado sucio
+     del primero (Issue #75), contaminando su rama con una entrada duplicada — se reparó a mano
+     con un splice quirúrgico de bytes (ver Errores Comunes). Si el orquestador no es una sesión
+     de Claude Code con el Agent tool disponible (ej. un futuro runner headless/cron, ver
+     "Extensión futura" al final de este documento), debe garantizar el mismo aislamiento por
+     otro medio antes de tocar `develop` — nunca compartir working directory entre dev-runners.
   2. Implementar **exactamente** las tareas listadas (RED→GREEN si el issue las trae así), sin
      tocar archivos fuera de la lista "Archivos" salvo que el DoD lo exija explícitamente.
   3. `verify.sh` debe quedar en verde antes de commitear (tests gateados por entorno real, ej.
      `@skipif`, se respetan tal cual están — no forzarlos a correr).
   4. Commit con mensaje convencional, push a la rama remota.
-  5. Abrir PR hacia `develop` con el keyword **literal en inglés** `Closes #<N>` (entre comillas,
-     sin traducir a "Cierra #N" ni ninguna otra variante) en el body, más un resumen de los
-     cambios. Este string exacto es lo que GitHub reconoce para el autocierre real del issue al
-     mergear, y lo que `close-cycle.sh`/`find-pr-for-issue.sh` buscan — una traducción o paráfrasis
-     rompe ambas cosas aunque el PR esté perfecto. Caso real: Issue #28 → PR #41 (memo-digital), el
-     dev-runner escribió "Cierra #28" y el ciclo se corrompió (ver Errores Comunes).
+  5. Escribir el resumen de cambios a un archivo temporal y abrir el PR con
+     `skills/agentic-dev-loop/scripts/open-pr.sh <OWNER>/<REPO> <N> <rama> "<título>" <archivo-resumen>`
+     — el script fija `--base develop` (nunca cae al default branch del repo) e inyecta el
+     keyword **literal en inglés** `Closes #<N>` él mismo, sin que el agente lo escriba. Esto
+     reemplaza tanto el riesgo histórico de traducción del keyword (Issue #28 → PR #41,
+     "Cierra #28" en vez de "Closes #28", ver Errores Comunes) como un segundo bug real
+     encontrado después: un dev-runner corrió `gh pr create` sin `--base` explícito y el PR cayó
+     contra `main` (el default branch del repo) en vez de `develop` (caso real Issues #75/#76,
+     ver Errores Comunes) — con `open-pr.sh` ninguno de los dos es posible porque el agente nunca
+     construye el comando a mano.
   6. Si en algún punto queda bloqueado (dependencia no resuelta que no se había detectado,
      ambigüedad real del DoD): **no commitear a medias** — comentar en el issue qué falta y
      terminar sin PR.
@@ -178,10 +193,11 @@ No confiar en el resumen del PR. Para cada tarea del DoD del issue:
 - **Pasa (sin hallazgos bloqueantes):** comentar en el PR/issue "DoD cumplido, listo para
   mergear" con un resumen de lo verificado; notificar al usuario. **No mergear** — el usuario
   decide y ejecuta el merge.
-- **No pasa:** comentar los hallazgos concretos (qué falta, con evidencia), 
-  `gh issue edit <N> --remove-label review --add-label changes-requested`, y si el issue ya
-  estaba cerrado (cierre prematuro vía un merge que no debió pasar), reabrirlo
-  (`gh issue reopen <N>`).
+- **No pasa:** comentar los hallazgos concretos (qué falta, con evidencia) con
+  `gh issue comment <N>`, luego ejecutar
+  `skills/agentic-dev-loop/scripts/reject-review.sh <OWNER>/<REPO> <N>` — el script aplica
+  `changes-requested` y reabre el issue si estaba cerrado (cierre prematuro vía un merge que no
+  debió pasar), sin que el agente reconstruya la secuencia de comandos.
 
 ---
 
@@ -203,8 +219,10 @@ varios issues `review` en la misma corrida — auditar no muta código, solo lee
 | Un issue "resuelto" (PR mergeado) queda `OPEN` indefinidamente | Pasa cuando el *default branch* del repo (el que dispara el autocierre de `Closes #N`) es distinto de la rama a la que mergean los PRs (ej. default `main`, loop mergea a `develop`). `pick-next-issue.sh` ya compensa esto buscando un PR *mergeado* además del estado del issue — no asumir que "issue closed" es la única señal válida de dependencia resuelta en ningún script/skill nuevo |
 | `close-cycle.sh` corrompe un issue con `ready`+`review` a la vez | Ocurría al re-correrlo sobre un issue cuyo PR ya está mergeado (mismo gap del default branch, arriba): el script solo buscaba PRs *abiertos* con `Closes #N`, no encontraba nada, y devolvía el issue a `ready` encima del `review` que ya tenía. Se detectó corriendo el script contra el Issue #27 real. Fix: `close-cycle.sh` y `find-pr-for-issue.sh` ahora buscan también PRs *mergeados* antes de asumir que no hay ninguno; si encuentran uno mergeado, `close-cycle.sh` no toca ningún label y avisa que no debería haberse re-ejecutado sobre ese issue |
 | `pick-next-issue.sh` marca una dependencia real como "no parseable" | El grep que ubica la sección "Depende de" no estaba anclado a inicio de línea, así que matcheaba cualquier ocurrencia de la frase en texto libre del body *antes* de llegar a la sección real (caso real: Issue #45 trae el criterio de aceptación "Ningún script depende de jq externo" antes de su `## Depende de`). Se detectó corriendo el loop contra la cadena #44-47 (Batch 1). Fix (PR #50): anclar el grep con `-E '^(#{1,6}[[:space:]]*|-[[:space:]]*\*\*)Depende de'`, que solo matchea el heading o el bullet canónico, no texto libre |
-| Un issue con PR mergeado queda `OPEN` con label `review` sin que nada lo cierre | Consecuencia directa del gap de default branch (arriba): ni `close-cycle.sh` ni el verifier cierran el issue automáticamente tras un merge manual del usuario. Hoy es un paso manual: `gh issue close <N> --comment "Resuelto por PR #<M>..."` y quitar el label `review` a mano después de confirmar el merge (caso real: Issue #44 tras mergear PR #49) |
-| El dev-runner escribe el keyword de cierre traducido ("Cierra #N") en vez de literal ("Closes #N") | GitHub solo reconoce el keyword en inglés para el autocierre real al mergear, y `close-cycle.sh`/`find-pr-for-issue.sh` buscan ese mismo string — una traducción rompe ambas cosas aunque el resto del PR esté perfecto. Pasó con Issue #28 → PR #41 (memo-digital): el dev-runner tradujo el keyword pese a la instrucción explícita, `close-cycle.sh` no encontró el PR y devolvió el issue a `ready` con un PR real abierto. Fix aplicado: `close-cycle.sh` ahora tiene el mismo fallback por `headRefName` (`^feature/issue-N-`) que ya tenía `find-pr-for-issue.sh`, y avisa por stderr si el PR encontrado no traía el keyword esperado (para corregir el body a mano, GitHub no autocierra sobre el fallback). El Paso 4 de este skill ahora pide el string exacto entre comillas en el prompt del dev-runner |
+| Un issue con PR mergeado queda `OPEN` con label `review` sin que nada lo cierre | Consecuencia directa del gap de default branch (arriba): ni `close-cycle.sh` ni el verifier cierran el issue automáticamente tras un merge manual del usuario. Casos reales: Issue #44 tras PR #49, Issue #47/#62 tras PR #64/#63, Issue #71 tras PR #72 — todos cerrados a mano. Fix (Issue #74): `post-merge.sh <owner>/<repo> <issue_n> <pr_n>` verifica que el PR esté mergeado hacia `develop` y cierra el issue con el comentario estándar, de forma idempotente — invocado desde `agents/github.md` ("Al Mergear una PR a Develop") y `protocols/session_end.md` ("Post-merge a develop") |
+| El dev-runner escribe el keyword de cierre traducido ("Cierra #N") en vez de literal ("Closes #N") | GitHub solo reconoce el keyword en inglés para el autocierre real al mergear, y `close-cycle.sh`/`find-pr-for-issue.sh` buscan ese mismo string — una traducción rompe ambas cosas aunque el resto del PR esté perfecto. Pasó con Issue #28 → PR #41 (memo-digital): el dev-runner tradujo el keyword pese a la instrucción explícita, `close-cycle.sh` no encontró el PR y devolvió el issue a `ready` con un PR real abierto. Fix aplicado: `close-cycle.sh` ahora tiene el mismo fallback por `headRefName` (`^feature/issue-N-`) que ya tenía `find-pr-for-issue.sh`, y avisa por stderr si el PR encontrado no traía el keyword esperado (para corregir el body a mano, GitHub no autocierra sobre el fallback). Fix estructural posterior: `open-pr.sh` (ver tabla de scripts) inyecta el keyword él mismo — el agente ya no lo escribe, así que no puede traducirlo |
+| El dev-runner abre PR sin `--base` explícito y cae contra el default branch del repo (`main`) en vez de la rama de integración (`develop`) | Misma causa raíz que el gap de autoclose (arriba): el default branch del repo no es la rama a la que mergea el loop, y `gh pr create` sin `--base` usa el default branch por convención de `gh`. Caso real: Issues #75/#76 (otro proyecto con este harness), ambos dev-runners abrieron PR contra `main`; la auditoría (Fase 2) lo detectó y corrigió a mano antes de recomendar merge. Fix estructural: `open-pr.sh` hardcodea `--base develop`, no es parámetro — el agente no puede omitirlo porque nunca construye el comando |
+| Dos dev-runners comparten working directory y el segundo hereda estado sucio del primero | Sin aislamiento, un `checkout develop && pull` de un dev-runner puede pisar/heredar una rama a medio commitear de una corrida anterior. Caso real: Issue #76 (otro proyecto con este harness) heredó el working directory de Issue #75 y su commit terminó con una entrada duplicada — se reparó a mano con un splice quirúrgico de bytes para no corromper un byte mal codificado preexistente en el archivo. Fix: lanzar cada dev-runner con `isolation: "worktree"` en el Agent tool (ver Fase 1, Paso 4, sub-paso 1) — cada uno parte de un working directory realmente aislado, no de una convención que el agente deba recordar |
 
 ---
 

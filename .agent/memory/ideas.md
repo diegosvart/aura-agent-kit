@@ -169,3 +169,42 @@ spec de `harness-update` (`docs/aura/specs/2026-07-30-harness-self-update.md`) �
 
 ### Iteraciones
 _(sin iterar)_
+
+---
+
+## [016] Resto del barrido de scripting determinístico del harness (post Tier 1, Issue #66)
+**Estado:** done (5/5 — classify-branch.sh PR #72, post-merge.sh PR #75,
+apply-branch-protection.sh PR #77, new-branch-for-issue.sh PR #79, git hooks nativos PR #81 —
+todo mergeado a develop 2026-08-01)
+**Capturado:** 2026-07-31
+**Prioridad:** Hacer — impacto alto (volumen de tokens), esfuerzo medio-alto
+**Contexto:** Un barrido completo del harness (3 agentes Explore en paralelo, motivado por el
+caso real Issues #75/#76 en otro proyecto con este harness — PRs abiertos contra `main` en vez
+de `develop`, y contaminación cruzada de working directory entre dev-runners) encontró ~11
+candidatos a script bash+gh reutilizable, de los cuales solo los de mayor urgencia (bugs reales
++ incidente de commit directo) se implementaron en Tier 1 (Issue #66). Quedan pendientes, ya
+diseñados a nivel de contrato en el plan de esa sesión:
+- `skills/repo-integrity/scripts/classify-branch.sh <owner>/<repo> <branch> <issue_n>` — cubre
+  los Pasos C+D del algoritmo de detección de `skills/repo-integrity/SKILL.md` (hoy 100% prosa:
+  `gh issue view --json state` + `gh pr list --state merged`). Mayor volumen de repetición de
+  todo el barrido — corre hasta 10 veces por sesión (una por rama candidata).
+- `post-merge.sh <owner>/<repo> <issue> <pr>` — dedupe de prosa casi idéntica duplicada en
+  `agents/github.md` ("Al Mergear una PR a Develop") y `protocols/session_end.md` ("Post-merge a
+  develop"): verifica `gh pr view --json state,mergedAt` y cierra el issue con el comentario
+  estándar.
+- `apply-branch-protection.sh <owner>/<repo> <branch>` — encapsula el heredoc JSON de
+  `gh api -X PUT .../protection` que hoy el agente reconstruye de memoria (bajo volumen, alto
+  riesgo si se arma mal el JSON — es una operación de seguridad real).
+- `new-branch-for-issue.sh <owner>/<repo> <issue_n> <type> <slug>` — resuelve el prefijo
+  correcto (`feature/`, `fix/`, `chore/` desde develop; `hotfix/` desde main) según la tabla que
+  hoy solo vive en prosa en `agents/github.md`, para trabajo manual fuera del loop.
+- Git hooks nativos (`.githooks/pre-push` + `core.hooksPath`) — segunda capa de enforcement de
+  "nunca commit a develop/main" independiente de Claude Code. El barrido confirmó que hoy **no
+  existe ningún git hook nativo** en el repo — todo el enforcement depende de que Claude Code
+  dispare `.claude/hooks/git-guard.ps1` y que `pwsh` resuelva en el PATH de esa sesión. Evaluado
+  y recomendado en el plan de Tier 1, explícitamente dejado fuera de esa tanda por decisión del
+  usuario (requiere un paso de setup — `git config core.hooksPath` — que no se auto-aplica al
+  clonar, y se prefirió no ampliar el alcance de un PR ya enfocado en bugs reales).
+
+### Iteraciones
+_(sin iterar)_

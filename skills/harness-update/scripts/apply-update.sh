@@ -22,13 +22,13 @@ if [ ! -d "$AURA_PATH/.git" ]; then
 fi
 
 # Fetch tags
-echo "[1/4] Descargando tags de .aura/..."
+echo "[1/5] Descargando tags de .aura/..."
 git -C "$AURA_PATH" fetch --tags origin >/dev/null 2>&1 || {
   echo "WARN: No se pudo descargar tags (¿sin red?), continuando con tags locales..." >&2
 }
 
 # Checkout del tag
-echo "[2/4] Checkout de $VERSION_TAG en .aura/..."
+echo "[2/5] Checkout de $VERSION_TAG en .aura/..."
 checkout_err=$(git -C "$AURA_PATH" checkout "$VERSION_TAG" 2>&1 >/dev/null)
 if [ $? -ne 0 ]; then
   echo "ERROR: No se puede hacer checkout a $VERSION_TAG" >&2
@@ -36,11 +36,11 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Crear .claude/hooks si no existe
-mkdir -p .claude/hooks
+# Crear .claude/hooks y .githooks si no existen
+mkdir -p .claude/hooks .githooks
 
 # Copiar hooks (sobreescritura directa, sin confirmación per D5)
-echo "[3/4] Sincronizando hooks (.claude/hooks/*.ps1)..."
+echo "[3/5] Sincronizando hooks (.claude/hooks/*.ps1 + .githooks/pre-push)..."
 hooks_changed=0
 if [ -d "$AURA_PATH/.claude/hooks" ]; then
   for hook_file in "$AURA_PATH"/.claude/hooks/*.ps1; do
@@ -54,13 +54,25 @@ if [ -d "$AURA_PATH/.claude/hooks" ]; then
       fi
     fi
   done
-  if [ $hooks_changed -eq 0 ]; then
-    echo "  (Hooks ya están al día)"
+fi
+
+# Sincronizar el hook nativo de Git (.githooks/pre-push) — segunda capa de enforcement
+# independiente de Claude Code (ver session-start.ps1, que setea core.hooksPath).
+if [ -f "$AURA_PATH/.githooks/pre-push" ]; then
+  if ! diff -q "$AURA_PATH/.githooks/pre-push" ".githooks/pre-push" >/dev/null 2>&1; then
+    cp "$AURA_PATH/.githooks/pre-push" ".githooks/pre-push"
+    chmod +x ".githooks/pre-push"
+    echo "  - Actualizado: .githooks/pre-push"
+    ((++hooks_changed))
   fi
 fi
 
+if [ $hooks_changed -eq 0 ]; then
+  echo "  (Hooks ya están al día)"
+fi
+
 # Resincronizar bloque aura:begin/aura:end en CLAUDE.md (si existe)
-echo "[4/4] Resincronizando CLAUDE.md..."
+echo "[4/5] Resincronizando CLAUDE.md..."
 if [ -f "CLAUDE.md" ] && grep -q "aura:begin" CLAUDE.md 2>/dev/null; then
   if [ -f "$AURA_PATH/CLAUDE.md" ]; then
     # Extraer bloque aura:begin/aura:end de .aura/CLAUDE.md
@@ -105,6 +117,56 @@ else
   echo "  (CLAUDE.md local sin bloque aura:begin/aura:end — resync omitido)"
 fi
 
+# Sincronizar patrones muertos Write(...) -> Edit(...) en .claude/settings.json (si existe)
+echo "[5/5] Sincronizando permisos de .claude/settings.json..."
+settings_patterns_replaced=0
+if [ -f ".claude/settings.json" ]; then
+  settings_resync_output=$(python3 - << 'PYTHON_SETTINGS_RESYNC'
+try:
+    path = ".claude/settings.json"
+    replacements = [
+        ("Write(**)", "Edit(**)"),
+        ("Write(.env)", "Edit(.env)"),
+        ("Write(.env.*)", "Edit(.env.*)"),
+        ("Write(*.pem)", "Edit(*.pem)"),
+        ("Write(*.key)", "Edit(*.key)"),
+        ("Write(*.secret)", "Edit(*.secret)"),
+    ]
+
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    total = 0
+    for old, new in replacements:
+        count = content.count(old)
+        if count:
+            content = content.replace(old, new)
+            total += count
+
+    if total:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+    print(total)
+except Exception as e:
+    raise ValueError(f"No se pudo sincronizar .claude/settings.json: {e}") from e
+PYTHON_SETTINGS_RESYNC
+)
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Sincronización de .claude/settings.json falló" >&2
+    exit 1
+  fi
+  settings_patterns_replaced=$(echo "$settings_resync_output" | tail -n 1)
+  if [ "$settings_patterns_replaced" -gt 0 ] 2>/dev/null; then
+    echo "  - $settings_patterns_replaced patrón(es) Write(...) reemplazado(s) por Edit(...)"
+  else
+    settings_patterns_replaced=0
+    echo "  (Sin patrones muertos que sincronizar)"
+  fi
+else
+  echo "  (.claude/settings.json no existe — sincronización omitida)"
+fi
+
 # Leer CHANGELOG para reportar lo que se aplicó
 echo ""
 echo "=== RESUMEN DE CAMBIOS ==="
@@ -113,6 +175,11 @@ if [ $hooks_changed -gt 0 ]; then
   echo "Hooks actualizados: $hooks_changed archivo(s)"
 else
   echo "Hooks: sin cambios"
+fi
+if [ "$settings_patterns_replaced" -gt 0 ] 2>/dev/null; then
+  echo "Permisos settings.json: sincronizados ($settings_patterns_replaced patrones)"
+else
+  echo "Permisos settings.json: sin cambios"
 fi
 
 # Intentar extraer entradas del CHANGELOG

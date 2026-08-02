@@ -1,16 +1,16 @@
 {
   "last_updated": "2026-08-01T00:00:00-04:00",
   "branch": "develop",
-  "focus": "Idea [016] completada (5/5): classify-branch.sh (#71/PR#72, mergeada), post-merge.sh (#74/PR#75, mergeada), apply-branch-protection.sh (#76/PR#77, abierta), new-branch-for-issue.sh (#78/PR#79, abierta), git hooks nativos + auto-setup via session-start.ps1 (#80/PR#81, abierta). PRs #70 y #73 mergeadas (verificado post-hoc).",
-  "next_step": "Antes de mergear PR #81: verificacion end-to-end real del hook .githooks/pre-push (crear un commit divergente real, confirmar que un push a develop se bloquea de verdad — solo se probo con stdin simulado esta sesion, el sandbox bloqueo el git reset --hard necesario para limpiar la prueba real). Revisar y decidir merge de PRs #77/#79/#81.",
+  "focus": "Barrido de issues pendientes (post idea [016]): #35 (bug ya implementado, defensivo aplicado), #33 (infra ADR), #34 (ADR en finish-branch, depende de #33), #38 (política de versionado, depende de #33). Los 4 issues resueltos, 4 PRs abiertas sin mergear (decisión del usuario).",
+  "next_step": "Usuario revisa y decide merge de PRs #84 (Issue #35), #85 (Issue #33), #86 (Issue #34, depende de #85), #87 (Issue #38, depende de #85). Mergear #85 antes que #86/#87 para evitar el diff heredado. #86 y #87 tienen conflicto trivial esperado en docs/aura/adr/ADR-000-registro.md (filas 002 vs 003).",
   "pending": [
-    "Verificar end-to-end real .githooks/pre-push antes de mergear PR #81 (solo probado con stdin simulado)",
-    "Revisar y mergear (o no) PRs #77, #79, #81 — sin review, decision del usuario",
-    "Issues #33/#34 (infra ADR) siguen ready, sin tomar",
+    "Mergear PR #85 (Issue #33) primero — #86 y #87 parten de esa rama",
+    "Resolver conflicto trivial en ADR-000-registro.md al mergear #86/#87",
+    "Tras mergear cada PR: post-merge.sh para cerrar el issue asociado (default branch != develop)",
     "crawler-mcp-diagram: usuario debe testear PR #89 (update a v2.0.0) y decidir mergear"
   ],
   "required_reads": [
-    ".agent/memory/plans/2026-08-01-idea-016-tres-capas.md",
-    "skills/agentic-dev-loop/SKILL.md"
+    "docs/aura/adr/ADR-003-politica-versionado-artefactos.md",
+    "skills/agentic-dev-loop/scripts/post-merge.sh"
   ]
 }

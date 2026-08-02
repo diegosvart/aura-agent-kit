@@ -4,6 +4,21 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-08-02 — Release v2.1.0 (PRs #91, #92 — develop → main)
+
+**Plan:** Cierre de backlog (Issues #33/#34/#35/#38) + solicitud directa del usuario de
+preparar el próximo tag para actualizar otros proyectos consumidores vía `/harness-update`
+**Qué se agregó:** Segundo release real del harness (minor, sin breaking changes) desde
+v2.0.0. Consolida: infraestructura ADR + integración en finish-branch + política de
+versionado (Issues #33/#34/#38), barrido completo de scripting determinístico idea [016]
+(classify-branch.sh, post-merge.sh, apply-branch-protection.sh, new-branch-for-issue.sh,
+git hooks nativos), agentic-dev-loop con apertura de PR/rechazo de review scripteados, y
+fixes de apply-update.sh / context-guard.ps1. CHANGELOG.md actualizado (PR #91), PR de
+release develop→main (#92) mergeada, tag anotado `v2.1.0` creado sobre el merge commit y
+pusheado. `develop` y `main` quedaron alineados (0 commits de diferencia), sin necesitar
+el paso de sync-back que sí hizo falta en v2.0.0.
+**Archivos clave:** CHANGELOG.md, tag `v2.1.0`
+
 ## 2026-08-02 — PR #87 — docs(harness): definir política de versionado de artefactos
 
 **Plan:** Barrido directo de issues pendientes (Issue #38, sin plan previo — trabajo ad-hoc

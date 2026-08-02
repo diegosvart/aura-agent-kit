@@ -56,6 +56,10 @@ docs/aura/plans/*.md
 !docs/aura/specs/.gitkeep
 !docs/aura/plans/.gitkeep
 
+# docs/aura/adr/ SÍ se versiona (residuo permanente de decisiones) —
+# a diferencia de specs/ y plans/, que son efímeros. Ninguna regla de
+# arriba lo alcanza; esta nota deja la intención explícita (Issue #33).
+
 # Identidad local del agente (sensible — nunca commitear)
 AGENTS.local.md
 

@@ -12,9 +12,12 @@ if [ ! -d "$AURA_PATH" ]; then
   exit 0  # No es un error — simplemente sin .aura no hay update que detectar
 fi
 
-if [ ! -d "$AURA_PATH/.git" ]; then
+if [ ! -e "$AURA_PATH/.git" ]; then
   exit 0  # No es un checkout git — sin update que detectar
 fi
+# $AURA_PATH/.git es directorio en un checkout normal, pero un ARCHIVO
+# (gitlink "gitdir: ...") cuando .aura/ está montado como git submodule
+# (caso real: crawler-mcp-diagram) — -e cubre ambos, -d rompía submodules.
 
 # Obtener el tag local actual (la rama está en un tag después de checkout)
 local_tag=$(git -C "$AURA_PATH" describe --tags --exact-match 2>/dev/null || echo "")

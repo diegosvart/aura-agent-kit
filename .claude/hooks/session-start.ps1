@@ -177,7 +177,11 @@ try {
 try {
     $auraPath = Join-Path $projectRoot ".aura"
     $cacheFile = Join-Path $projectRoot ".agent\memory\harness-update-check.json"
-    $ttlHours = 6
+    # TTL bajo a propósito: el chequeo corre fuera del contexto de Claude (subproceso bash del
+    # hook), no consume tokens del agente — el único costo real es la latencia de red del
+    # `git fetch --tags` (con timeout de 5s, fail-open). 30 min prioriza frescura de detección
+    # sobre evitar ese fetch, sin llegar a 0 para no repetirlo en sesiones muy seguidas.
+    $ttlHours = 0.5
     $cache = $null
 
     if (Test-Path $cacheFile) {
@@ -211,7 +215,9 @@ try {
             $output.harness_latest_version = $cache.harness_latest_version
         }
     } elseif ((Test-Path (Join-Path $auraPath ".git")) -and $gitBash -and (Get-Command git -ErrorAction SilentlyContinue)) {
-        $checkScript = Join-Path $projectRoot "skills\harness-update\scripts\check-update.sh"
+        # El script vive en .aura/ (submodule), no en la raíz del repo consumidor —
+        # $projectRoot\skills\... solo existe en aura-agent-kit mismo (issue #96)
+        $checkScript = Join-Path $auraPath "skills\harness-update\scripts\check-update.sh"
         $remoteTag = ""
         if (Test-Path $checkScript) {
             $remoteTag = (& $gitBash $checkScript $auraPath 2>$null | Select-Object -Last 1)

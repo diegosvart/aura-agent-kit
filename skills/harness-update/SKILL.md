@@ -34,7 +34,8 @@ para detectar actualizaciones.
    - No se repite sesión tras sesión mientras no se actualice
 
 3. **Aplicación** (manual, a pedido del usuario vía `/harness-update`)
-   - Ejecuta `skills/harness-update/scripts/apply-update.sh <version>`
+   - Ejecuta `.aura/skills/harness-update/scripts/apply-update.sh <version>` desde la raíz del
+     repo consumidor (el script vive dentro de `.aura/`, no en la raíz — ver issue #96)
    - Checkout del tag en `.aura/`
    - Copia de `.claude/hooks/*.ps1` (sobreescritura directa, sin confirmación — D5)
    - Resincronización del bloque `aura:begin/aura:end` en `CLAUDE.md` (si existe)

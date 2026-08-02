@@ -39,6 +39,32 @@ git status
 git diff --stat
 ```
 
+## Pre-PR: Escribir ADR
+
+**Cuándo:** Después del Health Check, antes de `gh pr create` (Opción 1) — en la misma rama,
+como parte del mismo commit o uno separado.
+
+**Obligatorio para:** ramas `feat/*` y `docs/*`.
+**Opcional para:** ramas `chore/*` y `fix/*` menores (a criterio del agente — un fix de una
+línea no necesita ADR; un fix que cambia comportamiento documentado sí).
+
+Pasos:
+
+1. Determinar si el tipo de rama activa la obligación (prefijo `feat/`, `docs/`, `chore/`,
+   `fix/` — ver tabla de tipos en `agents/github.md`).
+2. Si aplica (obligatorio, u opcional y el agente decide que agrega valor):
+   - Copiar `docs/aura/adr/ADR-TEMPLATE.md` a `docs/aura/adr/ADR-NNN-<slug>.md` (`NNN` =
+     siguiente número disponible, ver `docs/aura/adr/ADR-000-registro.md`).
+   - Completar los 6 campos del template. Si el campo **Problema** no se puede completar con
+     claridad, es señal de que la funcionalidad no debería haberse implementado así — revisar
+     antes de forzar el ADR.
+   - Agregar la fila correspondiente a `docs/aura/adr/ADR-000-registro.md`.
+   - Commitear el ADR en la misma rama (mismo commit del cambio o uno separado tipo
+     `docs(adr): ADR-NNN <título>`).
+3. Si no aplica (chore/fix menor sin ADR): continuar sin bloquear el flujo.
+
+Ver infraestructura completa: `docs/aura/adr/ADR-TEMPLATE.md`, `docs/aura/adr/ADR-000-registro.md`.
+
 ## Present Options
 
 After verification, present to user:
@@ -81,6 +107,7 @@ After verification, present to user:
 
 ### Option 1: Create PR
 ```bash
+# Antes: si el tipo de rama lo requiere, completar "Pre-PR: Escribir ADR" y commitear
 gh pr create --base develop --fill
 ```
 

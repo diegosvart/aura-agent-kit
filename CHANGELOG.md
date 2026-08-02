@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-02
+
+### Added
+- Infraestructura ADR (`docs/aura/adr/`): template, registro e integración obligatoria
+  (feat/docs) u opcional (chore/fix) en el flujo de `finish-branch` (Issues #33/#34, PRs #85/#86)
+- Política de versionado de artefactos del harness formalizada en `AGENTS.md` ("Qué se
+  Versiona"), reforzando `sensitive-data-safety.md` para el ledger de planes (Issue #38, PR #87)
+- Barrido de scripting determinístico (idea [016]): `classify-branch.sh` (Issue #71, PR #72),
+  `post-merge.sh` (Issue #74, PR #75), `apply-branch-protection.sh` (Issue #76, PR #77),
+  `new-branch-for-issue.sh` (Issue #78, PR #79)
+- Git hooks nativos: `.githooks/pre-push` bloquea push directo a `develop`/`main` como segunda
+  capa de enforcement independiente de Claude Code, con auto-setup de `core.hooksPath` en
+  `session-start.ps1` (Issue #80, PR #81)
+- `agentic-dev-loop`: apertura de PR y rechazo de review scripteados, con hardening de
+  enforcement (PR #69)
+
+### Fixed
+- `apply-update.sh` ahora sincroniza correctamente las reglas `Write`→`Edit` de
+  `settings.json` a repos consumidores (PR #63)
+- `context-guard.ps1`: timeout defensivo del hook `UserPromptSubmit` subido de 5s a 10s
+  (Issue #35, PR #84)
+
 ## [2.0.0] - 2026-07-30
 
 ### Added

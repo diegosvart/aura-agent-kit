@@ -4,6 +4,52 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-08-02 — PR #87 — docs(harness): definir política de versionado de artefactos
+
+**Plan:** Barrido directo de issues pendientes (Issue #38, sin plan previo — trabajo ad-hoc
+solicitado por el usuario)
+**Qué se agregó:** Nueva sección "Qué se Versiona" en `AGENTS.md` con la tabla de categorías
+(estructura del harness, identidad de sesión, bitácora de proyecto, ledger de planes, backups,
+análisis ad-hoc) y si cada una se versiona por defecto. Resuelve la tensión real detectada entre
+`crawler-mcp-diagram` (versiona planes) y `memo-digital` (no lo hace): se decide mantener el
+versionado del ledger de planes por su valor de trazabilidad, pero se refuerza
+`.claude/rules/sensitive-data-safety.md` marcando `.agent/memory/plans/*.md` como categoría de
+riesgo elevado — es el punto donde ya ocurrió una fuga real de datos de negocio del cliente
+(folios/OC reales en un plan de investigación técnica). ADR-003 documenta la decisión completa.
+**Archivos clave:** AGENTS.md, .claude/rules/sensitive-data-safety.md,
+docs/aura/adr/ADR-003-politica-versionado-artefactos.md
+
+## 2026-08-02 — PR #86 — feat(adr): integrar escritura de ADR en skill finish-branch
+
+**Plan:** Barrido directo de issues pendientes (Issue #34, depende de #33)
+**Qué se agregó:** Nueva sección "Pre-PR: Escribir ADR" en
+`skills/finishing-a-development-branch/SKILL.md`, entre el Health Check y `gh pr create`.
+Obligatoria para ramas `feat/*` y `docs/*`, opcional para `chore/*` y `fix/*` menores. ADR-002
+documenta esta misma decisión, como segundo ejemplo de uso de la infraestructura de #33.
+**Archivos clave:** skills/finishing-a-development-branch/SKILL.md,
+docs/aura/adr/ADR-002-adr-en-finish-branch.md, docs/aura/adr/ADR-000-registro.md
+
+## 2026-08-02 — PR #85 — chore(adr): crear infraestructura ADR
+
+**Plan:** Barrido directo de issues pendientes (Issue #33, ready sin tomar desde 2026-05-31)
+**Qué se agregó:** `docs/aura/adr/` como residuo permanente de decisiones (a diferencia de
+`docs/aura/specs/` y `docs/aura/plans/`, efímeros y gitignoreados): `ADR-TEMPLATE.md` (formato:
+Problema, Contexto, Decisión, Alternativas descartadas, Consecuencias, Archivos afectados),
+`ADR-000-registro.md` (índice) y `ADR-001-task-checkpoint.md` (ADR retroactivo del protocolo de
+checkpoint de Issues #26/#27, como ejemplo de uso). Base de #34 y #38.
+**Archivos clave:** docs/aura/adr/ADR-TEMPLATE.md, docs/aura/adr/ADR-000-registro.md,
+docs/aura/adr/ADR-001-task-checkpoint.md, .gitignore
+
+## 2026-08-02 — PR #84 — chore(context-guard): timeout defensivo 5s->10s
+
+**Plan:** Barrido directo de issues pendientes (Issue #35)
+**Qué se agregó:** El bug de fondo reportado (parseo O(n) de JSONL en `context-guard.ps1`
+causando timeout silencioso con transcripts >1MB) ya estaba corregido desde antes (commits
+`0f1a8da`/`30c53d0`, lectura O(1) por tamaño de archivo). Se aplicó únicamente la mejora
+defensiva adicional sugerida en el issue: subir el timeout del hook `UserPromptSubmit` de 5s a
+10s, sincronizado en `.claude/settings.json` e `integrations/claude-code/settings.json`.
+**Archivos clave:** .claude/settings.json, integrations/claude-code/settings.json
+
 ## 2026-08-01 — PR #81 — feat(hooks): git hooks nativos (.githooks/pre-push) con auto-setup
 
 **Plan:** `.agent/memory/plans/2026-08-01-idea-016-tres-capas.md` (Issue #80, tercer y último

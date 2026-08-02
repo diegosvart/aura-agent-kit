@@ -97,6 +97,24 @@
 
 ---
 
+## Qué se Versiona
+
+> Decisión completa y alternativas descartadas: `docs/aura/adr/ADR-003-politica-versionado-artefactos.md`
+
+| Categoría | Ejemplo | ¿Versionar? | Razón |
+|---|---|---|---|
+| Estructura del harness | `.aura/`, `AGENTS.md`, `protocols/`, `skills/`, `agents/`, `.claude/rules/` | Sí | Es el harness en sí |
+| Identidad de sesión activa | `.agent/memory/current-session.json` | Sí | P5; metadata de progreso, sin dato de negocio real |
+| Bitácora de proyecto | `.agent/memory/project-log.md`, `objectives.md` | Sí | P5; sujeta al barrido de `.claude/rules/sensitive-data-safety.md` |
+| Ledger de planes aprobados | `.agent/memory/plans/*.md` | Sí, con barrido obligatorio | Trazabilidad de decisiones — categoría de mayor riesgo de fuga real; anonimizar dato de negocio (placeholders) antes de commitear |
+| Backups automáticos | `.agent/memory/backups/*.json` | No | Estado transitorio regenerable |
+| Análisis/informes ad-hoc | hallazgos de debugging, reportes exploratorios | No | Efímero — `docs/aura/specs/` (gitignored) o solo Engram |
+
+Esta tabla es la fuente de verdad única: todo proyecto que inicializa el harness la
+hereda igual, sin reinventarla por repo.
+
+---
+
 ## Harness Engineering
 
 El harness tiene tres roles funcionales:

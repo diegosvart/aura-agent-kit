@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`gh pr list --state open`) — antes el protocolo solo miraba estado local y ramas ya
   mergeadas/huérfanas, dejando invisibles PRs abiertas esperando merge/review
   (Issue #109, PR #110, ADR-004)
+- `protocols/session_start.md`, nuevo Paso 5.5: reporte compacto (tokens, tool_uses por
+  tipo, duration) de la sesión anterior vía `process-session.sh`, fail-open (Issue #105,
+  PR #114, ADR-005)
+- `.aura/rules/routing-menu.md`: nueva opción de menú "Ver reporte de consumo de esta
+  corrida" al terminar `/run-dev-loop` (Issue #106, PR #114, ADR-005)
 
 ### Fixed
 - `session-start.ps1`: el bloque de auto-detección de actualización del harness tragaba

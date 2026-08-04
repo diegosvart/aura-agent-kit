@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-08-04
+
+### Added
+- `skills/repo-integrity/scripts/check-release-drift.sh`: chequeo local (sin `gh`) que
+  compara el último tag alcanzable desde `main` contra la ancestría de `develop`, enlazado
+  en `protocols/session_start.md` Paso 3 (Issue #120, PR #123)
+
+### Fixed
+- `check-update.sh` ahora avisa por stderr cuando `.aura` está en una rama y no en un tag
+  exacto, distinguiendo "desactualizado real" de "rama sin el último tag como ancestro"
+  (PR #123)
+- `apply-update.sh`: nuevo paso `[6/6]` que detecta si `git-guard.ps1` existe en
+  `.claude/hooks/` pero no está registrado como `PreToolUse` en `.claude/settings.json`, y
+  lo autoregistra — antes el enforcement de "nunca push directo a develop/main" podía quedar
+  inerte tras aplicar el update (gap real detectado en un consumidor externo, PR #124)
+- `apply-update.sh`: al registrar `git-guard.ps1` en `PreToolUse`, ahora fusiona dentro de un
+  matcher existente para `Bash`/`PowerShell` en vez de crear uno duplicado, evitando
+  desactivar en silencio un hook custom preexistente del consumidor (PR #125)
+
 ## [2.2.0] - 2026-08-04
 
 ### Added

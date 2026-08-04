@@ -41,6 +41,8 @@ para detectar actualizaciones.
    - Resincronización del bloque `aura:begin/aura:end` en `CLAUDE.md` (si existe)
    - Sincronización de patrones muertos `Write(...)` → `Edit(...)` en `permissions.allow`/
      `permissions.deny` de `.claude/settings.json` (si existe y aplica — ver tabla abajo)
+   - Verificación/registro de `git-guard.ps1` como `PreToolUse` en `.claude/settings.json`
+     (autofix, sin confirmación — ver "Registro de `git-guard.ps1` en `PreToolUse`" abajo)
    - Imprime resumen de lo que cambió + entradas relevantes del CHANGELOG
 
 ---
@@ -72,6 +74,26 @@ nada y no falla. Ninguna otra línea o regla del archivo se modifica. El resumen
 se aplicó (`Permisos settings.json: sincronizados (N patrones)`) o no
 (`Permisos settings.json: sin cambios`).
 
+### Registro de `git-guard.ps1` en `PreToolUse`
+
+> **Por qué existe este paso:** caso real en `crawler-mcp-diagram` — el archivo
+> `.claude/hooks/git-guard.ps1` existía (sincronizado por el paso de copia de hooks) pero
+> nunca quedó registrado como `PreToolUse` en `.claude/settings.json`. Claude Code nunca lo
+> invocaba, y 3 commits terminaron pusheados directo a `develop` sin que nada lo bloqueara —
+> silencioso hasta que se investigó explícitamente por qué el push no había sido rechazado.
+> `apply-update.sh` sincronizaba los *archivos* de hooks pero nunca verificaba que estuvieran
+> *registrados*.
+
+Tras copiar los hooks, `apply-update.sh` verifica que `PreToolUse` tenga un matcher `Bash` y
+uno `PowerShell` cuyo `command` referencie `git-guard.ps1`. Si falta alguno, lo agrega
+(preserva cualquier otra entrada existente en `PreToolUse` — no reemplaza el array completo).
+Mismo criterio que el paso de copia de hooks (D5): autofix sin confirmación, porque un hook de
+seguridad sin registrar es tan grave como uno desactualizado. Si `.claude/settings.json` no
+existe, o `.claude/hooks/git-guard.ps1` todavía no se sincronizó, el paso se omite sin fallar
+(se corrige solo en la próxima corrida). El resumen final reporta si se registró
+(`git-guard.ps1 en PreToolUse: registrado (Bash,PowerShell) — antes NO estaba enforced`) o ya
+estaba presente.
+
 ---
 
 ## Cuándo Usar `/harness-update`
@@ -97,6 +119,7 @@ disponible en ese caso.
 - [ ] Hooks en `.claude/hooks/` se actualizan si hay cambios
 - [ ] Bloque `aura:begin/aura:end` en `CLAUDE.md` se resincroniza si existe
 - [ ] Patrones muertos `Write(...)` en `.claude/settings.json` se resincronizan a `Edit(...)` si existen
+- [ ] `git-guard.ps1` queda registrado como `PreToolUse` (`Bash` y `PowerShell`) en `.claude/settings.json` si el hook existe
 - [ ] Resumen de cambios + CHANGELOG se imprime correctamente
 
 ---

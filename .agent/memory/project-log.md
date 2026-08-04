@@ -4,6 +4,87 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-08-04 — PRs #123/#124/#125 — detección de drift + hardening de apply-update.sh
+
+**Plan:** sin plan formal previo (continuación directa de PR #119/#120, mismo hilo de la
+sesión: un repo consumidor externo, `crawler-mcp-diagram`, seguía exponiendo brechas del
+harness)
+**Qué se agregó:**
+- PR #123 (Closes #120): `skills/repo-integrity/scripts/check-release-drift.sh` — chequeo
+  local (sin `gh`) que compara el último tag alcanzable desde `main` contra la ancestría de
+  `develop`, enlazado en `protocols/session_start.md` Paso 3. `check-update.sh` ahora avisa
+  por stderr cuando `.aura` está en una rama y no en un tag exacto (antes reportaba el tag
+  más cercano sin distinguir "desactualizado real" de "rama sin el último tag como ancestro").
+- PR #124: bug real en `crawler-mcp-diagram` — `git-guard.ps1` existía en `.claude/hooks/`
+  pero nunca quedó registrado como `PreToolUse` en `.claude/settings.json`, así que el
+  enforcement de "nunca push directo a develop/main" estaba inerte (3 commits terminaron
+  pusheados directo a `develop` sin bloqueo). `apply-update.sh` sincronizaba el archivo del
+  hook pero nunca verificaba su registro. Nuevo paso `[6/6]` que lo detecta y autoregistra.
+- PR #125: validación end-to-end del fix de #124 (pedida explícitamente por el usuario antes
+  de dar el harness por estable) encontró un segundo bug introducido por el propio fix: si el
+  consumidor ya tenía un hook custom en `PreToolUse` para `Bash`/`PowerShell`, la lógica
+  creaba un matcher duplicado en vez de fusionarse — riesgo de desactivar en silencio ese
+  hook custom. Corregido para fusionar dentro de la entrada existente.
+
+**Fricción encontrada en vivo (harness):** ninguno de los tres fixes (#123/#124/#125) se
+escribió con test-first (P3/Iron Law) — son scripts bash sin suite automatizada, verificados
+ad-hoc contra escenarios reproducidos manualmente en el momento. El bug de #125 (matcher
+duplicado) es consecuencia directa de eso: se coló en #124 porque la validación de esa PR no
+cubrió el caso de un consumidor con `PreToolUse` preexistente, y solo se detectó porque el
+usuario pidió explícitamente una validación end-to-end antes de cerrar, no porque el flujo de
+trabajo la exigiera de entrada. Queda pendiente para una sesión futura: definir cómo aplica
+P3 a scripts bash de este repo (harness de por sí no tiene runner de tests) — sea con
+`bats`/`shunit2`, o con un protocolo explícito de "casos borde mínimos a probar antes de
+mergear" para scripts que tocan JSON de configuración de otros repos.
+**Archivos clave:** skills/repo-integrity/scripts/check-release-drift.sh,
+protocols/session_start.md, skills/harness-update/scripts/check-update.sh,
+skills/harness-update/scripts/apply-update.sh, skills/harness-update/SKILL.md
+
+## 2026-08-04 — PR #119 — fix(release): sync-back main a develop tras v2.2.0
+
+**Plan:** sin plan formal previo (bug real encontrado en vivo, sesión de continuación tras
+el release v2.2.0)
+**Qué se agregó:** Se corrigió un gap real detectado por un repo consumidor externo: tras el
+release v2.2.0 (PR #116), commits de bookkeeping posteriores (#117/#118) quedaron solo en
+`develop` sin sincronizar `main` de vuelta, dejando el tag `v2.2.0` fuera del historial
+ancestral de `develop`. Cualquier consumidor que actualizara el submódulo `.aura` apuntando a
+`develop` (en vez de al tag exacto vía `/harness-update`) recibía un `git describe` engañoso
+(`v2.1.1-N-g...`) aunque el contenido ya incluyera el release. Corregido con un merge
+`main → develop` sin conflictos (mismo contenido, solo restablece ancestría) y una nueva
+sección "Proceso de Release (tag) — sync-back obligatorio" en `agents/github.md` que
+documenta el paso como inmediato y obligatorio tras cada tag. Issues #120 (automatizar la
+detección de este drift) y #121 (privacidad de `current-session.json`, hallazgo relacionado
+detectado en la misma sesión) quedaron abiertos como seguimiento.
+**Archivos clave:** agents/github.md
+
+## 2026-08-04 — Release v2.2.0 (PRs #113/#114/#115, #116 — develop → main)
+
+**Plan:** Barrido directo de fricciones detectadas en vivo esta sesión, sin spec previa
+formal — dos gaps reales de detección en `session_start` (PRs abiertas invisibles, Issue
+#109; auto-update check silencioso, Issue #111) más el cierre de Issues #105/#106
+(bloqueados solo por depender de #104, ya resuelto) y consolidación de lo mergeado desde
+v2.1.1 (observabilidad de sesiones #103/#104, tiering ad-hoc #101, regla de verificación
+#100).
+**Qué se agregó:** Tercer release real del harness (minor, sin breaking changes) desde
+v2.1.1. `session_start.md` ahora consulta `gh pr list --state open` (ADR-004) y muestra un
+reporte compacto de la sesión anterior vía `process-session.sh` (ADR-005, Issue #105);
+`.aura/rules/routing-menu.md` ofrece "Ver reporte de consumo" al terminar `/run-dev-loop`
+(Issue #106); `session-start.ps1` deja rastro (`harness_update_check_error`) cuando el
+chequeo de auto-actualización falla en vez de tragárselo en silencio (Issue #111) —
+detectado porque un consumidor real quedó 2 minors atrasado sin ninguna advertencia. CHANGELOG.md
+actualizado (PRs #113/#115), PR de release develop→main (#116) mergeada, tag anotado
+`v2.2.0` creado sobre el merge commit y pusheado. `develop` y `main` quedaron alineados (0
+commits de diferencia).
+**Fricción encontrada en vivo (harness):** `git-guard.ps1` bloquea *cualquier* `git push`
+mientras la rama activa es `develop`/`main` — no distingue push de rama de push de tag, y
+el hook evalúa la rama activa al momento de interceptar el comando completo, no tras cada
+línea de un bloque multi-comando (un `git tag && git push` combinado en un solo comando se
+abortó entero antes de crear el tag). Se resolvió creando una rama descartable para el
+push del tag, sin tocar `git-guard.ps1` — candidato a revisar si se repite.
+**Archivos clave:** CHANGELOG.md, tag `v2.2.0`, protocols/session_start.md,
+.claude/hooks/session-start.ps1, .aura/rules/routing-menu.md, docs/aura/adr/ADR-004*,
+docs/aura/adr/ADR-005*
+
 ## 2026-08-02 — Release v2.1.0 (PRs #91, #92 — develop → main)
 
 **Plan:** Cierre de backlog (Issues #33/#34/#35/#38) + solicitud directa del usuario de

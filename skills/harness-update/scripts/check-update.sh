@@ -22,9 +22,17 @@ fi
 # Obtener el tag local actual (la rama está en un tag después de checkout)
 local_tag=$(git -C "$AURA_PATH" describe --tags --exact-match 2>/dev/null || echo "")
 
-# Si no está en un tag exacto, obtener el tag más cercano
+# Si no está en un tag exacto, obtener el tag más cercano — pero el resultado puede ser
+# enganoso: si .aura esta en una rama (ej. develop actualizada via submodule update en vez
+# de apply-update.sh), el tag "mas cercano" puede quedar desactualizado si esa rama no tiene
+# el ultimo tag como ancestro (ver agents/github.md -> "Proceso de Release", caso real: PR #119
+# de aura-agent-kit, tag v2.2.0 fuera de la ancestria de develop por falta de sync-back).
 if [ -z "$local_tag" ]; then
   local_tag=$(git -C "$AURA_PATH" describe --tags --abbrev=0 2>/dev/null || echo "")
+  if [ -n "$local_tag" ]; then
+    branch_name=$(git -C "$AURA_PATH" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "desconocida")
+    echo "ADVERTENCIA: .aura esta en la rama '$branch_name', no en un tag exacto. La version detectada ('$local_tag') puede ser incorrecta si esa rama no tiene el ultimo release como ancestro. Usar /harness-update (checkout de tag exacto) en vez de actualizar el submodulo directo a una rama." >&2
+  fi
 fi
 
 # Fetch tags del remoto (con timeout de 5s para no bloquear si no hay red)

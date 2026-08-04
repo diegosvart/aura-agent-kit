@@ -27,6 +27,7 @@
 | **Seleccionar / cambiar stack** | `skills/stack-selection/SKILL.md` via `/stack` | Sin session-stack.json, inicio de proyecto nuevo, o usuario quiere cambiar stack |
 | **Reporte de plan estratégico** | `skills/plan-reporting/SKILL.md` via `/plan-report` (ejecutado por `plan-reporter`) | Usuario pide reporte de gestión, tareas accionables, análisis de riesgo de un plan |
 | **Loop de desarrollo + verificación de issues** | `skills/agentic-dev-loop/SKILL.md` via `/run-dev-loop` | Usuario pide correr/automatizar el desarrollo de issues `ready`, o avisa que cerró/mergeó un issue y hay que revisarlo |
+| **Lanzar agentes ad-hoc fuera del loop** | `agents/complexity-tiering.md` | Orquestación manual de un bloque de 3+ tareas repetitivas delegadas a agentes, sin pasar por `agentic-dev-loop` |
 | **Manejo de datos sensibles / repo público** | `.claude/rules/sensitive-data-safety.md` | Repo público con datos de cliente, antes de commit/push, o session_start detecta `visibility=public` |
 | **Cierre de sesión** | `protocols/session_end.md` | "Terminamos", "cerramos", fin de trabajo |
 

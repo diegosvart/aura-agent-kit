@@ -1,16 +1,16 @@
 {
-  "last_updated": "2026-08-01T00:00:00-04:00",
+  "last_updated": "2026-08-04T00:00:00-04:00",
   "branch": "develop",
-  "focus": "Barrido de issues pendientes (post idea [016]): #35 (bug ya implementado, defensivo aplicado), #33 (infra ADR), #34 (ADR en finish-branch, depende de #33), #38 (política de versionado, depende de #33). Los 4 issues resueltos, 4 PRs abiertas sin mergear (decisión del usuario).",
-  "next_step": "Usuario revisa y decide merge de PRs #84 (Issue #35), #85 (Issue #33), #86 (Issue #34, depende de #85), #87 (Issue #38, depende de #85). Mergear #85 antes que #86/#87 para evitar el diff heredado. #86 y #87 tienen conflicto trivial esperado en docs/aura/adr/ADR-000-registro.md (filas 002 vs 003).",
+  "focus": "Idea [017] (observability de sesiones) explorada y planned. Loop /run-dev-loop corrido para Issues #103-#106: #103 (captura en session-end.ps1) mergeado vía PR #107; #104 (process-session.sh) verificado, PR #108 abierto sin mergear. #105/#106 quedan blocked hasta que el usuario mergee #104.",
+  "next_step": "Usuario decide merge de PR #102 (este mismo cambio) y PR #108. Al mergear #108: reetiquetar #105/#106 de blocked a ready a mano (pick-next-issue.sh no lo hace solo) y continuar el loop.",
   "pending": [
-    "Mergear PR #85 (Issue #33) primero — #86 y #87 parten de esa rama",
-    "Resolver conflicto trivial en ADR-000-registro.md al mergear #86/#87",
-    "Tras mergear cada PR: post-merge.sh para cerrar el issue asociado (default branch != develop)",
-    "crawler-mcp-diagram: usuario debe testear PR #89 (update a v2.0.0) y decidir mergear"
+    "Mergear o descartar PR #102 (este archivo)",
+    "Mergear PR #108 (Issue #104, process-session.sh) — verificado, listo, decisión del usuario",
+    "Tras merge de #108: reetiquetar #105 y #106 a ready y continuar /run-dev-loop",
+    "Usuario: actualizar submodule .aura en crawler-mcp-diagram a v2.1.1 y validar aviso de harness-update"
   ],
   "required_reads": [
-    "docs/aura/adr/ADR-003-politica-versionado-artefactos.md",
-    "skills/agentic-dev-loop/scripts/post-merge.sh"
+    "skills/agentic-dev-loop/SKILL.md",
+    ".aura/rules/harness-core.md"
   ]
 }

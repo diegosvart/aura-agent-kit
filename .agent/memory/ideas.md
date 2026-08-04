@@ -208,3 +208,38 @@ diseñados a nivel de contrato en el plan de esa sesión:
 
 ### Iteraciones
 _(sin iterar)_
+
+---
+
+## [017] Reporte de sesión anterior + agente especialista en observability al iniciar sesión
+**Estado:** planned
+**Capturado:** 2026-08-03
+**Contexto:** Objetivo amplio: depurar flujos de trabajo, detectar oportunidades de mejora,
+capturar errores, y optimizar LLM-vs-script-vs-command priorizando herramientas reusables por
+los modelos que ahorren tokens. Nace del gap detectado al revisar PR #101 (observability.md +
+complexity-tiering.md): el único mecanismo de captura de consumo hoy (`<usage>` de
+task-notification) solo aplica a subagentes delegados, no a sesiones sin delegación.
+
+**Arquitectura acordada (2 fases, para no repetir el timeout O(n) que ya tuvo
+`context-guard.ps1` con JSONL grande):**
+- Fase A: `session-end.ps1` lee stdin (mismo patrón que `git-guard.ps1`) y appendea
+  `transcript_path`+`session_id` a un índice liviano — sin parsear el JSONL en el hook.
+- Fase B: paso nuevo en `session_start.md`, sin presión de timeout, procesa las entradas
+  pendientes del índice y calcula tokens/tool_uses-por-tipo/duration.
+- Persistencia en `.agent/memory/observability/` — **gitignored**, no versionado como
+  `current-session.json`, porque validamos en esta misma sesión que ese archivo, siendo
+  público, ya filtra patrón de trabajo (horarios, nombres de proyectos privados como
+  `crawler-mcp-diagram`) — un histórico de split LLM/script por sesión sería peor.
+
+**Opciones evaluadas:** A (captura+reporte básico) / B (+ tendencia histórica) / C (+ agente
+especialista que analiza el histórico acumulado). Se decide arrancar por A — B es casi gratis
+una vez que A esté guardando el histórico; C recién rinde con 5-10 sesiones reales acumuladas.
+
+**Extensión pedida por el usuario:** que ofrecer este reporte sea una opción estándar en las
+ejecuciones de `/run-dev-loop` (ver `skills/agentic-dev-loop/SKILL.md` Paso 5.5, que ya
+guarda consumo en Engram pero solo dentro del loop formal).
+
+### Iteraciones
+- [2026-08-04] Exploración completa (PM → Planner → Engineer). Decisión: implementar Opción A
+  vía `/run-dev-loop`, 4 issues (captura en hook → script de procesamiento → reporte en
+  session_start → oferta del reporte como opción estándar en loops).

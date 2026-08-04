@@ -188,28 +188,35 @@ try:
         data = json.load(f)
 
     pretooluse = data.setdefault("PreToolUse", [])
+    git_guard_hook = {
+        "type": "command",
+        "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1",
+        "timeout": 5,
+    }
 
-    def has_git_guard(matcher):
+    def find_entry(matcher):
         for entry in pretooluse:
             if entry.get("matcher") == matcher:
-                for h in entry.get("hooks", []):
-                    if "git-guard.ps1" in h.get("command", ""):
-                        return True
-        return False
+                return entry
+        return None
 
     added = []
     for matcher in ["Bash", "PowerShell"]:
-        if not has_git_guard(matcher):
-            pretooluse.append({
-                "matcher": matcher,
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1",
-                        "timeout": 5,
-                    }
-                ],
-            })
+        entry = find_entry(matcher)
+        if entry is None:
+            # Sin entrada para este matcher todavia -> crear una nueva
+            pretooluse.append({"matcher": matcher, "hooks": [git_guard_hook]})
+            added.append(matcher)
+            continue
+
+        hooks = entry.setdefault("hooks", [])
+        if not any("git-guard.ps1" in h.get("command", "") for h in hooks):
+            # Ya existe una entrada para este matcher (posiblemente con hooks custom
+            # del consumidor) -> agregar AL FINAL de su lista, nunca crear un matcher
+            # duplicado. Un segundo objeto con el mismo "matcher" en el array es
+            # comportamiento ambiguo (no esta claro si Claude Code corre ambos o solo
+            # el ultimo) y arriesgaria desactivar en silencio un hook custom existente.
+            hooks.append(git_guard_hook)
             added.append(matcher)
 
     if added:

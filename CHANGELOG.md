@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-08-04
+
+### Added
+- Observabilidad de sesiones: `session-end.ps1` captura `session_id` y `transcript_path` en
+  `.agent/memory/observability/sessions-index.jsonl` (fail-open, no versionado — Issue #103,
+  PR #107); `skills/observability/scripts/process-session.sh` agrega métricas por sesión
+  (`output_tokens`, `tool_uses` clasificados, `duration_ms`) en `sessions.jsonl`, idempotente
+  (Issue #104, PR #108)
+- `agents/complexity-tiering.md`: guía reusable de tiering Haiku/Sonnet/Opus para
+  orquestación ad-hoc de agentes fuera de `agentic-dev-loop` (PR #101)
+- `docs/aura/observability.md`: referencia estable de las 3 capas de acceso a datos de
+  consumo (OTEL, JSONL crudo, `<usage>` de task-notification) y métrica compuesta
+  recomendada (PR #101)
+- `skills/agentic-dev-loop/scripts/cleanup-merged-branch.sh`: borra la rama local tras un
+  merge confirmado, dry-run por default, `--delete` solo con confirmación explícita
+  (`git branch -d`, nunca `-D`) (PR #101)
+- `protocols/session_start.md`, Paso 4: nueva subsección obligatoria "PRs Abiertas"
+  (`gh pr list --state open`) — antes el protocolo solo miraba estado local y ramas ya
+  mergeadas/huérfanas, dejando invisibles PRs abiertas esperando merge/review
+  (Issue #109, PR #110, ADR-004)
+
+### Fixed
+- `session-start.ps1`: el bloque de auto-detección de actualización del harness tragaba
+  cualquier fallo en silencio (`catch` vacío), sin distinguir "se chequeó, no hay update" de
+  "el chequeo nunca corrió" — causó que un consumidor real quedara 2 minors atrasado sin
+  ninguna advertencia. Ahora setea `harness_update_check_error` en el JSON del hook, mismo
+  patrón que el campo `git_error` ya existente en el archivo (Issue #111, PR #112)
+
+### Changed
+- `.aura/rules/harness-core.md`: nueva regla — el agente nunca afirma el estado de algo
+  verificable (PR/issue, archivo, comando, versión desplegada) sin correr la verificación en
+  el mismo turno; memoria (Engram, resúmenes, historial) es hipótesis de partida, nunca
+  fuente de verdad (PR #100)
+
 ## [2.1.1] - 2026-08-02
 
 ### Fixed

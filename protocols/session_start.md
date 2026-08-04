@@ -204,6 +204,32 @@ mem_context(
 
 ---
 
+## Paso 5.5 — Reporte de Observability de la Sesión Anterior (fail-open)
+
+Procesa entradas pendientes del índice de sesiones y muestra un resumen compacto de la
+sesión anterior, antes del Resumen Ejecutivo. Es **fail-open**: si el script falla, no
+existe `.aura/` (proyecto sin observability habilitada), o no hay datos, se omite en
+silencio — nunca bloquea el resto del protocolo.
+
+```bash
+bash skills/observability/scripts/process-session.sh 2>/dev/null || true
+```
+
+Si `.agent/memory/observability/sessions.jsonl` existe y tiene al menos una línea, leer la
+**última** línea (la sesión más reciente procesada) y mostrar antes del Resumen Ejecutivo:
+
+```
+## Sesión Anterior
+- Tokens de salida: <output_tokens>
+- Tool uses: LLM <n> · Script/Comando <n> · Delegado a agente <n> · Otro <n>
+- Duración: <duration_ms convertido a min:seg, o "—" si es null>
+```
+
+Si el archivo no existe, está vacío, o el script devolvió error → omitir esta sección por
+completo (no mostrar un bloque vacío ni un mensaje de error).
+
+---
+
 ## Paso 6 — Resumen Ejecutivo (formato obligatorio)
 
 ```

@@ -1,14 +1,16 @@
 {
-  "last_updated": "2026-08-03T00:00:00-04:00",
+  "last_updated": "2026-08-04T00:00:00-04:00",
   "branch": "develop",
-  "focus": "PR #100 (regla verify-before-asserting en harness-core.md) mergeada a develop. Limpieza de repo: 22 ramas locales ya mergeadas (con remote gone) borradas. PR #101 (tiering de modelo genérico + observability + cleanup-merged-branch.sh) también llegó a develop.",
-  "next_step": "Sin issues ready ni rama en curso — planificar trabajo nuevo con /plan-work.",
+  "focus": "Idea [017] (observability de sesiones) explorada y planned. Loop /run-dev-loop corrido para Issues #103-#106: #103 (captura en session-end.ps1) mergeado vía PR #107; #104 (process-session.sh) verificado, PR #108 abierto sin mergear. #105/#106 quedan blocked hasta que el usuario mergee #104.",
+  "next_step": "Usuario decide merge de PR #102 (este mismo cambio) y PR #108. Al mergear #108: reetiquetar #105/#106 de blocked a ready a mano (pick-next-issue.sh no lo hace solo) y continuar el loop.",
   "pending": [
-    "Usuario: actualizar submodule .aura en crawler-mcp-diagram a v2.1.1 y validar que aparece el aviso de harness-update (no lo hago yo — solo lectura permitida en ese repo)",
-    "Tras validar en crawler-mcp-diagram: confirmar que .agent/memory/harness-update-check.json se crea con harness_update_available correcto"
+    "Mergear o descartar PR #102 (este archivo)",
+    "Mergear PR #108 (Issue #104, process-session.sh) — verificado, listo, decisión del usuario",
+    "Tras merge de #108: reetiquetar #105 y #106 a ready y continuar /run-dev-loop",
+    "Usuario: actualizar submodule .aura en crawler-mcp-diagram a v2.1.1 y validar aviso de harness-update"
   ],
   "required_reads": [
-    "skills/harness-update/SKILL.md",
+    "skills/agentic-dev-loop/SKILL.md",
     ".aura/rules/harness-core.md"
   ]
 }

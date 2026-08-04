@@ -250,6 +250,9 @@ Rama sugerida: `{{TIPO}}/{{CODIGO}}-{{descripcion}}`
 > ⚠ Si `harness_update_available: true` (del hook), incluir una sola línea:
 >   `⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — /harness-update para detalle`
 >   (sustituyendo X.Y.Z por `harness_latest_version` y A.B.C por la versión local actual del harness)
+> ⚠ Si `harness_update_check_error` viene presente en el JSON del hook, incluir una sola línea:
+>   `⚠ Chequeo de actualización del harness no pudo ejecutarse: <harness_update_check_error>`
+>   (distingue "se chequeó, no hay update" de "el chequeo nunca corrió" — Issue #111)
 ```
 
 ### Nota sobre la línea de aviso de actualización del harness

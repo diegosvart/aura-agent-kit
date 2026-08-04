@@ -108,6 +108,7 @@
 | Bitácora de proyecto | `.agent/memory/project-log.md`, `objectives.md` | Sí | P5; sujeta al barrido de `.claude/rules/sensitive-data-safety.md` |
 | Ledger de planes aprobados | `.agent/memory/plans/*.md` | Sí, con barrido obligatorio | Trazabilidad de decisiones — categoría de mayor riesgo de fuga real; anonimizar dato de negocio (placeholders) antes de commitear |
 | Backups automáticos | `.agent/memory/backups/*.json` | No | Estado transitorio regenerable |
+| Índice de observability de sesiones | `.agent/memory/observability/sessions-index.jsonl` | No | Más sensible que `current-session.json`: expone patrón de trabajo detallado (split LLM/script/comando por sesión, horarios), no solo metadata de progreso; riesgo de fuga de comportamiento del agente |
 | Análisis/informes ad-hoc | hallazgos de debugging, reportes exploratorios | No | Efímero — `docs/aura/specs/` (gitignored) o solo Engram |
 
 Esta tabla es la fuente de verdad única: todo proyecto que inicializa el harness la

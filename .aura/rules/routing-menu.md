@@ -33,6 +33,16 @@ Mostrar el menú de routing después de **cualquier** de estos eventos:
 3. **Cerrar sesión** — guardar estado y terminar
 ```
 
+### Si acaba de terminar una corrida de `/run-dev-loop`
+
+```
+## ¿Qué sigue?
+1. **Ver reporte de consumo de esta corrida** — tokens/tool_uses/duration por issue,
+   agregado desde `.agent/memory/observability/sessions.jsonl`
+2. **Revisar issues en `review`** — Fase 2 (verifier) del loop
+3. **Cerrar sesión** — guardar estado y terminar
+```
+
 ### Si acaba de mergear una PR
 
 ```

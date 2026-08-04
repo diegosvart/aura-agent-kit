@@ -162,6 +162,14 @@ observación en Engram (`mem_save`, `project=<repo>`, ej. `type=pattern` con un 
 para trackear si el costo por issue baja con las optimizaciones de este skill, o si conviene
 revisar el enfoque antes de escalar el loop a más issues.
 
+Este registro manual en Engram es complementario al mecanismo automático de observability
+(Issues #103/#104): `session-end.ps1` captura cada sesión en `sessions-index.jsonl`, y
+`skills/observability/scripts/process-session.sh` agrega `output_tokens`/`tool_uses`/
+`duration_ms` en `sessions.jsonl` — histórico acumulado por sesión, no por issue. Al terminar
+una corrida del loop, ofrecer al usuario "Ver reporte de consumo de esta corrida" (ver
+`.aura/rules/routing-menu.md`) leyendo las entradas de `sessions.jsonl` correspondientes a las
+sesiones de esta corrida.
+
 ---
 
 ## Fase 2 — Verifier (auditoría, nunca mergea sola)

@@ -4,6 +4,29 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-08-04 — PR #137 — cut-release.sh reemplaza el Proceso de Release en prosa
+
+**Plan:** `.agent/memory/plans/2026-08-04-cut-release-script.md`
+**Qué se agregó:** El Proceso de Release (changelog, PR develop→main, tag, sync-back) dejó de
+ser prosa que el agente reconstruía razonando cada vez — ahora es un script
+(`cut-release.sh`) con 4 pasos idempotentes. Se investigó si hacía falta una excepción en
+`git-guard.ps1` para el push del tag y se descartó tras comprobar en vivo que era innecesaria
+(el hook no ve los comandos internos del script) y que, implementada, abría un hueco real (un
+push disfrazado con un comentario se colaba) — el hook queda sin cambios. Se registró la idea
+`[018]` (router de flujos determinísticos por operación) como conclusión de fondo.
+**Archivos clave:** skills/agentic-dev-loop/scripts/cut-release.sh, agents/github.md,
+.agent/memory/ideas.md
+
+## 2026-08-04 — PRs #132/#133/#134 — Release v2.2.1
+
+**Plan:** sin plan formal previo (continuación directa de PR #119/#123-125)
+**Qué se agregó:** Los fixes de apply-update.sh (#123/#124/#125), hasta ahora solo en
+`develop`, quedaron publicados en el tag `v2.2.1` — consumidores externos ya pueden recibirlos
+vía `/harness-update` (antes resolvían contra `v2.2.0`, que no los incluía). PR #132
+(changelog), #133 (develop→main + tag), #134 (sync-back obligatorio). Verificado:
+`git describe --tags` en develop resuelve contra `v2.2.1` sin drift.
+**Archivos clave:** CHANGELOG.md, tag `v2.2.1`
+
 ## 2026-08-04 — PRs #123/#124/#125 — detección de drift + hardening de apply-update.sh
 
 **Plan:** sin plan formal previo (continuación directa de PR #119/#120, mismo hilo de la

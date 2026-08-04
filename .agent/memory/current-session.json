@@ -1,17 +1,17 @@
 {
-  "last_updated": "2026-08-04T16:30:00-04:00",
-  "branch": "chore/project-log-pr123-125",
-  "focus": "Corregidos 4 gaps reales del auto-update del harness expuestos por crawler-mcp-diagram (PRs #119/#123/#124/#125, todos mergeados): sync-back main/develop, deteccion de drift, y apply-update.sh ahora autoregistra git-guard.ps1 en PreToolUse (causa raiz de 3 commits pusheados sin bloqueo en ese consumidor). Validado end-to-end, no solo por lectura.",
-  "next_step": "Mergear PR #126 (bitacora final de PRs #123-125). Luego: indicarle a la sesion de crawler-mcp-diagram que aplique el fix (PR directo en su settings.json, /harness-update no sirve hasta cortar un release nuevo aqui).",
+  "last_updated": "2026-08-04T17:50:00-04:00",
+  "branch": "develop",
+  "focus": "Release v2.2.1 cortado (fixes de apply-update.sh ya publicados). git-guard.ps1 bloqueaba el push del tag de release; se investigo el diseno de fondo (3 capas de enforcement ya existentes) y se resolvio con cut-release.sh (Issue #136, PR #137) en vez de agregar regex al hook -- una excepcion planeada se probo insegura en vivo y se descarto.",
+  "next_step": "Retomar el orden sugerido de issues creados esta sesion: #127 (topic_key Engram) -> #129 (ADR-003 bookkeeping) -> #130/#131 (check integridad de repo) -> #135 (diseno barrido datos sensibles).",
   "pending": [
-    "Mergear PR #126 (project-log de PRs #123-125)",
-    "Issue #121 sin tomar: privacidad de current-session.json (que hacer con foco/next_step narrativo)",
-    "Evaluar formalizar testing (bats/shunit2 o checklist de casos borde) para scripts bash del harness — feedback explicito del usuario esta sesion",
-    "Evaluar cortar release patch (v2.2.1) para que /harness-update propague el fix de git-guard.ps1 a otros consumidores"
+    "Issue #127: adoptar topic_key en Engram para memoria evolutiva",
+    "Issue #129: reconsiderar ADR-003 (PRs de bookkeeping incremental)",
+    "Issue #130/#131: disenar e implementar check de integridad de repo",
+    "Issue #135: disenar barrido de datos sensibles pre-commit/push"
   ],
   "required_reads": [
-    ".agent/memory/project-log.md (entrada PRs #123-125)",
-    "agents/github.md (seccion Proceso de Release)",
-    "skills/harness-update/SKILL.md (paso [6/6] nuevo)"
+    "agents/github.md (seccion Proceso de Release, ahora invoca cut-release.sh)",
+    ".agent/memory/ideas.md (idea [018] router de flujos deterministicos)",
+    ".agent/memory/plans/2026-08-04-cut-release-script.md"
   ]
 }

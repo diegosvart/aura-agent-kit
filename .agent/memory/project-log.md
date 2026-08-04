@@ -4,6 +4,23 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-08-04 — PR #119 — fix(release): sync-back main a develop tras v2.2.0
+
+**Plan:** sin plan formal previo (bug real encontrado en vivo, sesión de continuación tras
+el release v2.2.0)
+**Qué se agregó:** Se corrigió un gap real detectado por un repo consumidor externo: tras el
+release v2.2.0 (PR #116), commits de bookkeeping posteriores (#117/#118) quedaron solo en
+`develop` sin sincronizar `main` de vuelta, dejando el tag `v2.2.0` fuera del historial
+ancestral de `develop`. Cualquier consumidor que actualizara el submódulo `.aura` apuntando a
+`develop` (en vez de al tag exacto vía `/harness-update`) recibía un `git describe` engañoso
+(`v2.1.1-N-g...`) aunque el contenido ya incluyera el release. Corregido con un merge
+`main → develop` sin conflictos (mismo contenido, solo restablece ancestría) y una nueva
+sección "Proceso de Release (tag) — sync-back obligatorio" en `agents/github.md` que
+documenta el paso como inmediato y obligatorio tras cada tag. Issues #120 (automatizar la
+detección de este drift) y #121 (privacidad de `current-session.json`, hallazgo relacionado
+detectado en la misma sesión) quedaron abiertos como seguimiento.
+**Archivos clave:** agents/github.md
+
 ## 2026-08-04 — Release v2.2.0 (PRs #113/#114/#115, #116 — develop → main)
 
 **Plan:** Barrido directo de fricciones detectadas en vivo esta sesión, sin spec previa

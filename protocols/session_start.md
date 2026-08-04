@@ -142,6 +142,25 @@ Incluir en el resumen ejecutivo (Paso 6) con este formato:
 
 Si algún check falla → sugerir el comando exacto para corregirlo (ver `agents/github.md`).
 
+### Drift de Release (main vs. develop)
+
+Chequeo local, no requiere `gh` — corre siempre que existan ambas ramas:
+
+```bash
+bash skills/repo-integrity/scripts/check-release-drift.sh
+```
+
+Si imprime una línea `DRIFT: ...` → incluirla tal cual en la sección "Advertencias" del
+Resumen Ejecutivo (Paso 6), con la acción sugerida: aplicar el sync-back de
+`agents/github.md` → "Proceso de Release" antes de continuar. Si no imprime nada, no
+mostrar ninguna línea (chequeo silencioso, igual que "PRs Abiertas" cuando la lista viene
+vacía no se omite el paso, pero acá sí se omite la línea si no hay hallazgo — es una
+advertencia condicional, no un estado a reportar siempre).
+
+Ver Issue #120 y PR #119 (aura-agent-kit) para el caso real que motivó este chequeo: un
+consumidor externo actualizó `.aura` a `develop` en vez de a un tag exacto y recibió una
+versión reportada incorrecta porque el tag había quedado fuera de la ancestría de `develop`.
+
 #### Gate de datos sensibles (si `visibility == public`)
 
 Si la visibilidad es **pública** y el proyecto maneja datos de un cliente real

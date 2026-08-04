@@ -4,6 +4,42 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-08-04 — PRs #123/#124/#125 — detección de drift + hardening de apply-update.sh
+
+**Plan:** sin plan formal previo (continuación directa de PR #119/#120, mismo hilo de la
+sesión: un repo consumidor externo, `crawler-mcp-diagram`, seguía exponiendo brechas del
+harness)
+**Qué se agregó:**
+- PR #123 (Closes #120): `skills/repo-integrity/scripts/check-release-drift.sh` — chequeo
+  local (sin `gh`) que compara el último tag alcanzable desde `main` contra la ancestría de
+  `develop`, enlazado en `protocols/session_start.md` Paso 3. `check-update.sh` ahora avisa
+  por stderr cuando `.aura` está en una rama y no en un tag exacto (antes reportaba el tag
+  más cercano sin distinguir "desactualizado real" de "rama sin el último tag como ancestro").
+- PR #124: bug real en `crawler-mcp-diagram` — `git-guard.ps1` existía en `.claude/hooks/`
+  pero nunca quedó registrado como `PreToolUse` en `.claude/settings.json`, así que el
+  enforcement de "nunca push directo a develop/main" estaba inerte (3 commits terminaron
+  pusheados directo a `develop` sin bloqueo). `apply-update.sh` sincronizaba el archivo del
+  hook pero nunca verificaba su registro. Nuevo paso `[6/6]` que lo detecta y autoregistra.
+- PR #125: validación end-to-end del fix de #124 (pedida explícitamente por el usuario antes
+  de dar el harness por estable) encontró un segundo bug introducido por el propio fix: si el
+  consumidor ya tenía un hook custom en `PreToolUse` para `Bash`/`PowerShell`, la lógica
+  creaba un matcher duplicado en vez de fusionarse — riesgo de desactivar en silencio ese
+  hook custom. Corregido para fusionar dentro de la entrada existente.
+
+**Fricción encontrada en vivo (harness):** ninguno de los tres fixes (#123/#124/#125) se
+escribió con test-first (P3/Iron Law) — son scripts bash sin suite automatizada, verificados
+ad-hoc contra escenarios reproducidos manualmente en el momento. El bug de #125 (matcher
+duplicado) es consecuencia directa de eso: se coló en #124 porque la validación de esa PR no
+cubrió el caso de un consumidor con `PreToolUse` preexistente, y solo se detectó porque el
+usuario pidió explícitamente una validación end-to-end antes de cerrar, no porque el flujo de
+trabajo la exigiera de entrada. Queda pendiente para una sesión futura: definir cómo aplica
+P3 a scripts bash de este repo (harness de por sí no tiene runner de tests) — sea con
+`bats`/`shunit2`, o con un protocolo explícito de "casos borde mínimos a probar antes de
+mergear" para scripts que tocan JSON de configuración de otros repos.
+**Archivos clave:** skills/repo-integrity/scripts/check-release-drift.sh,
+protocols/session_start.md, skills/harness-update/scripts/check-update.sh,
+skills/harness-update/scripts/apply-update.sh, skills/harness-update/SKILL.md
+
 ## 2026-08-04 — PR #119 — fix(release): sync-back main a develop tras v2.2.0
 
 **Plan:** sin plan formal previo (bug real encontrado en vivo, sesión de continuación tras

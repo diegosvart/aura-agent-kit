@@ -185,6 +185,39 @@ mergeado, aunque no lo haya mergeado esta sesión):
 Este paso es **independiente** de si la sesión se cierra formalmente — se ejecuta en el
 momento del merge, dentro del mismo turno en que se confirma el merge.
 
+4. **Limpiar la rama local (bajo confirmación del usuario).** Hasta ahora ningún paso del
+   harness borraba la rama local tras confirmar el merge — quedaba viva hasta que
+   `session_start.md` (Paso 3, salud de ramas) la detectara pasivamente en una sesión
+   posterior. Este paso lo hace en el momento correcto (justo tras el merge), pero **nunca
+   sin preguntar** — borrar una rama sigue siendo una acción que el usuario debe aprobar
+   (regla general del harness: nunca ejecutar acciones destructivas sin aprobación).
+
+   ```bash
+   # Paso a: dry-run — reporta si hay rama local para limpiar, sin borrar nada
+   skills/agentic-dev-loop/scripts/cleanup-merged-branch.sh <owner>/<repo> <pr_n>
+
+   # Paso b: si el script confirma que está mergeada y lista, preguntar al usuario
+   # ("¿Borro la rama local <branch>?") y solo si aprueba:
+   skills/agentic-dev-loop/scripts/cleanup-merged-branch.sh <owner>/<repo> <pr_n> --delete
+   ```
+
+   El script usa `git branch -d` (nunca `-D`) — si la rama tiene commits sin mergear (no
+   debería pasar si el PR ya está mergeado a `develop`, pero el script lo verifica antes de
+   intentar borrar), falla explícitamente en vez de forzar.
+
+   **Ejemplo de uso real** (walkthrough, no hay suite de tests automatizada para los scripts
+   de este repo — se validan así, con un caso real):
+   ```bash
+   $ skills/agentic-dev-loop/scripts/cleanup-merged-branch.sh diegosvart/mi-repo 42
+   Rama local 'feature/issue-40-mi-feature' está mergeada en develop y lista para borrar.
+   Confirmar con el usuario y volver a correr: cleanup-merged-branch.sh diegosvart/mi-repo 42 --delete
+
+   # (agente pregunta al usuario, usuario confirma)
+
+   $ skills/agentic-dev-loop/scripts/cleanup-merged-branch.sh diegosvart/mi-repo 42 --delete
+   Rama local 'feature/issue-40-mi-feature' borrada (PR #42 mergeado a develop).
+   ```
+
 ---
 
 ## gh CLI vs MCP GitHub

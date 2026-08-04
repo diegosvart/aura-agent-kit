@@ -9,6 +9,8 @@
 | [001](ADR-001-task-checkpoint.md) | Protocolo de checkpoint mid-session tras cerrar una unidad de trabajo | 2026-05-14 | accepted | harness |
 | [002](ADR-002-adr-en-finish-branch.md) | Integrar escritura de ADR en el flujo de finish-branch | 2026-08-01 | accepted | harness |
 | [003](ADR-003-politica-versionado-artefactos.md) | Política de versionado de artefactos generados por el agente | 2026-08-01 | accepted | harness |
+| [004](ADR-004-session-start-detecta-prs-abiertas.md) | session_start.md consulta PRs abiertas contra GitHub, no solo estado local | 2026-08-04 | accepted | harness |
+| [005](ADR-005-superficie-reportes-observability.md) | Exponer reportes de observability en session_start y al cerrar el loop | 2026-08-04 | accepted | harness |
 
 ## Estados posibles
 

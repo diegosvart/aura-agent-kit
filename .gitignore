@@ -70,5 +70,8 @@ docs/aura/experiments/
 # Backups de sesión (generados por hook session-end)
 .agent/memory/backups/
 
+# Índice de observability de sesión (generado por hook session-end)
+.agent/memory/observability/
+
 # Cache de detección de actualización del harness (generado por hook session-start)
 .agent/memory/harness-update-check.json

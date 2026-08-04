@@ -237,9 +237,16 @@ try {
             $output.harness_update_available = $true
             $output.harness_latest_version = $remoteTag
         }
+    } elseif ((Test-Path (Join-Path $auraPath ".git")) -and -not $gitBash) {
+        # .aura/ es un checkout git real (se esperaba poder chequear) pero no se pudo resolver
+        # bash de Git for Windows — a diferencia de "sin .aura/", esto sí es una falla real.
+        $output.harness_update_check_error = "gitBash no resuelto (Git for Windows no encontrado)"
     }
 } catch {
-    # Silencioso — sin red, sin .aura/, o cualquier falla: no se setea el campo (D2)
+    # Mismo patrón que el bloque de git info básica (línea ~27): no tragarse el error, dejarlo
+    # en el JSON que ya se lee cada sesión — evita que "no hay update" y "el chequeo no corrió"
+    # sean indistinguibles (Issue #111).
+    $output.harness_update_check_error = $_.Exception.Message
 }
 
 # Output como JSON para que Claude lo use como contexto

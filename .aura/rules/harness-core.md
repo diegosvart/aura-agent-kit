@@ -51,6 +51,7 @@ Reglas del menú:
 - **Al detectar rama sucia** (cambios sin commit al inicio): mostrar `git diff --stat` y preguntar
 - **Al detectar gh no autenticado**: informar y saltear pasos que requieren gh (no fallar silenciosamente)
 - **Declarar especialistas activos**: al iniciar exploración con `/idea <N>`, brainstorm, spec-validation u otro skill multimodal, declarar explícitamente qué está activando. Ejemplo: `Activando: idea-management [PM → Planner → Engineer]`
+- **Nunca afirmar el estado de algo verificable sin haberlo verificado en esa misma respuesta** — estado de una PR/issue (abierta/cerrada/mergeada), contenido de un archivo, resultado de un comando, versión desplegada, etc. Si no se corrió la herramienta que lo confirma en este turno, no se asegura como hecho: se dice explícitamente "no lo verifiqué todavía" o se corre la verificación antes de responder. Memoria (Engram, resúmenes previos, este mismo historial) es una hipótesis de partida, nunca la fuente de verdad — puede estar desactualizada por acciones ocurridas fuera de esta sesión. Aplica en especial a estado de git/GitHub (`gh pr view`, `gh issue view`, `git log`) antes de describir qué está mergeado, abierto o pendiente.
 
 ---
 

@@ -162,6 +162,14 @@ observación en Engram (`mem_save`, `project=<repo>`, ej. `type=pattern` con un 
 para trackear si el costo por issue baja con las optimizaciones de este skill, o si conviene
 revisar el enfoque antes de escalar el loop a más issues.
 
+Este registro manual en Engram es complementario al mecanismo automático de observability
+(Issues #103/#104): `session-end.ps1` captura cada sesión en `sessions-index.jsonl`, y
+`skills/observability/scripts/process-session.sh` agrega `output_tokens`/`tool_uses`/
+`duration_ms` en `sessions.jsonl` — histórico acumulado por sesión, no por issue. Al terminar
+una corrida del loop, ofrecer al usuario "Ver reporte de consumo de esta corrida" (ver
+`.aura/rules/routing-menu.md`) leyendo las entradas de `sessions.jsonl` correspondientes a las
+sesiones de esta corrida.
+
 ---
 
 ## Fase 2 — Verifier (auditoría, nunca mergea sola)
@@ -223,6 +231,7 @@ varios issues `review` en la misma corrida — auditar no muta código, solo lee
 | El dev-runner escribe el keyword de cierre traducido ("Cierra #N") en vez de literal ("Closes #N") | GitHub solo reconoce el keyword en inglés para el autocierre real al mergear, y `close-cycle.sh`/`find-pr-for-issue.sh` buscan ese mismo string — una traducción rompe ambas cosas aunque el resto del PR esté perfecto. Pasó con Issue #28 → PR #41 (memo-digital): el dev-runner tradujo el keyword pese a la instrucción explícita, `close-cycle.sh` no encontró el PR y devolvió el issue a `ready` con un PR real abierto. Fix aplicado: `close-cycle.sh` ahora tiene el mismo fallback por `headRefName` (`^feature/issue-N-`) que ya tenía `find-pr-for-issue.sh`, y avisa por stderr si el PR encontrado no traía el keyword esperado (para corregir el body a mano, GitHub no autocierra sobre el fallback). Fix estructural posterior: `open-pr.sh` (ver tabla de scripts) inyecta el keyword él mismo — el agente ya no lo escribe, así que no puede traducirlo |
 | El dev-runner abre PR sin `--base` explícito y cae contra el default branch del repo (`main`) en vez de la rama de integración (`develop`) | Misma causa raíz que el gap de autoclose (arriba): el default branch del repo no es la rama a la que mergea el loop, y `gh pr create` sin `--base` usa el default branch por convención de `gh`. Caso real: Issues #75/#76 (otro proyecto con este harness), ambos dev-runners abrieron PR contra `main`; la auditoría (Fase 2) lo detectó y corrigió a mano antes de recomendar merge. Fix estructural: `open-pr.sh` hardcodea `--base develop`, no es parámetro — el agente no puede omitirlo porque nunca construye el comando |
 | Dos dev-runners comparten working directory y el segundo hereda estado sucio del primero | Sin aislamiento, un `checkout develop && pull` de un dev-runner puede pisar/heredar una rama a medio commitear de una corrida anterior. Caso real: Issue #76 (otro proyecto con este harness) heredó el working directory de Issue #75 y su commit terminó con una entrada duplicada — se reparó a mano con un splice quirúrgico de bytes para no corromper un byte mal codificado preexistente en el archivo. Fix: lanzar cada dev-runner con `isolation: "worktree"` en el Agent tool (ver Fase 1, Paso 4, sub-paso 1) — cada uno parte de un working directory realmente aislado, no de una convención que el agente deba recordar |
+| La rama local queda viva indefinidamente tras el merge | `post-merge.sh` cierra el issue pero nunca toca la rama local — queda acumulándose hasta que `session_start.md` (Paso 3, salud de ramas) la detecta pasivamente en una sesión posterior, o hasta una limpieza manual. Caso real: `crawler-mcp-diagram` (2026-08-03) acumuló 8 ramas locales + 10 remotas ya mergeadas sin que nada las hubiera limpiado antes de esa sesión. Fix: `cleanup-merged-branch.sh <owner>/<repo> <pr_n> [--delete]` (ver `agents/github.md`, "Al Mergear una PR a Develop", Paso 4) — dry-run por default, borra con `git branch -d` (nunca `-D`) solo tras confirmación explícita del usuario, invocado inmediatamente después de `post-merge.sh` en el mismo turno del merge en vez de esperar a la próxima sesión |
 
 ---
 

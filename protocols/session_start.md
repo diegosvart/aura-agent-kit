@@ -14,10 +14,15 @@ Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`
   **Gate de datos sensibles** (ver Paso 3 → "Salud del Repositorio") — es una sola llamada
   barata y protege contra el escenario que motivó esa regla; no se salta ni con hook output
   presente
+- **Excepción:** correr igual `gh pr list --state open` (ver Paso 4 → "PRs Abiertas") — el
+  hook no trae este dato y una PR abierta es la señal más directa de trabajo a un paso de
+  cerrarse; no se salta ni con hook output presente (ver Issue #109 — el gap real que
+  motivó este paso: una PR abierta quedó invisible en el resumen porque nada en el fast-path
+  ni en el hook la consultaba)
 - **Ejecutar directamente paso 5** (mem_context) y luego paso 6 (resumen)
 - **Repo health** (branch protection de main/develop) → omitir; solo ejecutar bajo demanda o
   una vez por semana
-- Esto reduce las tool calls de ~10 a **2** (visibilidad + mem_context)
+- Esto reduce las tool calls de ~10 a **3** (visibilidad + PRs abiertas + mem_context)
 - **Nota:** El hook también inyecta `harness_update_available` (boolean) y `harness_latest_version` (string); ver Paso 6 para cómo mostrar la línea de aviso
 
 Si el hook output NO está presente → ejecutar el protocolo completo desde el Paso 2.
@@ -166,6 +171,26 @@ gh issue list \
   --limit 20
 ```
 
+### PRs Abiertas (obligatorio, si `gh` autenticado)
+
+Ejecutar siempre, con o sin hook fast-path (ver excepción en "Hook Fast-Path" arriba). Una
+PR abierta es la señal más directa de trabajo pendiente — más cercana a cerrarse que un
+issue `ready` sin código todavía — y ningún otro paso del protocolo la detecta: Paso 3 solo
+mira ramas ya mergeadas/huérfanas o *stranded* (issue cerrado sin PR), nunca PRs con issue
+todavía abierto (el caso normal).
+
+```bash
+gh pr list \
+  --repo {{OWNER}}/{{REPO}} \
+  --state open \
+  --json number,title,headRefName,baseRefName,mergeable \
+  --limit 20
+```
+
+Incluir el resultado en el resumen ejecutivo (Paso 6), sección "PRs Abiertas". Si la lista
+viene vacía, mostrar "✓ Sin PRs abiertas" en esa sección — no omitirla, para que quede claro
+que se verificó y no que se saltó el chequeo.
+
 ---
 
 ## Paso 5 — Memoria Engram (si MCP disponible)
@@ -176,6 +201,32 @@ mem_context(
   project="{{PROJECT_NAME}}"
 )
 ```
+
+---
+
+## Paso 5.5 — Reporte de Observability de la Sesión Anterior (fail-open)
+
+Procesa entradas pendientes del índice de sesiones y muestra un resumen compacto de la
+sesión anterior, antes del Resumen Ejecutivo. Es **fail-open**: si el script falla, no
+existe `.aura/` (proyecto sin observability habilitada), o no hay datos, se omite en
+silencio — nunca bloquea el resto del protocolo.
+
+```bash
+bash skills/observability/scripts/process-session.sh 2>/dev/null || true
+```
+
+Si `.agent/memory/observability/sessions.jsonl` existe y tiene al menos una línea, leer la
+**última** línea (la sesión más reciente procesada) y mostrar antes del Resumen Ejecutivo:
+
+```
+## Sesión Anterior
+- Tokens de salida: <output_tokens>
+- Tool uses: LLM <n> · Script/Comando <n> · Delegado a agente <n> · Otro <n>
+- Duración: <duration_ms convertido a min:seg, o "—" si es null>
+```
+
+Si el archivo no existe, está vacío, o el script devolvió error → omitir esta sección por
+completo (no mostrar un bloque vacío ni un mensaje de error).
 
 ---
 
@@ -208,6 +259,10 @@ mem_context(
 |---|--------|--------|
 | ... | ... | ... |
 
+## PRs Abiertas
+> Si hay PRs abiertas: tabla `# | Título | Rama | Base | Mergeable`
+> Si no hay: "✓ Sin PRs abiertas"
+
 ## Ideas en Backlog
 > N ideas — revisar con `/ideas` o abrir `.agent/memory/ideas.md`
 > (Si ideas_count == 0: omitir esta sección)
@@ -221,6 +276,9 @@ Rama sugerida: `{{TIPO}}/{{CODIGO}}-{{descripcion}}`
 > ⚠ Si `harness_update_available: true` (del hook), incluir una sola línea:
 >   `⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — /harness-update para detalle`
 >   (sustituyendo X.Y.Z por `harness_latest_version` y A.B.C por la versión local actual del harness)
+> ⚠ Si `harness_update_check_error` viene presente en el JSON del hook, incluir una sola línea:
+>   `⚠ Chequeo de actualización del harness no pudo ejecutarse: <harness_update_check_error>`
+>   (distingue "se chequeó, no hay update" de "el chequeo nunca corrió" — Issue #111)
 ```
 
 ### Nota sobre la línea de aviso de actualización del harness

@@ -147,6 +147,35 @@ gh repo edit {OWNER}/{REPO} --visibility public --accept-visibility-change-conse
 
 ---
 
+## Proceso de Release (tag) — sync-back obligatorio
+
+> **Por qué existe esta regla:** el release de `v2.2.0` mergeó `develop` a `main` (PR #116) y
+> taggeó `main` en ese punto, pero commits posteriores de bookkeeping (`project-log.md`,
+> `current-session.json`, PRs #117/#118) se hicieron directo sobre `develop` sin sincronizar
+> `main` de vuelta. Resultado: el tag `v2.2.0` quedó fuera del historial ancestral de
+> `develop` — `git describe` en cualquier consumidor que actualice el submódulo `.aura` a
+> `develop` (en vez de al tag exacto) reporta una versión vieja (`v2.1.1-N-g...`) aunque el
+> contenido ya incluya el release. Se detectó porque un repo consumidor externo reportó la
+> versión mal etiquetada al actualizar `.aura`. Corregido con un merge `main → develop` sin
+> conflictos (contenido idéntico, solo restablece ancestría).
+
+**Al taggear un release sobre `main` (inmediatamente después, mismo turno):**
+
+1. Crear rama `chore/sync-back-<version>` desde `develop`
+2. `git merge main --no-edit` en esa rama (sin conflictos esperados — `main` es un
+   subconjunto de `develop` en ese punto)
+3. Abrir PR hacia `develop` y mergear **antes** de que cualquier otro commit de bookkeeping
+   (project-log, current-session.json) aterrice en `develop`
+4. Verificar: `git describe --tags <develop HEAD>` debe resolver contra el tag recién creado,
+   no contra uno anterior
+
+Este paso es tan obligatorio como el resto del checklist de release — sin él, `develop` queda
+sin el tag como ancestro y cualquier detección basada en `git describe` (incluyendo
+`skills/harness-update/scripts/check-update.sh` en consumidores) reporta versiones
+incorrectas.
+
+---
+
 ## Al Mergear una PR a Develop (obligatorio, NO depende de cierre de sesión)
 
 > **Por qué existe esta regla:** la documentación de "qué se implementó" solía depender de

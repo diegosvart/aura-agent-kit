@@ -1,16 +1,15 @@
 {
-  "last_updated": "2026-08-04T00:00:00-04:00",
+  "last_updated": "2026-08-04T14:00:00-04:00",
   "branch": "develop",
-  "focus": "Idea [017] (observability de sesiones) explorada y planned. Loop /run-dev-loop corrido para Issues #103-#106: #103 (captura en session-end.ps1) mergeado vía PR #107; #104 (process-session.sh) verificado, PR #108 abierto sin mergear. #105/#106 quedan blocked hasta que el usuario mergee #104.",
-  "next_step": "Usuario decide merge de PR #102 (este mismo cambio) y PR #108. Al mergear #108: reetiquetar #105/#106 de blocked a ready a mano (pick-next-issue.sh no lo hace solo) y continuar el loop.",
+  "focus": "Release v2.2.0 cerrado completo: Issues #109/#111 (gaps de deteccion en session_start) y #105/#106 (reportes de observability) implementados y mergeados. Tag v2.2.0 publicado sobre main, develop/main alineados. Repo limpio: 0 PRs abiertas, 0 issues abiertos.",
+  "next_step": "Ninguno registrado dentro de este repo. Accion externa pendiente del usuario: actualizar el submodulo .aura en el repo consumidor (donde se detecto el gap de v2.0.0 vs v2.1.1) via /harness-update, ahora que v2.2.0 esta publicado y el chequeo de auto-update ya no falla en silencio (Issue #111).",
   "pending": [
-    "Mergear o descartar PR #102 (este archivo)",
-    "Mergear PR #108 (Issue #104, process-session.sh) — verificado, listo, decisión del usuario",
-    "Tras merge de #108: reetiquetar #105 y #106 a ready y continuar /run-dev-loop",
-    "Usuario: actualizar submodule .aura en crawler-mcp-diagram a v2.1.1 y validar aviso de harness-update"
+    "Usuario: correr /harness-update en el repo consumidor para traer v2.2.0",
+    "Evaluar si conviene un issue para el gap de git-guard.ps1 (bloquea cualquier git push en develop/main, incluido push de tags, sin distinguirlos)"
   ],
   "required_reads": [
-    "skills/agentic-dev-loop/SKILL.md",
-    ".aura/rules/harness-core.md"
+    "CHANGELOG.md",
+    "docs/aura/adr/ADR-004-session-start-detecta-prs-abiertas.md",
+    "docs/aura/adr/ADR-005-superficie-reportes-observability.md"
   ]
 }

@@ -1,17 +1,16 @@
 {
-  "last_updated": "2026-08-04T17:50:00-04:00",
+  "last_updated": "2026-08-06T13:20:00-04:00",
   "branch": "develop",
-  "focus": "Release v2.2.1 cortado (fixes de apply-update.sh ya publicados). git-guard.ps1 bloqueaba el push del tag de release; se investigo el diseno de fondo (3 capas de enforcement ya existentes) y se resolvio con cut-release.sh (Issue #136, PR #137) en vez de agregar regex al hook -- una excepcion planeada se probo insegura en vivo y se descarto.",
-  "next_step": "Retomar el orden sugerido de issues creados esta sesion: #127 (topic_key Engram) -> #129 (ADR-003 bookkeeping) -> #130/#131 (check integridad de repo) -> #135 (diseno barrido datos sensibles).",
+  "focus": "Issue #127 implementado y cerrado: convencion topic_key documentada en AGENTS.md (con justificacion de costo de tokens al recuperar memoria) y enlazada desde protocols/session_end.md; idea [019] registrada en ideas.md. PR #140 mergeada. Al cerrar, se aplico en la practica el hallazgo #312/Issue #129: en vez de abrir una PR chore aparte solo para project-log.md, el bookkeeping post-merge se guardo en Engram con topic_key project-log/pr-bookkeeping -- decision tomada con el usuario, precedente de facto para Issue #129.",
+  "next_step": "Retomar cola de issues ready: #129 (reconsiderar ADR-003 con el precedente de esta sesion como input real) -> #130/#131 (check de integridad de repo) -> #135 (barrido de datos sensibles pre-commit) -> #121 (privacidad de current-session.json).",
   "pending": [
-    "Issue #127: adoptar topic_key en Engram para memoria evolutiva",
-    "Issue #129: reconsiderar ADR-003 (PRs de bookkeeping incremental)",
+    "Issue #129: reconsiderar ADR-003 (PRs de bookkeeping incremental) -- ya hay precedente real de esta sesion para citar",
     "Issue #130/#131: disenar e implementar check de integridad de repo",
-    "Issue #135: disenar barrido de datos sensibles pre-commit/push"
+    "Issue #135: disenar barrido de datos sensibles pre-commit/push",
+    "Issue #121: privacidad de current-session.json"
   ],
   "required_reads": [
-    "agents/github.md (seccion Proceso de Release, ahora invoca cut-release.sh)",
-    ".agent/memory/ideas.md (idea [018] router de flujos deterministicos)",
-    ".agent/memory/plans/2026-08-04-cut-release-script.md"
+    "AGENTS.md (seccion Memoria -> Convencion topic_key, nueva)",
+    ".agent/memory/plans/2026-08-04-issue-127-topic-key-y-idea-desacople-contexto.md (status: approved, done en la practica)"
   ]
 }

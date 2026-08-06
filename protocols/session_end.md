@@ -119,6 +119,11 @@ pending_verified = pending_raw  (sin filtrar)
 
 ## Paso 4 — Guardar Memoria en Engram
 
+Antes de guardar: si la observación es una decisión que ya se guardó antes y solo cambió
+de estado (no un hecho puntual nuevo), buscar con `mem_search` la observación previa sobre
+el mismo tema y usar el mismo `topic_key` para que `mem_save` la actualice (upsert) en vez
+de crear una fila nueva. Ver convención completa en `AGENTS.md` → "Convención `topic_key`".
+
 ```bash
 mem_session_summary(
   content="## Goal

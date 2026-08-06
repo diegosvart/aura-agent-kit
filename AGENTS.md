@@ -95,6 +95,24 @@
   ahora); se edita in-place, no es append-only
 - **Formato Engram:** `What / Why / Where / Learned`
 
+### Convención `topic_key`
+
+- **Formato:** `family/description` (ej. `bug/harness-update-tag-lag`,
+  `project-log/pr-bookkeeping`).
+- **Semántica:** mismo `project + scope + topic_key` en `mem_save` hace **upsert**
+  (actualiza la observación existente) en vez de crear una fila nueva.
+- **Cuándo usarlo:** observaciones que **evolucionan** sesión a sesión sobre el mismo tema
+  (decisiones de arquitectura que se refinan, patrones recurrentes, estado de bookkeeping
+  tipo project-log). No usarlo para hechos puntuales o eventos cerrados — esos siguen sin
+  `topic_key`, una fila por evento.
+- **Por qué importa (tokens):** sin `topic_key`, un tema que se toca en sesiones sucesivas
+  acumula una fila por sesión; `mem_context`/`mem_search` en la próxima sesión trae todas
+  esas versiones y el agente tiene que leerlas y reconciliar cuál es la vigente antes de
+  poder actuar. Con `topic_key`, la memoria de ese tema converge a un solo estado
+  actualizado — la recuperación futura es más chica y no requiere reconciliar versiones
+  obsoletas. Mismo anti-patrón que motivó `project-log.md`/`current-session.json`
+  (bookkeeping creciendo fila a fila), aplicado a Engram.
+
 ---
 
 ## Qué se Versiona

@@ -12,7 +12,8 @@
       "Bash(ls skills/)",
       "Bash(pwsh -NonInteractive -File .claude/hooks/session-start.ps1)",
       "Bash(pwsh -NonInteractive -File .claude/hooks/session-resume.ps1)",
-      "Bash(pwsh -NonInteractive -File .claude/hooks/session-end.ps1)"
+      "Bash(pwsh -NonInteractive -File .claude/hooks/session-end.ps1)",
+      "mcp__plugin_engram_engram__mem_save"
     ]
   }
 }

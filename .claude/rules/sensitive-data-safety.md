@@ -56,6 +56,30 @@ Antes de commitear o pushear, correr un barrido read-only buscando el catálogo 
 - El barrido es **read-only** (`git diff`, `git log`, revisión de texto) — nunca modifica
   historial sin autorización explícita del paso 4.
 
+## Enforcement (no depende solo de que el agente se acuerde)
+
+`.claude/hooks/sensitive-data-guard.ps1` (PreToolUse, mismo patrón que `git-guard.ps1`)
+bloquea `git commit` a nivel de herramienta cuando el contenido a commitear matchea:
+
+1. Una **denylist local exacta** — `.claude/sensitive-terms.local.txt` (gitignored,
+   nunca commiteado), con los términos reales del proyecto actual (cliente, sponsor,
+   stakeholders nombrados).
+2. **Patrones genéricos** siempre activos: RUT chileno, IP privada, `password=`/`pwd=`.
+
+Esto es **defensa en profundidad**, no reemplaza el barrido manual: un dato sensible
+mencionado por primera vez (ej. un stakeholder nuevo, aún no agregado a la denylist)
+sigue dependiendo de que el barrido de esta regla se aplique conscientemente antes de
+commitear. Al identificar un término sensible nuevo, agregarlo a
+`.claude/sensitive-terms.local.txt` en el mismo momento.
+
+**Por qué existe el hook y no solo esta regla:** esta misma regla ya existía en texto
+cuando ocurrió un incidente idéntico en otro proyecto (`crawler-mcp-diagram`,
+2026-07-15, ver `docs/aura/adr/ADR-003-politica-versionado-artefactos.md`), y volvió a
+ocurrir en este repo poco después (`.agent/memory/plans/2026-08-12-vault-develop-issues.md`,
+nombre real de cliente pusheado a `main`/`develop`, remediado vía `git filter-branch`).
+Una regla en markdown depende de que el agente la recuerde aplicar en cada commit; el
+hook no.
+
 ## Por qué existe esta regla
 
 En sesiones anteriores de este harness ocurrieron incidentes reales de filtración de

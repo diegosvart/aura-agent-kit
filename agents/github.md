@@ -281,6 +281,28 @@ momento del merge, dentro del mismo turno en que se confirma el merge.
    Rama local 'feature/issue-40-mi-feature' borrada (PR #42 mergeado a develop).
    ```
 
+### Bookkeeping sin PR real abierta (fallback, desde ADR-006)
+
+Si al cerrar una sesión hay contenido de `project-log.md` (Paso 2 de arriba) para agregar
+pero **ninguna PR de código está en curso** para montarlo (ej. sesión de solo
+investigación/decisión, sin rama de trabajo abierta): **no abrir una PR chore dedicada solo
+para eso**. Guardarlo en Engram en su lugar:
+
+```
+mem_save(
+  title="project-log pendiente de volcar",
+  content="<el mismo bloque markdown que iría en project-log.md>",
+  type="project",
+  topic_key="project-log/pr-bookkeeping"
+)
+```
+
+`topic_key` hace upsert — cada cierre sin PR actualiza la misma observación en vez de crear
+una fila nueva. Se vuelca a `project-log.md` real (append normal, Paso 2) en la **próxima PR
+de código que sí se abra**, como un archivo más de ese diff — no como una PR aparte.
+Precedente real: Issue #127 (PR #140), donde el usuario, consultado explícitamente, eligió
+esta ruta en vez de la PR chore de costumbre (observación Engram #337).
+
 ---
 
 ## gh CLI vs MCP GitHub

@@ -221,6 +221,20 @@ mem_context(
 )
 ```
 
+### Fallback — Engram no disponible o sin resultados
+
+> **Desde ADR-006:** `current-session.json` existe únicamente para este caso — es un puntero
+> local no versionado (gitignored), nunca la fuente primaria.
+
+Si `mem_context` falla (error de MCP) o devuelve vacío: leer `.agent/memory/current-session.json`
+(si existe) y usar sus 3 campos (`last_updated`, `branch`, `next_step`) para poblar la sección
+"Última Sesión" del Resumen Ejecutivo (Paso 6), en vez de dejarla vacía. Incluir en
+"Advertencias":
+```
+⚠ Engram no disponible — mostrando puntero local de current-session.json (posiblemente desactualizado)
+```
+Si tampoco existe `current-session.json`, continuar sin esa sección (comportamiento actual).
+
 ---
 
 ## Paso 5.5 — Reporte de Observability de la Sesión Anterior (fail-open)
@@ -270,7 +284,7 @@ completo (no mostrar un bloque vacío ni un mensaje de error).
 > Si todo limpio: "✓ Ramas limpias"
 
 ## Última Sesión
-- **Pendiente:** <tareas de session.json>
+- **Pendiente:** <tareas — de Engram (Paso 5); si Engram no disponible, del puntero local current-session.json>
 - **Próximo paso:** <next_step>
 
 ## Issues Listos (label: ready)

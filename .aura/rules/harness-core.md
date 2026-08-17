@@ -72,7 +72,7 @@ Reglas del menú:
 - **Último commit:** <hash> "<mensaje>"
 
 ## Última Sesión
-- **Pendiente:** <tareas de current-session.json>
+- **Pendiente:** <tareas — de Engram; si no disponible, del puntero local current-session.json>
 - **Próximo paso:** <next_step>
 
 ## Issues Listos (label: ready)

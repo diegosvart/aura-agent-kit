@@ -86,8 +86,11 @@
 
 ## Memoria
 
-- **Primaria:** Engram (`mem_session_summary` al cerrar)
-- **Backup:** `.agent/memory/current-session.json`
+- **Primaria:** Engram (`mem_session_summary` al cerrar) — memoria real, no solo teórica desde
+  ADR-006
+- **Puntero local (no versionado):** `.agent/memory/current-session.json` — gitignored, solo
+  lectura de emergencia si Engram no está disponible al iniciar sesión (ver
+  `protocols/session_start.md` Paso 5); nunca se commitea ni genera rama/PR
 - **Ledger de planes:** `.agent/memory/plans/` — un archivo por plan aprobado, nunca se pisa
 - **Bitácora de proyecto:** `.agent/memory/project-log.md` — qué se agregó, actualizada en
   cada merge a develop (no depende del cierre de sesión)
@@ -122,7 +125,7 @@
 | Categoría | Ejemplo | ¿Versionar? | Razón |
 |---|---|---|---|
 | Estructura del harness | `.aura/`, `AGENTS.md`, `protocols/`, `skills/`, `agents/`, `.claude/rules/` | Sí | Es el harness en sí |
-| Identidad de sesión activa | `.agent/memory/current-session.json` | Sí | P5; metadata de progreso, sin dato de negocio real |
+| Identidad de sesión activa | `.agent/memory/current-session.json` | No (desde ADR-006) | Puntero local de continuidad, solo fallback si Engram no está disponible — Engram es la memoria primaria real; versionarlo generaba una PR chore por cada cierre de sesión y exponía la forma de trabajar del usuario en un repo público (Issue #121) |
 | Bitácora de proyecto | `.agent/memory/project-log.md`, `objectives.md` | Sí | P5; sujeta al barrido de `.claude/rules/sensitive-data-safety.md` |
 | Ledger de planes aprobados | `.agent/memory/plans/*.md` | Sí, con barrido obligatorio | Trazabilidad de decisiones — categoría de mayor riesgo de fuga real; anonimizar dato de negocio (placeholders) antes de commitear |
 | Backups automáticos | `.agent/memory/backups/*.json` | No | Estado transitorio regenerable |

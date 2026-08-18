@@ -29,6 +29,15 @@
 - **Nunca commit directo** a develop o main
 - **Ramas cortas** — máximo 1-2 días de trabajo
 - **Antes de crear rama:** verificar que develop está actualizada
+- **Self-check antes de `git commit`/`git push`:** si el comando no es una invocación de un
+  script conocido (`skills/agentic-dev-loop/scripts/*.sh`, `cut-release.sh`), correr
+  `git branch --show-current` antes; si el resultado es `develop`/`main`, abortar y crear rama
+  primero (`new-branch-for-issue.sh`) en vez de esperar el bloqueo reactivo de `git-guard.ps1`.
+  Es una práctica que ahorra una llamada a herramienta en el caso común — **no reemplaza** el
+  enforcement real (`git-guard.ps1` + `.githooks/pre-push` + branch protection de GitHub), que
+  sigue siendo la garantía si el self-check se omite. **No aplica al Proceso de Release**:
+  estar en `main` para publicar el tag es correcto ahí, no un caso a abortar (ver sección
+  "Proceso de Release" más abajo).
 
 ---
 
@@ -159,20 +168,45 @@ gh repo edit {OWNER}/{REPO} --visibility public --accept-visibility-change-conse
 > versión mal etiquetada al actualizar `.aura`. Corregido con un merge `main → develop` sin
 > conflictos (contenido idéntico, solo restablece ancestría).
 
-**Al taggear un release sobre `main` (inmediatamente después, mismo turno):**
+**Invocar el script (no reconstruir la secuencia en prosa — cada paso es idempotente y falla
+explícito si su precondición no se cumple):**
 
-1. Crear rama `chore/sync-back-<version>` desde `develop`
-2. `git merge main --no-edit` en esa rama (sin conflictos esperados — `main` es un
-   subconjunto de `develop` en ese punto)
-3. Abrir PR hacia `develop` y mergear **antes** de que cualquier otro commit de bookkeeping
-   (project-log, current-session.json) aterrice en `develop`
-4. Verificar: `git describe --tags <develop HEAD>` debe resolver contra el tag recién creado,
-   no contra uno anterior
+```bash
+# 1. CHANGELOG.md ya debe tener una sección "## [vX.Y.Z]" (redacción humana/LLM, el script
+#    no la genera) y los cambios sin commitear, estando en develop:
+skills/agentic-dev-loop/scripts/cut-release.sh changelog-pr <owner>/<repo> vX.Y.Z
+# -> abre el PR del changelog hacia develop, imprime su número. Mergear antes de seguir.
 
-Este paso es tan obligatorio como el resto del checklist de release — sin él, `develop` queda
-sin el tag como ancestro y cualquier detección basada en `git describe` (incluyendo
+# 2. Tras mergear el PR anterior:
+skills/agentic-dev-loop/scripts/cut-release.sh promote <owner>/<repo> vX.Y.Z <changelog_pr_n>
+# -> abre el PR develop -> main, imprime su número. Mergear antes de seguir.
+
+# 3. Tras mergear el PR de release:
+skills/agentic-dev-loop/scripts/cut-release.sh tag <owner>/<repo> vX.Y.Z <release_pr_n>
+# -> crea el tag anotado sobre el merge commit y lo publica.
+
+# 4. Sync-back obligatorio (mismo turno, antes de cualquier otro commit de bookkeeping):
+skills/agentic-dev-loop/scripts/cut-release.sh sync-back <owner>/<repo> vX.Y.Z
+# -> abre el PR de sync-back main -> develop, imprime su número. Mergear antes de seguir.
+```
+
+**Por qué existe el paso de sync-back:** sin él, `develop` queda sin el tag como ancestro y
+cualquier detección basada en `git describe` (incluyendo
 `skills/harness-update/scripts/check-update.sh` en consumidores) reporta versiones
-incorrectas.
+incorrectas — es tan obligatorio como el resto del checklist de release.
+
+**Verificar al final:** `git describe --tags <develop HEAD>` debe resolver contra el tag recién
+creado, no contra uno anterior.
+
+**Nota sobre `git-guard.ps1`:** el paso 3 publica el tag estando parado en `main` (rama
+protegida), pero no hace falta ninguna excepción en el hook — `PreToolUse` solo inspecciona el
+texto del comando externo que invoca a Claude Code (`bash cut-release.sh tag ...`), que nunca
+contiene literalmente `git push`; ese comando ocurre *dentro* del proceso del script, fuera del
+alcance de `PreToolUse`. Se investigó y se descartó una excepción explícita por invocación de
+script conocido (Issue #136): además de ser innecesaria, se comprobó en vivo que abría un hueco
+real — un `git push` real disfrazado con un comentario que mencionara el nombre del script
+lograba colarse. La seguridad real de que el tag no mueva commits de la rama protegida sigue
+siendo `.githooks/pre-push` (opera sobre el ref real) + branch protection de GitHub.
 
 ---
 
@@ -246,6 +280,28 @@ momento del merge, dentro del mismo turno en que se confirma el merge.
    $ skills/agentic-dev-loop/scripts/cleanup-merged-branch.sh diegosvart/mi-repo 42 --delete
    Rama local 'feature/issue-40-mi-feature' borrada (PR #42 mergeado a develop).
    ```
+
+### Bookkeeping sin PR real abierta (fallback, desde ADR-006)
+
+Si al cerrar una sesión hay contenido de `project-log.md` (Paso 2 de arriba) para agregar
+pero **ninguna PR de código está en curso** para montarlo (ej. sesión de solo
+investigación/decisión, sin rama de trabajo abierta): **no abrir una PR chore dedicada solo
+para eso**. Guardarlo en Engram en su lugar:
+
+```
+mem_save(
+  title="project-log pendiente de volcar",
+  content="<el mismo bloque markdown que iría en project-log.md>",
+  type="project",
+  topic_key="project-log/pr-bookkeeping"
+)
+```
+
+`topic_key` hace upsert — cada cierre sin PR actualiza la misma observación en vez de crear
+una fila nueva. Se vuelca a `project-log.md` real (append normal, Paso 2) en la **próxima PR
+de código que sí se abra**, como un archivo más de ese diff — no como una PR aparte.
+Precedente real: Issue #127 (PR #140), donde el usuario, consultado explícitamente, eligió
+esta ruta en vez de la PR chore de costumbre (observación Engram #337).
 
 ---
 

@@ -243,3 +243,49 @@ guarda consumo en Engram pero solo dentro del loop formal).
 - [2026-08-04] Exploración completa (PM → Planner → Engineer). Decisión: implementar Opción A
   vía `/run-dev-loop`, 4 issues (captura en hook → script de procesamiento → reporte en
   session_start → oferta del reporte como opción estándar en loops).
+
+---
+
+## [018] Router de flujos determinísticos por tipo de operación
+**Estado:** raw
+**Capturado:** 2026-08-04
+**Prioridad:** Evaluar — impacto alto, esfuerzo alto
+**Contexto:** Surgió al diseñar `cut-release.sh` (Issue #136) para resolver el bloqueo de
+`git-guard.ps1` al publicar el tag de un release. El usuario cuestionó por qué hacen falta 3
+capas de enforcement (branch protection de GitHub, `.githooks/pre-push`, `git-guard.ps1`) si
+el agente pudiera simplemente saber qué flujo seguir según el tipo de operación. Conclusión de
+la investigación: las 3 capas son la red de seguridad *mientras* no existe una capa 0 que cubra
+el 100% de las operaciones sensibles con scripts determinísticos — hoy esa capa existe parcial
+y dispersa (`new-branch-for-issue.sh` + `open-pr.sh` para feature work, `cut-release.sh` nuevo
+para release, pero cada flujo se descubre por separado leyendo `agents/github.md`).
+
+La idea: un punto único (¿extensión de `protocols/router.md`? ¿un script `resolve-flow.sh`
+que reciba "tipo de operación" y devuelva qué script correr?) donde el agente identifique la
+naturaleza de la operación que va a hacer y resuelva automáticamente el flujo/script correcto,
+en vez de razonar cada vez qué comandos de git/gh componer a mano. Reduciría tokens/razonamiento
+(pedido explícito del usuario) y encogería la superficie que las 3 capas de enforcement
+necesitan cubrir como red de seguridad.
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [019] Desacople de contexto entre planning e implementación en task_start.md
+**Estado:** raw
+**Capturado:** 2026-08-04
+**Prioridad:** Explorar — impacto medio-alto, esfuerzo medio
+**Contexto:** Validado en sesión 2026-08-04 que agentic-dev-loop (dev-runner) ya desacopla
+contexto plan→implementación vía un agente fresco (Agent tool, no fork) alimentado solo
+con el body del issue como interfaz serializada, en worktree aislado
+(skills/agentic-dev-loop/SKILL.md:111-132). El flujo interactivo de task_start.md (Plan →
+Aprobación → Ejecución, líneas 61-91) NO tiene este mecanismo: mismo agente/sesión continúa
+desde planning a implementación arrastrando todo el historial de exploración previa, ya
+irrelevante una vez el plan está aprobado. Evaluar si conviene, tras aprobar un plan en
+modo interactivo, lanzar un agente fresco alimentado solo con el plan file en vez de seguir
+en la misma sesión — y en qué casos el costo de ese salto (perder matices no
+serializados al plan) no compensa. Relacionado: idea [008] (/compact mid-session, estado
+raw, mecanismo distinto — comprime en vez de descartar).
+
+### Iteraciones
+_(sin iterar)_

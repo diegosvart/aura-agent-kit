@@ -119,6 +119,11 @@ pending_verified = pending_raw  (sin filtrar)
 
 ## Paso 4 — Guardar Memoria en Engram
 
+Antes de guardar: si la observación es una decisión que ya se guardó antes y solo cambió
+de estado (no un hecho puntual nuevo), buscar con `mem_search` la observación previa sobre
+el mismo tema y usar el mismo `topic_key` para que `mem_save` la actualice (upsert) en vez
+de crear una fila nueva. Ver convención completa en `AGENTS.md` → "Convención `topic_key`".
+
 ```bash
 mem_session_summary(
   content="## Goal
@@ -145,7 +150,16 @@ mem_session_summary(
 
 ---
 
-## Paso 5 — Actualizar current-session.json
+## Paso 5 — Actualizar current-session.json (puntero local, no versionado)
+
+> **Desde ADR-006:** Engram (Paso 4) es la memoria primaria real. `current-session.json` es
+> solo un **puntero local de emergencia** — la única razón por la que existe es servir de
+> fallback si Engram no está disponible al iniciar la próxima sesión (ver
+> `protocols/session_start.md` Paso 5). Está en `.gitignore`: este paso es un `Write` directo
+> al archivo, **nunca** un commit ni una rama/PR — no pasa por `git-guard.ps1` porque nunca
+> invoca `git commit`/`git push`. Si en algún momento aparece como pendiente en `git status`,
+> algo está mal (posible reversión accidental del `.gitignore`) — no commitearlo, corregir el
+> `.gitignore` primero.
 
 Archivo: `.agent/memory/current-session.json`
 
@@ -153,19 +167,19 @@ Archivo: `.agent/memory/current-session.json`
 {
   "last_updated": "{{ISO_TIMESTAMP}}",
   "branch": "{{CURRENT_BRANCH}}",
-  "focus": "{{RESUMEN_DE_UN_LÍNEA}}",
-  "next_step": "{{SIGUIENTE_ACCIÓN_CONCRETA}}",
-  "pending": ["{{TAREA_1}}", "{{TAREA_2}}", "{{TAREA_3}}", "{{TAREA_4}}"],
-  "required_reads": ["{{ARCHIVO_1}}", "{{ARCHIVO_2}}", "{{ARCHIVO_3}}"]
+  "next_step": "{{SIGUIENTE_ACCIÓN_CONCRETA, UNA LÍNEA, SIN PROSA DE PROCESO}}"
 }
 ```
 
 **Reglas:**
-- Max 4 items en `pending`
-- Max 4 items en `required_reads`
-- No incluir lista `completed` — eso vive en Engram
-- Usar EXCLUSIVAMENTE `pending_verified` del Paso 3. Nunca escribir este array sin verificar contra GitHub.
-- Si `gh_verified: false` → incluir advertencia como último item: `"⚠ gh no autenticado — verificar manualmente"`
+- Solo estos 3 campos — sin `focus`, `pending` ni `required_reads` (narrativa/detalle real
+  vive en Engram, Paso 4; `session_start.md` nunca leyó esos campos en la práctica).
+- `next_step` debe ser un hecho verificable y telegráfico, no una narrativa del proceso de la
+  sesión — ver Issue #121 (privacidad de la forma de trabajar del usuario).
+- Usar EXCLUSIVAMENTE información ya verificada contra GitHub en el Paso 3 (`pending_verified`)
+  al redactar `next_step`. Nunca escribir sobre algo sin verificar contra GitHub.
+- Si `gh_verified: false` → agregar `" (⚠ gh no autenticado — verificar manualmente)"` al final
+  de `next_step`.
 
 ---
 

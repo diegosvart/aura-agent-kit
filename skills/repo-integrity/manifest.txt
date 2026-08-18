@@ -1,0 +1,26 @@
+# Manifest estático de archivos versionados del harness (ADR-007).
+# Fuente: columna "Archivos a cargar" de protocols/router.md.
+# Formato: una ruta relativa a la raíz del repo por línea.
+#   - Líneas que empiezan con "#" son comentarios, se ignoran.
+#   - Sufijo " #optional" marca un archivo gitignorado/opcional (válido que no exista).
+protocols/session_start.md
+protocols/task_start.md
+protocols/session_end.md
+agents/github.md
+agents/language.md
+agents/infra.md
+agents/reviewer.md
+agents/challenger.md
+agents/doc-guardian.md
+agents/complexity-tiering.md
+skills/spec-validation/SKILL.md
+skills/issue-planning/SKILL.md
+skills/finishing-a-development-branch/SKILL.md
+skills/requesting-code-review/SKILL.md
+skills/idea-management/SKILL.md
+skills/auto-research/SKILL.md
+skills/stack-selection/SKILL.md
+skills/plan-reporting/SKILL.md
+skills/agentic-dev-loop/SKILL.md
+.claude/rules/sensitive-data-safety.md
+AGENTS.local.md #optional

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-08-18
+
+### Added
+- `skills/repo-integrity/manifest.txt` + `skills/repo-integrity/scripts/check-repo-manifest.sh`:
+  chequeo de integridad de archivos versionados del harness (`MISSING:`/`MISPLACED:`),
+  integrado en `protocols/session_start.md` Paso 3 (ADR-007, Issues #130/#131, PRs #146/#149)
+- `.claude/hooks/sensitive-data-guard.ps1`: hook `PreToolUse` que bloquea `git commit` ante
+  denylist local, RUT chileno, IP privada o credenciales inline (Issue #135, PR #145)
+
+### Changed
+- `current-session.json` deja de versionarse; Engram queda como memoria primaria real
+  (ADR-006, PR #144)
+- `.agent/memory/project-log.md` ya no depende de PRs chore dedicadas para bookkeeping — se
+  vuelca en la siguiente PR de código real que se abra (ADR-006, PR #144)
+
 ## [2.2.1] - 2026-08-04
 
 ### Added

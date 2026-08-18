@@ -168,29 +168,46 @@ else
   echo "  (.claude/settings.json no existe — sincronización omitida)"
 fi
 
-# Verificar/registrar git-guard.ps1 como PreToolUse — caso real encontrado en
-# crawler-mcp-diagram: el hook existia en .claude/hooks/git-guard.ps1 (sincronizado por el
-# paso [3/6]) pero nunca quedo registrado en PreToolUse de settings.json, asi que Claude Code
+# Verificar/registrar hooks críticos de seguridad como PreToolUse — caso real encontrado en
+# crawler-mcp-diagram: git-guard.ps1 existia en .claude/hooks/ (sincronizado por el paso
+# [3/6]) pero nunca quedo registrado en PreToolUse de settings.json, asi que Claude Code
 # nunca lo invocaba y 3 commits terminaron pusheados directo a develop sin que nada lo
 # bloqueara. apply-update.sh solo sincronizaba patrones de permisos muertos (Write->Edit), no
-# la presencia de este hook critico. Autofix, no solo warning: mismo criterio que el paso
+# la presencia de estos hooks criticos. Autofix, no solo warning: mismo criterio que el paso
 # [3/6] (sobreescritura directa de hooks sin confirmacion) porque un hook de seguridad sin
-# registrar es tan grave como uno desactualizado.
-echo "[6/6] Verificando registro de git-guard.ps1 en PreToolUse..."
-git_guard_added=""
-if [ -f ".claude/settings.json" ] && [ -f ".claude/hooks/git-guard.ps1" ]; then
-  git_guard_added=$(python3 - << 'PYTHON_GITGUARD_SYNC'
-import json
+# registrar es tan grave como uno desactualizado. Parametrizado por nombre de hook (no
+# duplicar el bloque Python por cada hook nuevo) — cubre git-guard.ps1 y
+# sensitive-data-guard.ps1 con la misma función.
+# Deja el resultado en HOOK_SYNC_RESULT (global, no via stdout) — evita mezclar los echo de
+# progreso con el valor devuelto cuando se llama desde $(...).
+sync_pretooluse_hook() {
+  local hook_name="$1"
+  HOOK_SYNC_RESULT=""
+  if [ ! -f ".claude/settings.json" ] || [ ! -f ".claude/hooks/$hook_name" ]; then
+    if [ -f ".claude/hooks/$hook_name" ]; then
+      echo "  (.claude/settings.json no existe — no se puede verificar el registro de $hook_name)"
+    else
+      echo "  (.claude/hooks/$hook_name no existe todavía — se sincronizará en la próxima corrida)"
+    fi
+    return 0
+  fi
 
+  local added
+  added=$(python3 - "$hook_name" << 'PYTHON_HOOK_SYNC'
+import json
+import sys
+
+hook_name = sys.argv[1]
 path = ".claude/settings.json"
 try:
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    pretooluse = data.setdefault("PreToolUse", [])
-    git_guard_hook = {
+    hooks_root = data.setdefault("hooks", {})
+    pretooluse = hooks_root.setdefault("PreToolUse", [])
+    hook_entry = {
         "type": "command",
-        "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1",
+        "command": f"pwsh -NonInteractive -File .claude/hooks/{hook_name}",
         "timeout": 5,
     }
 
@@ -205,18 +222,18 @@ try:
         entry = find_entry(matcher)
         if entry is None:
             # Sin entrada para este matcher todavia -> crear una nueva
-            pretooluse.append({"matcher": matcher, "hooks": [git_guard_hook]})
+            pretooluse.append({"matcher": matcher, "hooks": [hook_entry]})
             added.append(matcher)
             continue
 
         hooks = entry.setdefault("hooks", [])
-        if not any("git-guard.ps1" in h.get("command", "") for h in hooks):
+        if not any(hook_name in h.get("command", "") for h in hooks):
             # Ya existe una entrada para este matcher (posiblemente con hooks custom
             # del consumidor) -> agregar AL FINAL de su lista, nunca crear un matcher
             # duplicado. Un segundo objeto con el mismo "matcher" en el array es
             # comportamiento ambiguo (no esta claro si Claude Code corre ambos o solo
             # el ultimo) y arriesgaria desactivar en silencio un hook custom existente.
-            hooks.append(git_guard_hook)
+            hooks.append(hook_entry)
             added.append(matcher)
 
     if added:
@@ -226,23 +243,26 @@ try:
 
     print(",".join(added))
 except Exception as e:
-    raise ValueError(f"No se pudo verificar/registrar git-guard.ps1 en PreToolUse: {e}") from e
-PYTHON_GITGUARD_SYNC
+    raise ValueError(f"No se pudo verificar/registrar {hook_name} en PreToolUse: {e}") from e
+PYTHON_HOOK_SYNC
 )
   if [ $? -ne 0 ]; then
-    echo "ERROR: Verificación de git-guard.ps1 en PreToolUse falló" >&2
+    echo "ERROR: Verificación de $hook_name en PreToolUse falló" >&2
     exit 1
   fi
-  if [ -n "$git_guard_added" ]; then
-    echo "  - PreToolUse registrado para: $git_guard_added (git-guard.ps1 no estaba enforced)"
+  if [ -n "$added" ]; then
+    echo "  - PreToolUse registrado para: $added ($hook_name no estaba enforced)"
   else
-    echo "  (git-guard.ps1 ya estaba registrado en PreToolUse)"
+    echo "  ($hook_name ya estaba registrado en PreToolUse)"
   fi
-elif [ -f ".claude/hooks/git-guard.ps1" ]; then
-  echo "  (.claude/settings.json no existe — no se puede verificar el registro)"
-else
-  echo "  (.claude/hooks/git-guard.ps1 no existe todavía — se sincronizará en la próxima corrida)"
-fi
+  HOOK_SYNC_RESULT="$added"
+}
+
+echo "[6/6] Verificando registro de hooks críticos en PreToolUse..."
+sync_pretooluse_hook "git-guard.ps1"
+git_guard_added="$HOOK_SYNC_RESULT"
+sync_pretooluse_hook "sensitive-data-guard.ps1"
+sensitive_guard_added="$HOOK_SYNC_RESULT"
 
 # Leer CHANGELOG para reportar lo que se aplicó
 echo ""
@@ -262,6 +282,11 @@ if [ -n "$git_guard_added" ]; then
   echo "git-guard.ps1 en PreToolUse: registrado ($git_guard_added) — antes NO estaba enforced"
 else
   echo "git-guard.ps1 en PreToolUse: ya estaba registrado"
+fi
+if [ -n "$sensitive_guard_added" ]; then
+  echo "sensitive-data-guard.ps1 en PreToolUse: registrado ($sensitive_guard_added) — antes NO estaba enforced"
+else
+  echo "sensitive-data-guard.ps1 en PreToolUse: ya estaba registrado"
 fi
 
 # Intentar extraer entradas del CHANGELOG

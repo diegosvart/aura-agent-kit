@@ -1,5 +1,8 @@
 ---
-status: approved
+status: done
+pr: "#146"
+commit: 6d53047d1073e98e3e76bea5efe166b9dc0ad327
+completed_at: 2026-08-18
 ---
 
 # Plan — Issue #130: Diseñar check de integridad de repo (archivos faltantes/fuera de lugar)

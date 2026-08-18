@@ -161,6 +161,21 @@ Ver Issue #120 y PR #119 (aura-agent-kit) para el caso real que motivó este che
 consumidor externo actualizó `.aura` a `develop` en vez de a un tag exacto y recibió una
 versión reportada incorrecta porque el tag había quedado fuera de la ancestría de `develop`.
 
+### Integridad del Manifest (archivos del harness faltantes o fuera de lugar)
+
+Chequeo local, no requiere `gh` — corre siempre, sin dependencias de red:
+
+```bash
+bash skills/repo-integrity/scripts/check-repo-manifest.sh
+```
+
+Si imprime una o más líneas `MISSING: ...` / `MISPLACED: ...` → incluirlas tal cual en la
+sección "Advertencias" del Resumen Ejecutivo (Paso 6). Si no imprime nada, no mostrar
+ninguna línea (advertencia condicional, mismo patrón que "Drift de Release" arriba).
+
+Ver ADR-007 (`docs/aura/adr/ADR-007-repo-integrity-manifest.md`) para el contrato completo
+y `skills/repo-integrity/manifest.txt` para la lista de referencia.
+
 #### Gate de datos sensibles (si `visibility == public`)
 
 Si la visibilidad es **pública** y el proyecto maneja datos de un cliente real

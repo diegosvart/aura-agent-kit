@@ -4,6 +4,92 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-08-18 — Issue #131 — feat(repo-integrity): check-repo-manifest.sh
+
+**Plan:** `.agent/memory/plans/2026-08-18-issue-131-check-repo-manifest.md`
+**Qué se agregó:** Implementa el contrato definido en ADR-007 (PR #146) sin decisiones de
+diseño pendientes: `skills/repo-integrity/manifest.txt` (lista estática de ~20 archivos
+versionados del harness, tomada de la columna "Archivos a cargar" de `protocols/router.md`)
+y `skills/repo-integrity/scripts/check-repo-manifest.sh`, integrado en
+`protocols/session_start.md` Paso 3 con el mismo patrón que `check-release-drift.sh`
+(informativo, `exit 0` siempre, sin `gh`). El script detecta `MISSING:` (archivo del
+manifest ausente en disco) y `MISPLACED:` (archivo con basename único encontrado en otra
+ruta) — el caso `MISPLACED` se restringe a basenames únicos en el manifest para no producir
+falsos positivos entre los múltiples `SKILL.md` del repo. `docs/aura/specs/2026-05-09-harness-pillars.md`
+quedó deliberadamente fuera del manifest (vive en una carpeta gitignored por convención de
+este repo — ver Issue #147, gap ya registrado aparte, no bloqueante para esta PR). Bug de
+performance encontrado y corregido en vivo: la primera versión parseaba cada línea del
+manifest con `sed`/`basename` externos, y en Windows/Git Bash el costo de fork de un proceso
+externo (~50-150ms) hacía que el script completo tardara ~3s, por encima del límite `<2s`
+del contrato de ADR-007; reescrito con builtins de bash puro en el loop de parseo (el
+`find` externo solo se paga en el camino raro donde ya hay un hallazgo que reportar).
+**Archivos clave:** skills/repo-integrity/manifest.txt,
+skills/repo-integrity/scripts/check-repo-manifest.sh, protocols/session_start.md
+
+## 2026-08-18 — PR #146 — ADR-007: manifest de integridad de repo (Issue #130)
+
+**Plan:** `.agent/memory/plans/2026-08-18-issue-130-repo-integrity-manifest-spec.md`
+**Qué se agregó:** Resuelve el issue de diseño #130 con
+`docs/aura/adr/ADR-007-repo-integrity-manifest.md`: manifest estático
+(`skills/repo-integrity/manifest.txt`, creado en Issue #131) en vez de derivarlo
+dinámicamente de `protocols/router.md` en runtime — la tabla tiene matices reales (celdas
+con rutas múltiples separadas por `+`, texto no-ruta, una segunda tabla sin backticks
+consistentes) que harían el parseo frágil, y el precedente del proyecto
+(`check-release-drift.sh`) es bash simple sin dependencias de parseo. Define también el
+umbral de falso positivo (cero tolerado, acotado a exclusiones explícitas) y el contrato de
+salida completo (`MISSING:`/`MISPLACED:`, exit 0, `<2s`) para que Issue #131 lo implemente
+sin decisiones pendientes. Decisión de proceso: la spec inicial se escribió en
+`docs/aura/specs/` pero ese directorio está gitignored por convención de este mismo repo
+(specs efímeras) — se pivotó a ADR (versionado) tras detectarlo, con aprobación del usuario.
+Hallazgo real encontrado en verificación (fuera de alcance, registrado aparte): al validar
+mecánicamente el manifest candidato contra disco, `docs/aura/specs/2026-05-09-harness-pillars.md`
+—referenciado como documento permanente en `router.md` y `AGENTS.md`— no existe en disco y
+vive en una carpeta gitignored. Registrado como Issue #147, sin bloquear #131.
+**Archivos clave:** docs/aura/adr/ADR-007-repo-integrity-manifest.md, docs/aura/adr/ADR-000-registro.md
+
+## 2026-08-18 — PR #145 — feat(security): sensitive-data-guard.ps1 (PreToolUse hook)
+
+**Plan:** sin plan formal previo (Issue #135, diseño ya validado end-to-end en
+gestion-documental, commit 8162e41)
+**Qué se agregó:** Porta el hook `sensitive-data-guard.ps1` que `sensitive-data-safety.md`
+(PR #143) ya documentaba pero nunca implementaba aquí. Bloquea `git commit` al detectar
+denylist local (`.claude/sensitive-terms.local.txt`, gitignored, plantilla `.example`
+versionada), RUT chileno, IP privada, o credenciales inline; inspecciona diff staged y
+texto crudo del comando (cubre comandos compuestos). Registrado en `PreToolUse` junto a
+`git-guard.ps1`. Bug real encontrado y corregido: paso `[6/6]` de `apply-update.sh` operaba
+sobre `data["PreToolUse"]` en la raíz en vez de `data["hooks"]["PreToolUse"]` — preexistía
+desde la versión original, nunca se disparó porque nadie probó el registro contra un
+`settings.json` vacío. Limitación conocida (deliberada): el gatillo matchea texto crudo por
+substring, sesga hacia falso positivo (más seguro para un hook de seguridad).
+**Archivos clave:** .claude/hooks/sensitive-data-guard.ps1,
+.claude/sensitive-terms.local.txt.example, .claude/settings.json,
+skills/harness-update/scripts/apply-update.sh
+
+## 2026-08-17 — PR #144 — chore(harness): eliminar PRs chore de bookkeeping (ADR-006)
+
+**Plan:** sin ledger formal (Issues #121, #129)
+**Qué se agregó:** `current-session.json` deja de versionarse (gitignore + `git rm
+--cached`), esquema reducido a puntero mínimo. Engram queda como memoria primaria real:
+`session_end.md` Paso 5 ya no crea rama/PR, solo `Write` local. `session_start.md` Paso 5
+gana fallback si Engram falla. `agents/github.md` formaliza el mismo patrón para
+`project-log.md` (esta misma entrada es un ejemplo en vivo del patrón: `topic_key
+project-log/pr-bookkeeping`, precedente Issue #127/PR #140, observación Engram #337).
+Elimina el patrón `chore/session-close-*` (21 commits/5 PRs). Documentado en ADR-006.
+**Archivos clave:** .gitignore, protocols/session_end.md, protocols/session_start.md,
+agents/github.md, AGENTS.md, docs/aura/adr/ADR-006-eliminar-pr-chore-bookkeeping.md
+
+## 2026-08-13 — PR #143 — docs(sensitive-data): documentar enforcement vía hook
+
+**Plan:** sin plan formal previo (fast-follow de incidente real en gestion-documental)
+**Qué se agregó:** Incidente idéntico al de `crawler-mcp-diagram` (ver ADR-003) se repitió
+en `gestion-documental` — nombre real de cliente pusheado en un plan versionado pese a que
+la regla ya existía en markdown. Se agregó `sensitive-data-guard.ps1` en ese proyecto
+consumidor como enforcement duro; este PR documenta el mecanismo en
+`sensitive-data-safety.md` para que otros proyectos lo repliquen. Nota de seguimiento:
+verificación posterior encontró bug de diseño (hook ciego ante comandos compuestos `echo
+... && git commit`) — fix portado en PR #145.
+**Archivos clave:** .claude/rules/sensitive-data-safety.md
+
 ## 2026-08-04 — PR #137 — cut-release.sh reemplaza el Proceso de Release en prosa
 
 **Plan:** `.agent/memory/plans/2026-08-04-cut-release-script.md`

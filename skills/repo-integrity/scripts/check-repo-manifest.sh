@@ -23,6 +23,7 @@ declare -A basename_count
 # proceso externo cuesta ~50-150ms, y con ~20 lineas de manifest eso solo ya empuja el
 # script por encima del limite de <2s del contrato de salida.
 while read -r line || [ -n "$line" ]; do
+  line="${line%$'\r'}"  # defensivo: un checkout Windows sin eol=lf deja \r y test -f falla en silencio
   [ -z "$line" ] && continue
   case "$line" in
     \#*) continue ;;

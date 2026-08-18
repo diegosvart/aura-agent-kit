@@ -1,0 +1,7 @@
+# Denylist local de sensitive-data-guard.ps1 — un término exacto por línea.
+# Copiar a .claude/sensitive-terms.local.txt (gitignored, nunca commitear ese archivo).
+#
+# Ejemplos de qué va acá — nombres reales de este proyecto, no genéricos:
+# NombreDelClienteReal
+# nombre-catalogo-bd-real
+# stakeholder-nombrado-real

@@ -80,3 +80,7 @@ docs/aura/experiments/
 # ya no es memoria primaria versionada, ver ADR-006. Evita el ciclo de PR chore por cada
 # cierre de sesión y la exposición de contenido narrativo en un repo público (Issue #121).
 .agent/memory/current-session.json
+
+# Denylist local de sensitive-data-guard.ps1 — términos reales del proyecto (cliente,
+# stakeholders), nunca versionar. Ver .claude/sensitive-terms.local.txt.example.
+.claude/sensitive-terms.local.txt

@@ -59,6 +59,7 @@
 | Reporte de un plan estratégico | `/plan-report` → `skills/plan-reporting/SKILL.md` → `.claude/agents/plan-reporter.md` |
 | Loop de desarrollo + verificación de issues | `/run-dev-loop` → `skills/agentic-dev-loop/SKILL.md` |
 | Manejo de datos sensibles / repo público | `.claude/rules/sensitive-data-safety.md` |
+| Ver / controlar el navegador | `agents/browser-control.md` |
 | Cierre de sesión | `protocols/session_end.md` |
 
 ---

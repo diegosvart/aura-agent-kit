@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-08-27
+
+### Added
+- `agents/browser-control.md`: agente de visión/control de navegador vía
+  `claude-in-chrome` — dos casos de uso (exploratorio cuando no hay CLI/MCP que
+  alcance, o a pedido explícito del usuario), salvaguardas nativas +
+  salvaguarda de harness (nunca acción irreversible sin confirmación explícita),
+  tabla de decisión "ver" vs "controlar". Nueva fila de routing en
+  `protocols/router.md` y `AGENTS.md` (Issue #157)
+
 ## [2.3.0] - 2026-08-18
 
 ### Added

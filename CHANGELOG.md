@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   alcance, o a pedido explícito del usuario), salvaguardas nativas +
   salvaguarda de harness (nunca acción irreversible sin confirmación explícita),
   tabla de decisión "ver" vs "controlar". Nueva fila de routing en
-  `protocols/router.md` y `AGENTS.md` (Issue #157)
+  `protocols/router.md` y `AGENTS.md` (Issue #157, PR #159)
 
 ## [2.3.0] - 2026-08-18
 

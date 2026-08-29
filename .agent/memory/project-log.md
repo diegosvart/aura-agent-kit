@@ -4,6 +4,69 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-08-28 — PR #159 — feat(harness): agente browser-control (visión/control de navegador)
+
+**Qué se agregó:** Nuevo `agents/browser-control.md` que incorpora `claude-in-chrome` como
+capability del harness: dos casos de uso (exploratorio cuando no hay CLI/MCP que alcance,
+o a pedido explícito del usuario), salvaguardas nativas + capa de harness (nunca acción
+irreversible sin confirmación explícita), tabla de decisión "ver" vs "controlar". Routing
+agregado en `protocols/router.md` y `AGENTS.md`. Pedido por un consumidor externo
+(`crawler-mcp-diagram`), diseño ya revisado con brainstorm en ese repo
+(`docs/aura/specs/2026-08-27-browser-control-design.md`). Closes #157.
+**Incidente de proceso (registrado, no solo la feature):** esta PR se ramificó y se
+mergeó **directo contra `main`**, saltándose `develop` por completo — viola la convención
+documentada en `agents/github.md` (todo feature/fix/chore sale de `develop`). Consecuencia
+real: `main` y `develop` divergieron (main con este commit, develop con PRs #152/#153/#154
+que main no tenía) y el `CHANGELOG.md` de `main` quedó con una sección `[2.4.0]` mientras
+el de `develop` seguía en `2.3.0`/`Unreleased`. Reconciliado en esta misma sesión
+(merge `main`→`develop` vía PR, ver entrada de release v2.4.0 más abajo cuando corresponda).
+Causa probable, en investigación: cambio reciente en el comportamiento por defecto de
+Claude Code al crear worktrees/ramas para agentes (no parte necesariamente de `develop`
+como base) — ver issue de trazabilidad abierto y spec en curso en
+`docs/aura/specs/2026-08-29-claude-code-worktree-conflict-and-agent-browser.md`.
+**Archivos clave:** agents/browser-control.md, protocols/router.md, AGENTS.md
+
+## 2026-08-25 — PR #154 — docs(observability): checklist de auditoría de consumo en proyectos consumidores
+
+**Plan:** `.agent/memory/plans/2026-08-25-optimizar-tokens-proyectos-consumidores.md`
+**Qué se agregó:** Checklist reusable en `docs/aura/observability.md` para auditar si un
+proyecto consumidor del harness realmente aplica los patrones documentados (ADR-006,
+delegación, versión del harness) o solo los tiene mencionados en su propia documentación.
+Motivado por una auditoría real: un proyecto consumidor (Python + Microsoft Graph API)
+resultó estar 23 commits atrás de `.aura` (sin ADR-006) y con la migración de
+`current-session.json` a medias — `.gitignore` ya lo excluía pero nunca se corrió
+`git rm --cached`, así que se seguía commiteando en cada cierre de sesión sin que nadie lo
+notara.
+**Archivos clave:** docs/aura/observability.md, .agent/memory/plans/2026-08-25-optimizar-tokens-proyectos-consumidores.md
+
+## 2026-08-18 — PR #153 — fix(repo-integrity): manifest.txt con CRLF rompía check-repo-manifest.sh en Windows
+
+**Qué se agregó:** Bug real encontrado post-release (v2.3.0), re-verificando el script
+durante el cierre de sesión: `skills/repo-integrity/manifest.txt` no tenía `eol=lf` en
+`.gitattributes`, así que un checkout con `core.autocrlf=true` (default en Windows) lo
+convertía a CRLF. `check-repo-manifest.sh` leía cada ruta con un `\r` final, `test -f`
+fallaba en silencio por cada línea, y el chequeo completo reportaba 20 falsos `MISSING:`
+— el check integrado en `protocols/session_start.md` Paso 3 quedaba inútil en producción.
+Corregido agregando `skills/repo-integrity/manifest.txt text eol=lf` a `.gitattributes` y
+recortando `\r` por línea en el script de forma defensiva (mismo patrón ya usado para
+`.githooks/pre-push`, que tuvo el mismo bug antes de forzarle `eol=lf`). Verificado:
+0 hallazgos, 0.08s (antes: 20 líneas `MISSING` falsas). Fix directo, sin issue previo.
+**Archivos clave:** .gitattributes, skills/repo-integrity/scripts/check-repo-manifest.sh
+
+## 2026-08-18 — Release v2.3.0 (PRs #150/#151/#152 — develop → main)
+
+**Qué se agregó:** Cuarto release real del harness desde v2.2.1. PR #150
+(`docs(changelog): preparar 2.3.0`) preparó `CHANGELOG.md`; PR #151
+(`chore(release): v2.3.0`, 27 archivos) mergeó `develop`→`main` empaquetando: ADR-006
+(eliminar PRs chore de bookkeeping), ADR-007 (manifest de integridad de repo),
+`skills/repo-integrity/manifest.txt` + `check-repo-manifest.sh` (Issue #131),
+`.claude/hooks/sensitive-data-guard.ps1` (Issue #135), y el propio
+`skills/agentic-dev-loop/scripts/cut-release.sh` (primer uso real end-to-end del script
+para cortar este mismo release); tag anotado `v2.3.0` creado sobre el merge commit
+(`bcb188a`) y pusheado. PR #152 (`fix(release): sync-back main a develop tras v2.3.0`)
+cerró el ciclo trayendo el merge commit de vuelta a `develop`.
+**Archivos clave:** CHANGELOG.md, tag `v2.3.0`, skills/agentic-dev-loop/scripts/cut-release.sh
+
 ## 2026-08-18 — Issue #131 — feat(repo-integrity): check-repo-manifest.sh
 
 **Plan:** `.agent/memory/plans/2026-08-18-issue-131-check-repo-manifest.md`

@@ -176,6 +176,26 @@ ninguna línea (advertencia condicional, mismo patrón que "Drift de Release" ar
 Ver ADR-007 (`docs/aura/adr/ADR-007-repo-integrity-manifest.md`) para el contrato completo
 y `skills/repo-integrity/manifest.txt` para la lista de referencia.
 
+### PRs contra la Rama Base Incorrecta (si `gh` autenticado)
+
+Ejecutar solo si `gh auth status` pasó en Paso 2:
+
+```bash
+bash skills/repo-integrity/scripts/check-base-branch.sh
+```
+
+Si imprime una o más líneas `BASE-BRANCH: ...` → incluirlas tal cual en la sección
+"Advertencias" del Resumen Ejecutivo (Paso 6). Si no imprime nada, no mostrar ninguna línea
+(advertencia condicional, mismo patrón que "Drift de Release" y "Integridad del Manifest").
+
+Detecta PRs abiertas con rama `feature/*`/`fix/*`/`chore/*`/etc. que apuntan contra `main` en
+vez de `develop` (excluyendo el PR legítimo de `promote` de `cut-release.sh`, que sí tiene
+`base=main`/`head=develop`). Caso real que motivó este chequeo: PR #159 se ramificó y mergeó
+directo contra `main`, saltándose `develop` por completo, sin que ningún chequeo existente lo
+detectara antes del merge — causa raíz probable: `worktree.baseRef:"fresh"` de Claude Code
+crea worktrees/ramas nuevas desde el default branch del repo, no desde `develop`. Ver
+`docs/aura/specs/2026-08-29-claude-code-worktree-conflict-and-agent-browser.md`.
+
 #### Gate de datos sensibles (si `visibility == public`)
 
 Si la visibilidad es **pública** y el proyecto maneja datos de un cliente real

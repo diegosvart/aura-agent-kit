@@ -7,15 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.4.0] - 2026-08-29
-
-### Added
-- `agents/browser-control.md`: agente de visión/control de navegador vía
-  `claude-in-chrome` — dos casos de uso (exploratorio cuando no hay CLI/MCP que
-  alcance, o a pedido explícito del usuario), salvaguardas nativas +
-  salvaguarda de harness (nunca acción irreversible sin confirmación explícita),
-  tabla de decisión "ver" vs "controlar". Nueva fila de routing en
-  `protocols/router.md` y `AGENTS.md` (Issue #157, PR #159)
+## [2.4.1] - 2026-08-29
 
 ### Fixed
 - `skills/repo-integrity/scripts/check-repo-manifest.sh`: `manifest.txt` sin
@@ -24,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `test -f` fallaba en silencio y el chequeo reportaba 20 falsos `MISSING:`.
   Corregido agregando la regla `eol=lf` y recortando `\r` por línea en el
   script (mismo patrón ya usado para `.githooks/pre-push`) (PR #153)
+- Reconciliación `main`→`develop`: PR #159 (browser-control) se había ramificado
+  y mergeado directo contra `main`, saltándose `develop` (Issue #161). Este
+  release consolida `develop` con el contenido de `main` (que ya incluía PR #159
+  desde el release `v2.4.0`, publicado por separado el 2026-08-28) más el fix
+  CRLF de arriba, que no estaba en ese release
+
+## [2.4.0] - 2026-08-28
+
+### Added
+- `agents/browser-control.md`: agente de visión/control de navegador vía
+  `claude-in-chrome` — dos casos de uso (exploratorio cuando no hay CLI/MCP que
+  alcance, o a pedido explícito del usuario), salvaguardas nativas +
+  salvaguarda de harness (nunca acción irreversible sin confirmación explícita),
+  tabla de decisión "ver" vs "controlar". Nueva fila de routing en
+  `protocols/router.md` y `AGENTS.md` (Issue #157, PR #159)
 
 ## [2.3.0] - 2026-08-18
 

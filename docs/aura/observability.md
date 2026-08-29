@@ -58,3 +58,38 @@ compartido entre todos los proyectos que consumen el harness. Ejemplo de ese pat
 `crawler-mcp-diagram` documentó su propio caso (bloque de 11 issues Cash Flow,
 2026-08-03) en `docs/aura/experiments/2026-08-04-tiering-fuera-del-loop.md` de ese repo,
 no acá.
+
+---
+
+## Checklist de auditoría de consumo en un proyecto consumidor
+
+Antes de asumir que un proyecto consumidor "ya sigue las reglas del harness" porque su
+documentación las menciona, correr este checklist — cada punto se detectó con evidencia real en
+al menos un proyecto consumidor, no es especulativo (`.agent/memory/plans/2026-08-25-optimizar-tokens-proyectos-consumidores.md`).
+
+1. **Versión del harness al día.** `git -C .aura fetch origin && git -C .aura log HEAD..origin/main --oneline`.
+   Si hay commits pendientes, ninguna corrección de harness aplicada en otro proyecto llega al
+   consumidor hasta actualizar el submódulo. Chequeo trivial, siempre primero.
+
+2. **`current-session.json` — patrón ADR-006 completo, no a medias.** No basta con que
+   `.gitignore` lo mencione: correr `git ls-files .agent/memory/current-session.json` en el
+   proyecto consumidor. Si devuelve la ruta, sigue trackeado — la exclusión es un no-op y el
+   archivo se sigue commiteando en cada cierre de sesión. Requiere `git rm --cached` explícito,
+   una vez.
+
+3. **Agentes especializados definidos vs. usados de verdad.** Un proyecto puede tener agentes
+   dedicados en `.claude/agents/` y una matriz de delegación documentada — y aun así la sesión
+   activa correr todo inline. Este gap no se detecta leyendo documentación, solo mirando el
+   historial real de tool-calls de la sesión (o el reporte de `process-session.sh` si está
+   wired, punto 5). Señal concreta: ¿el test runner del proyecto corrió vía `Bash` directo en la
+   sesión principal, habiendo un agente dedicado a exactamente eso?
+
+4. **Documentación de convenciones duplicada.** Si la misma regla (convención de commits, flujo
+   de ramas) aparece completa en 3+ archivos que se cargan siempre en contexto (no on-demand),
+   cada sesión paga ese costo fijo aunque la tarea no lo necesite. Buscar duplicación real
+   (mismo contenido, no solo mismo tema), no solo referencias cruzadas.
+
+5. **Instrumentación de medición.** Sin `skills/observability/` wired (captura de
+   `session_id`/`transcript_path` + `process-session.sh`), cualquier afirmación de "esto bajó el
+   consumo" es percepción, no dato. No bloqueante desde el día uno, pero si el proyecto va a
+   iterar varias veces sobre optimización de contexto, wire-earlo temprano paga solo.

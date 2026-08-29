@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.4.0] - 2026-08-27
+## [2.4.0] - 2026-08-29
 
 ### Added
 - `agents/browser-control.md`: agente de visión/control de navegador vía
@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   salvaguarda de harness (nunca acción irreversible sin confirmación explícita),
   tabla de decisión "ver" vs "controlar". Nueva fila de routing en
   `protocols/router.md` y `AGENTS.md` (Issue #157, PR #159)
+
+### Fixed
+- `skills/repo-integrity/scripts/check-repo-manifest.sh`: `manifest.txt` sin
+  `eol=lf` en `.gitattributes` quedaba con CRLF en checkouts Windows con
+  `core.autocrlf=true`, y el script leía cada ruta con un `\r` final —
+  `test -f` fallaba en silencio y el chequeo reportaba 20 falsos `MISSING:`.
+  Corregido agregando la regla `eol=lf` y recortando `\r` por línea en el
+  script (mismo patrón ya usado para `.githooks/pre-push`) (PR #153)
 
 ## [2.3.0] - 2026-08-18
 

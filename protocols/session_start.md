@@ -19,10 +19,17 @@ Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`
   cerrarse; no se salta ni con hook output presente (ver Issue #109 — el gap real que
   motivó este paso: una PR abierta quedó invisible en el resumen porque nada en el fast-path
   ni en el hook la consultaba)
+- **Excepción:** correr igual `bash skills/repo-integrity/scripts/check-base-branch.sh` (ver
+  Paso 3 → "PRs contra la Rama Base Incorrecta") — el hook no trae este dato; no se salta ni
+  con hook output presente. Llamada adicional barata (un `gh pr list` propio, no reusa el de
+  la excepción anterior). Sin esta excepción, el chequeo que debía detectar el próximo caso
+  como PR #159 no correría nunca en el camino común (fast-path activo) — gap real encontrado
+  en code review de PR #166.
 - **Ejecutar directamente paso 5** (mem_context) y luego paso 6 (resumen)
 - **Repo health** (branch protection de main/develop) → omitir; solo ejecutar bajo demanda o
   una vez por semana
-- Esto reduce las tool calls de ~10 a **3** (visibilidad + PRs abiertas + mem_context)
+- Esto reduce las tool calls de ~10 a **4** (visibilidad + PRs abiertas + PRs base-branch +
+  mem_context)
 - **Nota:** El hook también inyecta `harness_update_available` (boolean) y `harness_latest_version` (string); ver Paso 6 para cómo mostrar la línea de aviso
 
 Si el hook output NO está presente → ejecutar el protocolo completo desde el Paso 2.

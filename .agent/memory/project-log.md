@@ -4,6 +4,43 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-08-30 — PR #166 — fix(harness): worktree.baseRef no apuntaba a develop + .env ausente en worktrees
+
+**Plan:** `docs/aura/specs/2026-08-29-claude-code-worktree-conflict-and-agent-browser.md`
+(gitignored, decidida vía `/brainstorm` en vivo)
+**Qué se agregó:** Corrige la causa raíz confirmada del incidente de PR #159 (mergeado
+directo a `main`, saltándose `develop` — ver Issue #161): `worktree.baseRef:"fresh"` de
+Claude Code crea worktrees/ramas nuevas desde el default branch de GitHub, no desde
+`develop`. Tres correcciones: (1) default branch de GitHub cambiado de `main` a `develop`
+(`gh repo edit`), verificado seguro primero (ambas ramas ya tenían protecciones idénticas);
+(2) `.worktreeinclude` nuevo en la raíz — copia `AGENTS.local.md`, `.env*`, credenciales y
+la denylist de `sensitive-data-guard.ps1` a cada worktree nuevo (mecanismo oficial de
+Claude Code, sin código propio); (3) `skills/repo-integrity/scripts/check-base-branch.sh`
+nuevo, detecta PRs `feature/*`/`fix/*`/`chore/*` contra `main` en vez de `develop`
+(excluye el PR legítimo de `promote`), wireado en `session_start.md` Paso 3. Bug real
+encontrado en vivo durante la implementación: el script dependía de `jq` externo, ausente
+en este entorno Windows/Git Bash — corregido usando el motor `--jq` embebido de `gh`
+(gojq). Segundo bug encontrado en code review post-implementación: el chequeo nuevo se
+agregó dentro del Paso 3, pero el Hook Fast-Path saltea los Pasos 2-4 enteros sin una
+excepción propia — corregido agregando esa excepción explícita (mismo patrón que "PRs
+Abiertas"). Parte B de la spec (evaluación de `vercel-labs/agent-browser`) queda "needs
+spike" — no integrada, falta hipótesis P4 de un caso de uso real.
+**Archivos clave:** .worktreeinclude, skills/repo-integrity/scripts/check-base-branch.sh,
+protocols/session_start.md, .gitattributes
+
+## 2026-08-29 — Reconciliación main/develop + release v2.4.1 (PRs #160/#162-165, Issue #161)
+
+**Plan:** `.agent/memory/plans/2026-08-29-reconciliar-release-v2.4.1.md`
+**Qué se agregó:** Tarea original (volcar bitácora de v2.3.0 + PR #153, cortar patch
+v2.3.1) escaló al detectar que `main` y `develop` habían divergido: PR #159 se había
+mergeado directo contra `main`, saltándose `develop`, y esa misma sesión también taggeó y
+publicó su propio GitHub Release `v2.4.0` sin pasar por `cut-release.sh`. Reconciliado vía
+PR #160 (main→develop), Issue #161 abierto para trazabilidad del incidente, y release
+`v2.4.1` cortado (PRs #162-165) sin tocar el `v2.4.0` ya publicado — consolida el fix CRLF
+de PR #153 y la reconciliación. Verificado: sin divergencia `main`/`develop`, sin PRs
+abiertas, `check-repo-manifest.sh`/`check-release-drift.sh` limpios.
+**Archivos clave:** .agent/memory/project-log.md, CHANGELOG.md
+
 ## 2026-08-28 — PR #159 — feat(harness): agente browser-control (visión/control de navegador)
 
 **Qué se agregó:** Nuevo `agents/browser-control.md` que incorpora `claude-in-chrome` como

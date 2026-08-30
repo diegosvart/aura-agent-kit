@@ -19,10 +19,17 @@ Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`
   cerrarse; no se salta ni con hook output presente (ver Issue #109 — el gap real que
   motivó este paso: una PR abierta quedó invisible en el resumen porque nada en el fast-path
   ni en el hook la consultaba)
+- **Excepción:** correr igual `bash skills/repo-integrity/scripts/check-base-branch.sh` (ver
+  Paso 3 → "PRs contra la Rama Base Incorrecta") — el hook no trae este dato; no se salta ni
+  con hook output presente. Llamada adicional barata (un `gh pr list` propio, no reusa el de
+  la excepción anterior). Sin esta excepción, el chequeo que debía detectar el próximo caso
+  como PR #159 no correría nunca en el camino común (fast-path activo) — gap real encontrado
+  en code review de PR #166.
 - **Ejecutar directamente paso 5** (mem_context) y luego paso 6 (resumen)
 - **Repo health** (branch protection de main/develop) → omitir; solo ejecutar bajo demanda o
   una vez por semana
-- Esto reduce las tool calls de ~10 a **3** (visibilidad + PRs abiertas + mem_context)
+- Esto reduce las tool calls de ~10 a **4** (visibilidad + PRs abiertas + PRs base-branch +
+  mem_context)
 - **Nota:** El hook también inyecta `harness_update_available` (boolean) y `harness_latest_version` (string); ver Paso 6 para cómo mostrar la línea de aviso
 
 Si el hook output NO está presente → ejecutar el protocolo completo desde el Paso 2.
@@ -175,6 +182,26 @@ ninguna línea (advertencia condicional, mismo patrón que "Drift de Release" ar
 
 Ver ADR-007 (`docs/aura/adr/ADR-007-repo-integrity-manifest.md`) para el contrato completo
 y `skills/repo-integrity/manifest.txt` para la lista de referencia.
+
+### PRs contra la Rama Base Incorrecta (si `gh` autenticado)
+
+Ejecutar solo si `gh auth status` pasó en Paso 2:
+
+```bash
+bash skills/repo-integrity/scripts/check-base-branch.sh
+```
+
+Si imprime una o más líneas `BASE-BRANCH: ...` → incluirlas tal cual en la sección
+"Advertencias" del Resumen Ejecutivo (Paso 6). Si no imprime nada, no mostrar ninguna línea
+(advertencia condicional, mismo patrón que "Drift de Release" y "Integridad del Manifest").
+
+Detecta PRs abiertas con rama `feature/*`/`fix/*`/`chore/*`/etc. que apuntan contra `main` en
+vez de `develop` (excluyendo el PR legítimo de `promote` de `cut-release.sh`, que sí tiene
+`base=main`/`head=develop`). Caso real que motivó este chequeo: PR #159 se ramificó y mergeó
+directo contra `main`, saltándose `develop` por completo, sin que ningún chequeo existente lo
+detectara antes del merge — causa raíz probable: `worktree.baseRef:"fresh"` de Claude Code
+crea worktrees/ramas nuevas desde el default branch del repo, no desde `develop`. Ver
+`docs/aura/specs/2026-08-29-claude-code-worktree-conflict-and-agent-browser.md`.
 
 #### Gate de datos sensibles (si `visibility == public`)
 

@@ -1,5 +1,5 @@
 ---
-status: approved
+status: done
 ---
 
 # Plan — Continuar investigación `Skill(aura:auto-research)` + limpiar worktree colgado
@@ -99,3 +99,19 @@ sesiones, mismo patrón que project-log) resumiendo:
 - Observación nueva en Engram con `topic_key: bug/skill-aura-not-registered`.
 - **Pendiente, fuera de esta sesión:** abrir sesión nueva y correr `Skill(aura:auto-research)`
   como primer paso, antes de cualquier otra cosa.
+
+## Resultado (confirmado en sesión nueva, 2026-09-02)
+
+`Skill(aura:auto-research)` carga correctamente el contenido del comando — ya no devuelve
+"Unknown skill: aura:auto-research". Causa raíz real: un marketplace `aura-local` con
+`source: Directory` (sea cual sea el path local) no hace que Claude Code registre las
+skills del plugin para el Skill tool nativo; `source: GitHub` sí. Detalle completo en
+Engram (`topic_key: bug/skill-aura-not-registered`, obs #556).
+
+Pendiente de seguimiento (fuera de este plan):
+- Confirmar estabilidad del fix en próximas sesiones.
+- Investigar duplicación de `aura@aura-local` en scope `project` (`claude plugin list`
+  muestra la entrada dos veces).
+- Documentar el flujo "editar skill local → push → `claude plugin marketplace update`"
+  como parte del workflow de desarrollo del harness (implica que cambios locales a
+  `skills/*/SKILL.md` no se reflejan hasta pushear a GitHub).

@@ -60,6 +60,7 @@
 | Loop de desarrollo + verificación de issues | `/run-dev-loop` → `skills/agentic-dev-loop/SKILL.md` |
 | Manejo de datos sensibles / repo público | `.claude/rules/sensitive-data-safety.md` |
 | Ver / controlar el navegador | `agents/browser-control.md` |
+| Testing E2E/headless de una app web | `agents/browser-testing.md` |
 | Cierre de sesión | `protocols/session_end.md` |
 
 ---

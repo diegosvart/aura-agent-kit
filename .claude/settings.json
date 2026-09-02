@@ -15,6 +15,8 @@
       "Bash(ruff:*)",
       "Bash(pytest:*)",
       "Bash(eslint:*)",
+      "Bash(agent-browser:*)",
+      "PowerShell(agent-browser *)",
       "Bash(where:*)",
       "Bash(which:*)",
       "Bash(ls:*)",

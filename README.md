@@ -62,12 +62,12 @@ tool nativo de Claude Code (ver ADR-008):
 ```bash
 # Desde la raíz del repo (o .aura/ si se instaló como submodule)
 claude plugin marketplace add .
-claude plugin install aura@aura-local --scope project
+claude plugin install aura@aura-agent-kit --scope project
 ```
 
 El registro del marketplace es estado de usuario/máquina (`~/.claude/plugins/`), no se
 versiona — cada desarrollador lo corre una vez, igual que `gh auth login`. Si el contenido
-de `skills/*.md` cambia después de instalar, correr `claude plugin update aura@aura-local`
+de `skills/*.md` cambia después de instalar, correr `claude plugin update aura@aura-agent-kit`
 para refrescar la caché.
 
 ### Opción C — Solo plugin, sin submodule
@@ -77,7 +77,7 @@ repositorio real en GitHub (no una ruta local) e instalar el plugin directamente
 
 ```bash
 claude plugin marketplace add diegosvart/aura-agent-kit
-claude plugin install aura@aura-local --scope project
+claude plugin install aura@aura-agent-kit --scope project
 ```
 
 Los hooks (`.claude/hooks/*.ps1`) no se distribuyen automáticamente por esta vía — copiarlos

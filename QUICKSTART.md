@@ -65,12 +65,12 @@ mecanismo de plugins de Claude Code (ver ADR-009).
 claude plugin marketplace add diegosvart/aura-agent-kit
 
 # 2. Instalar el plugin
-claude plugin install aura@aura-local --scope project
+claude plugin install aura@aura-agent-kit --scope project
 
 # 3. Los hooks no llegan solos por esta vía -- copiarlos una vez desde el installPath
 #    real que reporta Claude Code (no asumir la ruta, puede variar por versión/SO):
 INSTALL_PATH=$(claude plugin list --json | python3 -c \
-  "import json,sys; d=json.load(sys.stdin); print(next(p['installPath'] for p in d if p['id']=='aura@aura-local'))")
+  "import json,sys; d=json.load(sys.stdin); print(next(p['installPath'] for p in d if p['id']=='aura@aura-agent-kit'))")
 mkdir -p .claude/hooks
 cp "$INSTALL_PATH"/.claude/hooks/*.ps1 .claude/hooks/
 ```
@@ -120,12 +120,12 @@ Para que las skills (`skills/*/SKILL.md`) y comandos (`commands/*.md`) queden in
 ```bash
 # Desde la raíz de tu proyecto (donde vive .aura/)
 claude plugin marketplace add ./.aura
-claude plugin install aura@aura-local --scope project
+claude plugin install aura@aura-agent-kit --scope project
 ```
 
 Paso único por máquina — el registro del marketplace es estado de usuario
 (`~/.claude/plugins/`), no se versiona. Si `skills/*.md` cambia después de instalar, correr
-`claude plugin update aura@aura-local`.
+`claude plugin update aura@aura-agent-kit`.
 
 ---
 
@@ -203,6 +203,6 @@ rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hook
 
 **Opción C (solo plugin):**
 ```bash
-claude plugin uninstall aura@aura-local
+claude plugin uninstall aura@aura-agent-kit
 rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1
 ```

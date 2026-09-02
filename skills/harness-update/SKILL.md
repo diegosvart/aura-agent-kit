@@ -49,7 +49,7 @@ disponible. El hook `session-start.ps1` resuelve esto sin necesitar tags ni fetc
 3. Lee `<installLocation>/.claude-plugin/plugin.json` → versión **publicada** (tal como está
    en el ref que trackea ese marketplace, ej. `develop` o `main` según cómo se configuró)
 4. Si difieren → inyecta `harness_update_available`, `harness_latest_version`,
-   `harness_update_channel: "plugin"` y `harness_update_plugin_id` (ej. `aura@aura-local`) en
+   `harness_update_channel: "plugin"` y `harness_update_plugin_id` (ej. `aura@aura-agent-kit`) en
    el JSON del hook — mismo cache TTL de 30 min que el canal legacy
 
 **Precondición crítica:** `.claude-plugin/plugin.json` → `version` debe bumpearse en cada

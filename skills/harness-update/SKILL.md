@@ -10,7 +10,42 @@ description: Detect and apply updates to the harness submodule
 > **Comando asociado:** `/harness-update`
 > **Spec / hipótesis:** `docs/aura/specs/2026-07-30-harness-self-update.md` (P4)
 > **Precondición:** `.aura/` debe existir como un checkout git (git submodule) del harness.
-> Si no existe, el skill avisa pero no falla.
+> Si no existe, el skill avisa pero no falla — salvo que aplique el chequeo alternativo para
+> consumidores vía plugin (ver "Canal alternativo" abajo).
+
+---
+
+## Dos Canales de Detección (Issue #181)
+
+El harness se distribuye por dos vías, y cada una necesita su propio mecanismo de detección
+de actualizaciones — mutuamente excluyentes por construcción en el hook:
+
+| Canal | Cómo se instala | Detección | Aplicación |
+|---|---|---|---|
+| `submodule` (legacy) | `.aura/` como git submodule | `check-update.sh` compara tags git | `/harness-update` |
+| `plugin` | `claude plugin install aura@<marketplace>` | compara versión instalada vs. cache local del marketplace | `claude plugin update <plugin_id>` |
+
+### Canal `plugin` — cómo funciona
+
+Sin `.aura/` no hay submódulo que chequear vía git — antes esta rama quedaba **muda** (ni
+error ni aviso), dejando a los consumidores vía plugin sin ninguna señal de actualización
+disponible. El hook `session-start.ps1` resuelve esto sin necesitar tags ni fetch propio:
+
+1. `claude plugin list --json` → versión **instalada** del plugin `aura@*` (prioriza scope
+   `project` sobre `user` si hay ambos)
+2. `claude plugin marketplace list --json` → resuelve `installLocation`, el checkout local
+   cacheado de la fuente del marketplace configurado (Claude Code ya lo mantiene actualizado
+   vía `claude plugin marketplace update`, esta skill no dispara ningún fetch propio)
+3. Lee `<installLocation>/.claude-plugin/plugin.json` → versión **publicada** (tal como está
+   en el ref que trackea ese marketplace, ej. `develop` o `main` según cómo se configuró)
+4. Si difieren → inyecta `harness_update_available`, `harness_latest_version`,
+   `harness_update_channel: "plugin"` y `harness_update_plugin_id` (ej. `aura@aura-local`) en
+   el JSON del hook — mismo cache TTL de 30 min que el canal legacy
+
+**Precondición crítica:** `.claude-plugin/plugin.json` → `version` debe bumpearse en cada
+release, o esta comparación siempre compara contra un número congelado. `cut-release.sh
+changelog-pr` lo hace automáticamente en el mismo commit que `CHANGELOG.md` (ver
+`agents/github.md` → "Proceso de Release").
 
 ---
 

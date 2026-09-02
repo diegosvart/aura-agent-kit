@@ -154,6 +154,19 @@ Prompt autocontenido (el agente parte de cero — sin memoria de esta sesión):
      ambigüedad real del DoD): **no commitear a medias** — comentar en el issue qué falta y
      terminar sin PR.
 
+### Paso 4.5 — Smoke test post-implementación (opcional, ver ADR-010)
+
+Punto de extensión, **no un paso obligatorio del loop**: si el issue recién implementado
+tiene impacto en UI (heurística: tocó archivos de frontend/rutas/componentes) y
+`agent-browser` está disponible en el proyecto, el dev-runner puede invocar
+`skills/e2e-testing/SKILL.md` como smoke test antes de pasar a Paso 5 — valida que el flujo
+crítico no se rompió, sin depender de que el usuario abra un navegador.
+
+No se acopla el loop a esta dependencia externa: si `agent-browser` no está instalado, se
+omite el smoke test y se continúa normalmente (ver `agents/browser-testing.md` → detección
+de disponibilidad). Ver `docs/aura/adr/ADR-010-agent-browser-e2e-testing.md` para el
+rationale completo de la capability.
+
 ### Paso 5 — Cerrar el ciclo
 ```bash
 skills/agentic-dev-loop/scripts/close-cycle.sh <OWNER>/<REPO> <N>

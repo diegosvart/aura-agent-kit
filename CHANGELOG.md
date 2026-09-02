@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-09-02
+
+### Added
+- `skills/harness-update/scripts/check-update.sh` (`session-start.ps1`): chequeo de versión
+  para consumidores instalados vía `claude plugin install` (sin `.aura/` submódulo) —
+  compara la versión instalada (`claude plugin list --json`) contra la versión cacheada por
+  el marketplace configurado. Mutuamente excluyente con el canal legacy submodule por
+  construcción; `session_start.md` Paso 6 bifurca el aviso por `harness_update_channel`
+  (Issue #181, PR #186)
+- `skills/harness-update/scripts/apply-update.sh`: unifica la aplicación de la actualización
+  entre ambos canales de instalación — submodule (`git checkout` de tag) y plugin
+  (`claude plugin marketplace update` + `claude plugin update <id>`). `README.md`/
+  `QUICKSTART.md` ganan una Opción C real de instalación "solo plugin, sin submodule", antes
+  inalcanzable por un consumidor real (Issue #187, PR #188, ADR-009)
+- `docs/aura/adr/ADR-010-agent-browser-e2e-testing.md`: formaliza la decisión de incorporar
+  `agent-browser` como capability de testing E2E/headless — instalación-con-aprobación y
+  modo CLI-puro como condiciones de la decisión, y confía en el timeout de inactividad propio
+  del daemon en vez de agregar un paso a `session_end.md`. `skills/agentic-dev-loop/SKILL.md`
+  documenta el smoke test post-implementación como punto de extensión opcional (Issue #169,
+  PR #191)
+
+### Fixed
+- `protocols/session_start.md` Paso 5: el preview truncado (~300 caracteres) de `mem_context`
+  no alcanza a mostrar la sección `Accomplished`/`🔲 Pendiente` de un `session_summary` largo.
+  Ahora exige llamar `mem_get_observation` sobre la observación más reciente antes de declarar
+  "Pendiente/Próximo paso" vacío — caso real donde el agente declaró incorrectamente que no
+  había `next_step` en memoria pese a que sí estaba, completo, tanto en Engram como en
+  `current-session.json` (PR #190)
+
+### Changed
+- Marketplace del plugin nativo renombrado de `aura-local` a `aura-agent-kit` — el nombre
+  anterior sugería "solo desarrollo local" a un consumidor real instalando vía marketplace de
+  GitHub. Sin migración automática: instalaciones existentes deben desinstalar/reinstalar bajo
+  el nuevo nombre (PR #192)
+
 ## [2.5.0] - 2026-09-02
 
 ### Added

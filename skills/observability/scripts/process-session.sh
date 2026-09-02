@@ -11,6 +11,12 @@
 #   * tool_uses: conteo por tipo (llm: Edit/Write/Read; script_command: Bash/PowerShell;
 #                agent_delegated: Agent; other: todo lo demás)
 #   * duration_ms: diferencia entre primer y último timestamp ISO en el transcript
+#   * delegation_rate: ver .aura/rules/subagent-dispatch.md (Issue #179) — {a, b, rate}
+#       a = triggers de protocols/router.md detectados mecánicamente por keyword-matching
+#           contra el texto de la sesión (ambiguo → se excluye, no se infiere)
+#       b = invocaciones del Agent tool cuya notificación de finalización registra
+#           tool_uses > 3 (evita contar delegación cosmética de bajo volumen)
+#       rate = b/a, o null si a == 0
 # - Appendea resultado a .agent/memory/observability/sessions.jsonl
 #
 # Idempotente: mantiene registro interno de qué session_id ya procesó (leyendo sessions.jsonl)
@@ -26,6 +32,7 @@ PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
 
 SESSIONS_INDEX="$PROJECT_ROOT/.agent/memory/observability/sessions-index.jsonl"
 SESSIONS_OUTPUT="$PROJECT_ROOT/.agent/memory/observability/sessions.jsonl"
+ROUTER_MD="$PROJECT_ROOT/protocols/router.md"
 
 # Crear directorio de observability si no existe
 mkdir -p "$(dirname "$SESSIONS_OUTPUT")"
@@ -129,6 +136,141 @@ except Exception as e:
 EOPYTHON
 }
 
+# Función para calcular delegation_rate (Issue #179 / .aura/rules/subagent-dispatch.md)
+calculate_delegation_rate() {
+    local transcript_path="$1"
+
+    if [[ ! -f "$transcript_path" ]]; then
+        echo '{"a":0,"b":0,"rate":null}'
+        return 0
+    fi
+
+    python3 << EOPYTHON
+import json
+import re
+
+ROUTER_MD = r'''$ROUTER_MD'''
+TRANSCRIPT = r'''$transcript_path'''
+
+# --- Denominador a: triggers de router.md detectados mecánicamente ---
+# Palabras genéricas frecuentes en las columnas de router.md que, solas, no distinguen
+# ningún trigger en particular (verbos comunes, conectores, metadata de la tabla misma).
+STOPWORDS = {
+    'situacion', 'archivos', 'cargar', 'trigger', 'archivo', 'protocols',
+    'session', 'skills', 'agents', 'existe', 'plan', 'nuevo', 'nueva',
+    'antes', 'despues', 'cuando', 'donde', 'usuario', 'quiere', 'primera',
+    'interaccion', 'menciona', 'seguimos', 'continuemos', 'describe',
+    'trabajo', 'completa', 'revision', 'sesion', 'inicio', 'proyecto',
+    'cambiar', 'quiere', 'pide', 'avisa', 'cualquier', 'define', 'corresponde',
+    'sobre', 'esta', 'tabla', 'terminamos', 'cerramos', 'trabajo',
+}
+
+# Requiere >=2 keywords específicos co-ocurriendo en el mismo texto de sesión — un solo
+# verbo genérico ("seguimos", "crear") no alcanza para afirmar que el trigger aplicó.
+MIN_KEYWORDS_PER_ROW = 2
+
+def keywords(text):
+    words = re.findall(r"[a-záéíóúñü]{6,}", text.lower())
+    return sorted(set(w for w in words if w not in STOPWORDS))
+
+def row_matches(row_keywords, haystack):
+    if len(row_keywords) < MIN_KEYWORDS_PER_ROW:
+        return False  # ambiguo (muy pocas señales específicas) → se excluye, no se infiere
+    return all(w in haystack for w in row_keywords)
+
+rows = []
+try:
+    with open(ROUTER_MD, encoding='utf-8') as f:
+        in_table = False
+        for line in f:
+            line = line.rstrip('\\n')
+            if line.strip().startswith('| Situación'):
+                in_table = True
+                continue
+            if in_table:
+                if not line.strip().startswith('|'):
+                    if line.strip() == '':
+                        continue
+                    in_table = False
+                    continue
+                if set(line.strip()) <= set('|-: '):
+                    continue  # separator row
+                cells = [c.strip() for c in line.strip().strip('|').split('|')]
+                if len(cells) < 3:
+                    continue
+                trigger_text = cells[2]
+                row_keywords = keywords(trigger_text)
+                if row_keywords:
+                    rows.append({'situacion': cells[0], 'keywords': row_keywords})
+except FileNotFoundError:
+    pass
+
+SYSTEM_BLOCK_RE = re.compile(
+    r'<system-reminder>.*?</system-reminder>|<claude-md-context>.*?</claude-md-context>',
+    re.DOTALL,
+)
+
+def strip_injected_context(text):
+    # Excluye bloques inyectados por el sistema (ej. dump de CLAUDE.md/AGENTS.md/router.md
+    # como contexto) — sin esto, el propio texto de router.md aparece verbatim en el
+    # transcript y matchea trivialmente contra sí mismo (falso positivo ~100%).
+    return SYSTEM_BLOCK_RE.sub(' ', text)
+
+haystack = ''
+try:
+    with open(TRANSCRIPT, encoding='utf-8', errors='replace') as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            msg = entry.get('message', {})
+            content = msg.get('content')
+            if isinstance(content, str):
+                haystack += ' ' + strip_injected_context(content).lower()
+            elif isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict) and item.get('type') == 'text':
+                        haystack += ' ' + strip_injected_context(item.get('text', '')).lower()
+except FileNotFoundError:
+    pass
+
+a = sum(1 for row in rows if row_matches(row['keywords'], haystack))
+
+# --- Numerador b: invocaciones del Agent tool con tool_uses > 3 ---
+# Cada notificación de finalización puede aparecer más de una vez en el transcript
+# (se re-escribe cuando se re-muestra como contexto) — deduplicar por task-id, no por
+# ocurrencia cruda del tag, o se cuenta la misma delegación varias veces.
+b = 0
+try:
+    with open(TRANSCRIPT, encoding='utf-8', errors='replace') as f:
+        full_text = f.read()
+    seen_task_ids = set()
+    for block in re.finditer(
+        r'<task-notification>(.*?)</task-notification>', full_text, re.DOTALL
+    ):
+        block_text = block.group(1)
+        id_match = re.search(r'<task-id>(.*?)</task-id>', block_text)
+        uses_match = re.search(r'<tool_uses>(\\d+)</tool_uses>', block_text)
+        if not id_match or not uses_match:
+            continue
+        task_id = id_match.group(1)
+        if task_id in seen_task_ids:
+            continue
+        seen_task_ids.add(task_id)
+        if int(uses_match.group(1)) > 3:
+            b += 1
+except FileNotFoundError:
+    pass
+
+rate = round(b / a, 4) if a > 0 else None
+
+print(json.dumps({'a': a, 'b': b, 'rate': rate}))
+EOPYTHON
+}
+
 # Procesar índice
 entries_processed=0
 entries_skipped=0
@@ -178,6 +320,9 @@ EOPYTHON
         continue
     fi
 
+    # Delegation rate (Issue #179)
+    delegation=$(calculate_delegation_rate "$transcript_path")
+
     # Timestamp de procesamiento
     processed_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -185,6 +330,7 @@ EOPYTHON
     output_entry=$(python3 << EOPYTHON
 import json
 metrics = json.loads('''$metrics''')
+delegation = json.loads('''$delegation''')
 entry = {
     'session_id': '$session_id',
     'transcript_path': '$transcript_path',
@@ -192,7 +338,8 @@ entry = {
     'processed_at': '$processed_at',
     'output_tokens': metrics['output_tokens'],
     'tool_uses': metrics['tool_uses'],
-    'duration_ms': metrics['duration_ms']
+    'duration_ms': metrics['duration_ms'],
+    'delegation_rate': delegation
 }
 print(json.dumps(entry, separators=(',', ':')))
 EOPYTHON

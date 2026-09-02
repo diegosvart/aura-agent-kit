@@ -326,7 +326,19 @@ Si `.agent/memory/observability/sessions.jsonl` existe y tiene al menos una lín
 - Tokens de salida: <output_tokens>
 - Tool uses: LLM <n> · Script/Comando <n> · Delegado a agente <n> · Otro <n>
 - Duración: <duration_ms convertido a min:seg, o "—" si es null>
+- Delegation rate: <ver formato exacto abajo>
 ```
+
+La línea "Delegation rate" (Issue #179) toma `delegation_rate.a`/`.b`/`.rate` de la entrada
+correspondiente en `sessions.jsonl`. Formato exacto de la línea completa:
+
+- Si `a > 0`: `Delegation rate: <b>/<a> (<rate>) — ver .aura/rules/subagent-dispatch.md`
+- Si `a == 0`: `Delegation rate: — (sin triggers detectados) — ver .aura/rules/subagent-dispatch.md`
+  (reemplaza la línea entera, no solo el paréntesis — no dividir por cero)
+
+Mostrar siempre los valores crudos `a`/`b` junto al cociente cuando `a > 0` — un `a` bajo (0 o
+1) hace que el ratio no sea representativo por sí solo (ver "Salvaguarda" en
+`.aura/rules/subagent-dispatch.md`).
 
 Si el archivo no existe, está vacío, o el script devolvió error → omitir esta sección por
 completo (no mostrar un bloque vacío ni un mensaje de error).

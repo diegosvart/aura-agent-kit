@@ -71,6 +71,7 @@ Si el usuario describe trabajo nuevo sin spec existente:
 @.aura/rules/repo-integrity.md
 @.aura/rules/routing-menu.md
 @.aura/rules/coding.md
+@.aura/rules/subagent-dispatch.md
 
 ---
 

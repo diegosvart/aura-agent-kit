@@ -399,19 +399,35 @@ Rama sugerida: `{{TIPO}}/{{CODIGO}}-{{descripcion}}`
 ### Nota sobre la línea de aviso de actualización del harness
 
 Si el hook `session-start.ps1` inyecta `harness_update_available: true`, incluir en la
-sección "Advertencias" del Resumen Ejecutivo una sola línea con el formato exacto:
+sección "Advertencias" del Resumen Ejecutivo una sola línea, cuyo formato depende del canal
+de instalación detectado (`harness_update_channel`, también inyectado por el hook):
 
-```
-⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — /harness-update para detalle
-```
+- **`harness_update_channel` ausente o `"submodule"`** (modelo legacy, `.aura/` como
+  submódulo git):
+  ```
+  ⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — /harness-update para detalle
+  ```
+  - Sustituir `X.Y.Z` con `harness_latest_version` (del hook)
+  - Sustituir `A.B.C` con la versión local actual del harness (de `version.txt` o similar)
 
-**Importante:**
-- Sustituir `X.Y.Z` con el valor de `harness_latest_version` (del hook)
-- Sustituir `A.B.C` con la versión local actual del harness (de `version.txt` o similar)
+- **`harness_update_channel == "plugin"`** (consumidor instalado vía plugin/marketplace de
+  Claude Code, sin `.aura/` — ver Issue #181):
+  ```
+  ⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — actualizar con: claude plugin update {{plugin_id}}
+  ```
+  - Sustituir `X.Y.Z` con `harness_latest_version`
+  - Sustituir `A.B.C` con la versión instalada reportada por `claude plugin list --json`
+  - Sustituir `{{plugin_id}}` con `harness_update_plugin_id` (del hook, ej. `aura@aura-local`)
+
+**Importante (ambos canales):**
 - Esta línea va **siempre en la sección "Advertencias"**, no como bloque separado
 - El detalle completo del CHANGELOG **NO se vuelca** en el resumen ejecutivo — solo aparece
-  al correr `/harness-update` explícitamente
+  al correr `/harness-update` (canal submodule) o `claude plugin update` (canal plugin)
+  explícitamente
 - Esto evita repetir el mismo bloque de texto sesión tras sesión mientras el usuario no actualiza
+- Ambos canales son mutuamente excluyentes por construcción en el hook (ver
+  `.claude/hooks/session-start.ps1`): la detección plugin solo corre cuando `.aura/` no existe
+  en absoluto, así que nunca se disparan los dos en la misma sesión
 
 ---
 

@@ -213,6 +213,8 @@ try {
         if ($cache.harness_update_available) {
             $output.harness_update_available = $true
             $output.harness_latest_version = $cache.harness_latest_version
+            if ($cache.harness_update_channel) { $output.harness_update_channel = $cache.harness_update_channel }
+            if ($cache.harness_update_plugin_id) { $output.harness_update_plugin_id = $cache.harness_update_plugin_id }
         }
     } elseif ((Test-Path (Join-Path $auraPath ".git")) -and $gitBash -and (Get-Command git -ErrorAction SilentlyContinue)) {
         # El script vive en .aura/ (submodule), no en la raíz del repo consumidor —
@@ -250,6 +252,60 @@ try {
         # expone en el resumen de sesión (ruidoso en cada sesión de un repo que ya no usa
         # submódulo) — queda en el JSON del hook para diagnóstico manual.
         $output.harness_update_not_applicable = "sin .git en .aura/ (no es submódulo) — ver Issue de seguimiento sobre chequeo de version para consumidores vía plugin"
+    } else {
+        # $auraPath no existe en absoluto -- consumidor probable via plugin de Claude Code
+        # (marketplace), sin submodulo .aura/. Compara la version instalada del plugin "aura"
+        # (claude plugin list --json) contra la version cacheada localmente por el marketplace
+        # configurado (claude plugin marketplace list --json -> installLocation), sin depender
+        # de tags ni de red propia -- el refresh de ese cache ya lo maneja Claude Code (Issue
+        # #181). Mutuamente excluyente con el chequeo legacy de arriba por construccion: esta
+        # rama solo corre cuando $auraPath no existe.
+        $claudeCmd = Get-Command claude -ErrorAction SilentlyContinue
+        if ($claudeCmd) {
+            $installedJson = & claude plugin list --json 2>$null
+            $installed = if ($installedJson) { $installedJson | ConvertFrom-Json } else { $null }
+            $auraInstalled = @($installed) |
+                Where-Object { $_.id -like "aura@*" } |
+                Sort-Object -Property @{Expression = { $_.scope -eq "project" }; Descending = $true } |
+                Select-Object -First 1
+
+            if ($auraInstalled) {
+                $marketplaceName = ($auraInstalled.id -split "@", 2)[1]
+                $marketplacesJson = & claude plugin marketplace list --json 2>$null
+                $marketplaces = if ($marketplacesJson) { $marketplacesJson | ConvertFrom-Json } else { $null }
+                $marketplace = @($marketplaces) | Where-Object { $_.name -eq $marketplaceName } | Select-Object -First 1
+
+                if ($marketplace -and $marketplace.installLocation) {
+                    $cachedManifest = Join-Path $marketplace.installLocation ".claude-plugin\plugin.json"
+                    if (Test-Path $cachedManifest) {
+                        $cachedVersion = $null
+                        try {
+                            $cachedVersion = (Get-Content $cachedManifest -Raw | ConvertFrom-Json).version
+                        } catch { }
+
+                        if ($cachedVersion) {
+                            $pluginUpdateAvailable = ($cachedVersion -ne $auraInstalled.version)
+
+                            $newCache = @{
+                                last_checked             = (Get-Date).ToUniversalTime().ToString("o")
+                                harness_update_available  = $pluginUpdateAvailable
+                                harness_latest_version    = if ($pluginUpdateAvailable) { $cachedVersion } else { $null }
+                                harness_update_channel    = "plugin"
+                                harness_update_plugin_id  = $auraInstalled.id
+                            }
+                            $newCache | ConvertTo-Json | Set-Content -Path $cacheFile -Encoding utf8
+
+                            if ($pluginUpdateAvailable) {
+                                $output.harness_update_available = $true
+                                $output.harness_latest_version = $cachedVersion
+                                $output.harness_update_channel = "plugin"
+                                $output.harness_update_plugin_id = $auraInstalled.id
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 } catch {
     # Mismo patrón que el bloque de git info básica (línea ~27): no tragarse el error, dejarlo

@@ -47,6 +47,36 @@ case "$SUBCOMMAND" in
     fi
 
     git checkout -b "$branch"
+
+    # Bump de .claude-plugin/plugin.json (sin el prefijo "v" del tag) -- sin esto el chequeo
+    # de actualizacion para consumidores via plugin/marketplace (Issue #181) compara siempre
+    # contra un numero de version que nunca cambia, porque el cache del marketplace de un
+    # consumidor lee este mismo campo.
+    if [ -f ".claude-plugin/plugin.json" ]; then
+      plugin_version="${VERSION#v}"
+      python3 - "$plugin_version" << 'PYTHON_PLUGIN_BUMP'
+import json
+import sys
+
+version = sys.argv[1]
+path = ".claude-plugin/plugin.json"
+try:
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    data["version"] = version
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+except Exception as e:
+    raise ValueError(f"No se pudo bumpear .claude-plugin/plugin.json: {e}") from e
+PYTHON_PLUGIN_BUMP
+      if [ $? -ne 0 ]; then
+        echo "ERROR: Bump de .claude-plugin/plugin.json fallo" >&2
+        exit 1
+      fi
+      git add .claude-plugin/plugin.json
+    fi
+
     git add CHANGELOG.md
     git commit -m "docs(changelog): preparar $VERSION"
     git push -u origin "$branch"

@@ -135,6 +135,6 @@
     ]
   },
   "enabledPlugins": {
-    "aura@aura-local": true
+    "aura@aura-agent-kit": true
   }
 }

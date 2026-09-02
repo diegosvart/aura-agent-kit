@@ -431,7 +431,7 @@ de instalación detectado (`harness_update_channel`, también inyectado por el h
   ```
   - Sustituir `X.Y.Z` con `harness_latest_version`
   - Sustituir `A.B.C` con la versión instalada reportada por `claude plugin list --json`
-  - Sustituir `{{plugin_id}}` con `harness_update_plugin_id` (del hook, ej. `aura@aura-local`)
+  - Sustituir `{{plugin_id}}` con `harness_update_plugin_id` (del hook, ej. `aura@aura-agent-kit`)
 
 **Importante (ambos canales):**
 - Esta línea va **siempre en la sección "Advertencias"**, no como bloque separado

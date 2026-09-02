@@ -14,6 +14,8 @@
 | [006](ADR-006-eliminar-pr-chore-bookkeeping.md) | Eliminar PRs chore de bookkeeping — Engram como memoria primaria real | 2026-08-17 | accepted | harness |
 | [007](ADR-007-repo-integrity-manifest.md) | Manifest estático para el check de integridad de archivos del repo | 2026-08-18 | accepted | harness |
 | [008](ADR-008-plugin-nativo-claude-code.md) | Registrar aura-agent-kit como plugin nativo de Claude Code | 2026-09-01 | accepted | harness |
+| [009](ADR-009-canal-unificado-actualizacion-harness.md) | Unificar aplicación de actualización del harness entre canal submodule y plugin | 2026-09-02 | accepted | harness |
+| [010](ADR-010-agent-browser-e2e-testing.md) | Incorporar agent-browser como capability de testing E2E/headless | 2026-09-02 | accepted | harness |
 
 ## Estados posibles
 

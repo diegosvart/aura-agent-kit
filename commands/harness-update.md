@@ -7,10 +7,14 @@
 
 ## Qué Hace
 
-1. Detecta la versión más reciente disponible del harness (`aura-agent-kit`)
+1. Detecta la versión más reciente disponible del harness (`aura-agent-kit`), sin importar
+   si se instaló como submodule (`.aura/`) o como plugin de Claude Code (marketplace) —
+   detección automática de canal, ver ADR-009
 2. Muestra qué cambios se incluyen (entradas de CHANGELOG)
 3. A pedido del usuario, aplica la actualización:
-   - Checkout del nuevo tag en `.aura/`
+   - Submodule: checkout del nuevo tag en `.aura/`
+   - Plugin: `claude plugin marketplace update` + `claude plugin update <id>` (requiere
+     reiniciar la sesión de Claude Code para que el contenido nuevo tome efecto)
    - Copia de hooks actualizados (`.claude/hooks/*.ps1`)
    - Resincronización del bloque `CLAUDE.md`
    - Resumen de lo que se tocó
@@ -26,8 +30,9 @@
 
 ## Precondición
 
-- `.aura/` debe ser un checkout git (git submodule) del harness
-- Si `.aura/` no existe o no es un git checkout, el comando avisa pero no falla
+- `.aura/` como checkout git (git submodule) del harness, **o** el plugin `aura` instalado
+  vía `claude plugin install` con su marketplace ya registrado (ver `QUICKSTART.md` Opción C)
+- Si ninguno de los dos aplica, el comando avisa pero no falla
 
 ## Flujo Típico
 
@@ -39,7 +44,8 @@
 5. Skill ejecuta apply-update.sh
 6. Hooks y CLAUDE.md se actualizan (sobreescritura directa, sin confirmación)
 7. Resumen de cambios se imprime
-8. Repo sigue funcionando con el harness actualizado
+8. Repo sigue funcionando con el harness actualizado (canal plugin: reiniciar la sesión de
+   Claude Code para que el contenido nuevo tome efecto)
 ```
 
 ## Notas

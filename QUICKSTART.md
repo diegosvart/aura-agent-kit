@@ -54,6 +54,32 @@ mkdir -p .claude/hooks
 cp .aura/.claude/hooks/*.ps1 .claude/hooks/
 ```
 
+### Opción C — Solo plugin, sin submodule
+
+Sin vendorizar `.aura/` en el repo. El harness se instala y se actualiza 100% vía el
+mecanismo de plugins de Claude Code (ver ADR-009).
+
+```bash
+# 1. Registrar el marketplace apuntando al repo real en GitHub — NO una ruta local
+#    (una ruta local, ./.aura o ".", asume que ya existe un submodule vendorizado; acá no)
+claude plugin marketplace add diegosvart/aura-agent-kit
+
+# 2. Instalar el plugin
+claude plugin install aura@aura-agent-kit --scope project
+
+# 3. Los hooks no llegan solos por esta vía -- copiarlos una vez desde el installPath
+#    real que reporta Claude Code (no asumir la ruta, puede variar por versión/SO):
+INSTALL_PATH=$(claude plugin list --json | python3 -c \
+  "import json,sys; d=json.load(sys.stdin); print(next(p['installPath'] for p in d if p['id']=='aura@aura-agent-kit'))")
+mkdir -p .claude/hooks
+cp "$INSTALL_PATH"/.claude/hooks/*.ps1 .claude/hooks/
+```
+
+Continuar con el **Paso 3** (registrar hooks en `settings.json`, igual que las otras
+opciones) — **saltear el Paso 4** (el plugin ya quedó instalado acá). Para actualizar más
+adelante, `/harness-update` detecta este canal solo (no hace falta repetir estos pasos a
+mano).
+
 ---
 
 ## Paso 3 — Registrar hooks en `settings.json`
@@ -85,18 +111,21 @@ Agregar al `.claude/settings.json` de tu proyecto (mergear si ya existe):
 
 ## Paso 4 — Registrar el plugin (skills y comandos invocables)
 
+> Solo si instalaste con Opción A o B (submodule). Si usaste Opción C, este paso ya quedó
+> hecho — seguir directo al Paso 5.
+
 Para que las skills (`skills/*/SKILL.md`) y comandos (`commands/*.md`) queden invocables como
 `aura:<nombre>` / `/aura:<nombre>` vía el Skill tool nativo (ver ADR-008):
 
 ```bash
 # Desde la raíz de tu proyecto (donde vive .aura/)
 claude plugin marketplace add ./.aura
-claude plugin install aura@aura-local --scope project
+claude plugin install aura@aura-agent-kit --scope project
 ```
 
 Paso único por máquina — el registro del marketplace es estado de usuario
 (`~/.claude/plugins/`), no se versiona. Si `skills/*.md` cambia después de instalar, correr
-`claude plugin update aura@aura-local`.
+`claude plugin update aura@aura-agent-kit`.
 
 ---
 
@@ -144,6 +173,7 @@ Si no aparece → verificar Paso 3.
 | `/plan-work` | Crear issues desde una descripción |
 | `/brainstorm` | Diseñar antes de codear |
 | `/finish-branch` | Preparar rama para PR |
+| `/harness-update` | Actualizar el harness a la última versión (detecta canal solo) |
 
 ---
 
@@ -155,16 +185,24 @@ Si no aparece → verificar Paso 3.
 | `gh` no autenticado | `gh auth login` |
 | Agente no sigue protocolos | Verificar que `CLAUDE.md` contiene el bloque `<!-- aura:begin -->` |
 | Conflicto con CLAUDE.md existente | El script usa append-only — revisar marcadores manualmente |
-| Submodule desactualizado | `git submodule update --remote .aura` |
+| Submodule desactualizado | `git submodule update --remote .aura`, o simplemente `/harness-update` |
+| Harness desactualizado (cualquier canal) | `/harness-update` — detecta submodule o plugin solo, ver ADR-009 |
 
 ---
 
 ## Desinstalar
 
+**Opción A/B (submodule):**
 ```bash
 git submodule deinit -f .aura
 git rm -f .aura
 rm -rf .git/modules/.aura
 # Eliminar bloque <!-- aura:begin --> ... <!-- aura:end --> de CLAUDE.md
+rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1
+```
+
+**Opción C (solo plugin):**
+```bash
+claude plugin uninstall aura@aura-agent-kit
 rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1
 ```

@@ -2,5 +2,5 @@
   "name": "aura",
   "displayName": "Aura Agent Kit",
   "description": "Harness de trabajo para agentes IA sobre Claude Code: memoria persistente, protocolos de sesion, ciclo de vida de objetivos y automatizacion del flujo git/GitHub.",
-  "version": "2.4.1"
+  "version": "2.6.0"
 }

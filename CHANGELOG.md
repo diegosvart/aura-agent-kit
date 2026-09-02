@@ -7,12 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-09-02
+
+### Added
+- `agents/browser-testing.md` + `skills/e2e-testing/SKILL.md`: capability nueva de testing
+  E2E/headless vía CLI de `vercel-labs/agent-browser` (nunca su modo `mcp`, Pilar P1),
+  complementaria a `agents/browser-control.md` (navegador real del usuario). Dogfooding real
+  ejecutado en la misma sesión (Issue #168, PR #177)
+- `skills/repo-integrity/scripts/check-orphaned-worktrees.sh`: detecta worktrees de sesiones
+  cerradas sin limpiar (lock con PID muerto, o rama ya mergeada/gone), wireado en
+  `session_start.md` Paso 3 (PR #176)
+- `.aura/rules/subagent-dispatch.md`: regla evaluable de dos condiciones para decidir cuándo
+  el agente principal debe delegar a un subagente (`Agent` tool) vs. ejecutar inline, más
+  métrica de auditoría `delegation_rate` instrumentada en
+  `skills/observability/scripts/process-session.sh` y expuesta en `session_start.md` Paso 5.5.
+  Deriva de reconciliar un plan externo de estabilización del harness contra evidencia
+  empírica real (Issue #179, PR #180)
+- `.claude-plugin/plugin.json` + `marketplace.json`: registra `aura-agent-kit` como plugin
+  nativo de Claude Code (marketplace local `aura-local`) — habilita el Skill tool / slash
+  commands nativos para las 15 skills y 13 comandos del harness, que antes no eran
+  invocables por esa vía. Se agrega frontmatter YAML faltante a 8 skills (ADR-008, Issue #170,
+  PR #171)
+
 ### Fixed
-- Ninguna de las 15 skills (`skills/*/SKILL.md`) ni los 13 comandos (`commands/*.md`) del
-  harness eran invocables vía el Skill tool / slash commands nativos de Claude Code. Se
-  registra el repo como plugin (`aura`) vía `.claude-plugin/plugin.json` +
-  `marketplace.json`, y se agrega el frontmatter YAML faltante a 8 skills. Ver ADR-008,
-  Issue #170.
+- `worktree.baseRef:"fresh"` de Claude Code creaba worktrees/ramas nuevas desde el default
+  branch de GitHub, no desde `develop` — causa raíz confirmada del incidente de PR #159
+  (mergeado directo contra `main`). Corregido: default branch cambiado a `develop`,
+  `.worktreeinclude` nuevo (copia `AGENTS.local.md`/`.env*`/credenciales a cada worktree),
+  y `check-base-branch.sh` no corría en el Hook Fast-Path — ahora tiene excepción explícita
+  (PR #166)
+- `enabledPlugins` vacío en `.claude/settings.json` impedía que el plugin `aura`, ya
+  registrado, cargara realmente — causa contribuyente (no raíz) de que las skills siguieran
+  sin invocarse tras PR #171 (PR #173)
+- Auto-aviso de actualización (`session_start.md` Paso 6) quedaba completamente mudo cuando
+  `.aura/` no es un submódulo git (modelo de distribución vía plugin) — indistinguible de "el
+  chequeo nunca corrió". Se distingue ahora explícitamente "no aplica" de un error real; el
+  mecanismo de chequeo de versión para consumidores vía plugin queda pendiente en Issue #181
+  (PR #182)
+
+### Docs
+- Causa raíz real confirmada de `Skill(aura:auto-research)` fallando con "Unknown skill": un
+  marketplace con `source: Directory` no registra las skills del plugin para el Skill tool
+  nativo — `source: GitHub` sí. Bitácora retroactiva de la investigación completa y cierre del
+  plan asociado (PRs #167, #174, #175, #178)
 
 ## [2.4.1] - 2026-08-29
 

@@ -4,6 +4,41 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-02 — PR #188 — feat(harness-update): unificar aplicación de actualización — canal plugin sin .aura/
+
+**Plan:** `docs/aura/specs/2026-09-02-harness-update-plugin-apply-design.md` (P4, gitignored),
+`docs/aura/adr/ADR-009-canal-unificado-actualizacion-harness.md`
+**Qué se agregó:** Issue #187. `apply-update.sh` (invocado por `/harness-update`) solo sabía
+aplicar el canal submodule — fallaba explícito para consumidores vía plugin/marketplace (sin
+`.aura/`), pese a que PR #186 ya agregaba la detección para ese canal. Ahora detecta el canal
+solo y aplica en ambos: submodule = `git checkout` de tag (sin cambios); plugin = `claude
+plugin marketplace update` + `claude plugin update <id>` (avisa que Claude Code requiere
+reiniciar la sesión). Los 4 pasos de sync (hooks, `CLAUDE.md`, permisos, registro de
+`git-guard.ps1`/`sensitive-data-guard.ps1`) generalizados detrás de `SOURCE_PATH`. Gap de
+fondo corregido: `QUICKSTART.md`/`README.md` ganan una Opción C real de instalación "solo
+plugin, sin submodule" (el canal plugin era antes inalcanzable por un consumidor real — sin
+`.aura/`, nunca habría `session-start.ps1` corriendo). Verificado con 2 simulaciones aisladas
+(submodule con git real tagueado, plugin con `claude` CLI stubeado).
+**Pendiente para próxima sesión:** renombrar el marketplace `aura-local` → `aura-agent-kit`
+en `.claude-plugin/marketplace.json` + `.claude/settings.json` (`enabledPlugins`) — nombre
+más claro para consumidores reales vía GitHub (ver discusión en la sesión que mergeó esto).
+**Archivos clave:** skills/harness-update/scripts/apply-update.sh, skills/harness-update/SKILL.md,
+commands/harness-update.md, README.md, QUICKSTART.md, docs/aura/adr/ADR-009-*.md
+
+## 2026-09-02 — PR #186 — feat(harness-update): chequeo de versión para consumidores vía plugin/marketplace
+
+**Plan:** discutido y aprobado inline en sesión (sin doc de plan separado)
+**Qué se agregó:** Issue #181. `session-start.ps1` ahora detecta actualizaciones también para
+consumidores instalados vía `claude plugin install` (sin `.aura/` submódulo), comparando la
+versión instalada (`claude plugin list --json`) contra la versión cacheada por el marketplace
+configurado (`claude plugin marketplace list --json` → `installLocation/.claude-plugin/plugin.json`).
+Mutuamente excluyente con el canal legacy por construcción. `protocols/session_start.md`
+Paso 6 bifurca el aviso por `harness_update_channel`. Hallazgo colateral corregido:
+`.claude-plugin/plugin.json` estaba congelado en `2.4.1` pese al tag `v2.5.0` ya publicado —
+`cut-release.sh changelog-pr` ahora bumpea ese campo en cada release.
+**Archivos clave:** .claude/hooks/session-start.ps1, protocols/session_start.md,
+skills/agentic-dev-loop/scripts/cut-release.sh, .claude-plugin/plugin.json
+
 ## 2026-09-02 — PR #177 — feat(harness): capability agent-browser — testing E2E headless
 
 **Plan:** `docs/aura/specs/2026-09-01-agent-browser-integration-design.md` (gitignored,

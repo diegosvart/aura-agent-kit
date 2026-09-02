@@ -72,7 +72,7 @@ _(sin iterar)_
 ---
 
 ## [007] Protocolo de cierre por límite de contexto
-**Estado:** refined
+**Estado:** done
 **Capturado:** 2026-05-10
 **Prioridad:** Hacer — impacto alto, esfuerzo medio  
 **Contexto:** A 71% de contexto (141k/200k) con 14.5k libres el autocompact comprime y puede perder nuance. Necesitamos un mecanismo que detecte cuando el contexto supera ~65% y dispare automáticamente el protocolo de cierre de sesión (guardar Engram + current-session.json + avisar al usuario).
@@ -289,3 +289,15 @@ raw, mecanismo distinto — comprime en vez de descartar).
 
 ### Iteraciones
 _(sin iterar)_
+
+---
+
+## [020] Integración de /goal para ejecución autónoma de objetivos multi-issue
+**Estado:** refined  
+**Capturado:** 2026-05-14  
+**Prioridad:** Planificar — impacto alto, esfuerzo alto  
+**Contexto:** Claude Code tiene /goal: define una condición de completitud y Claude trabaja autónomamente entre turnos hasta cumplirla (evaluador Haiku post-turn). El objetivo es integrar esto con el harness para que un conjunto de issues ya planificados (vía /plan-work) se ejecuten autónomamente, y al finalizar el humano valide contra los tests y documentación generados que el objetivo fue alcanzado. Ref: https://code.claude.com/docs/en/goal
+
+### Iteraciones
+- [2026-05-14] Flujo diseñado en 3 fases: (1) Definición — agent verifica spec + issues ready, construye condición evaluador, presenta plan con opciones [go] / [iterar] / [cancelar]; (2) Ejecución autónoma — auto mode ON, loop por issue (branch → TDD → PR → merge → close), evaluador Haiku post-turn; (3) Validation Gate — auto mode OFF, informe con PRs + tests + docs, humano revisa y aprueba merge manualmente. NO reemplaza flujo semi-auto actual — es modo opt-in activado explícitamente con /goal.
+- [2026-09-02] Renumerada de [014] a [020] al resolver conflicto de merge con ideas [015]-[019] llegadas de `origin/develop` (mismo número, contenido distinto — la sesión que las creó nunca sincronizó local). Nota: Issue #30 ("crear spec formal del skill /goal", derivado de esta idea) fue creado y luego cerrado con label `blocked` sin PR asociada — la idea sigue vigente en estado `refined`, pendiente de desbloqueo antes de re-intentar el issue.

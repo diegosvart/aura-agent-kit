@@ -25,11 +25,17 @@ Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`
   la excepción anterior). Sin esta excepción, el chequeo que debía detectar el próximo caso
   como PR #159 no correría nunca en el camino común (fast-path activo) — gap real encontrado
   en code review de PR #166.
+- **Excepción:** correr igual `bash skills/repo-integrity/scripts/check-orphaned-worktrees.sh`
+  (ver Paso 3 → "Worktrees Huérfanos") — chequeo 100% local (sin `gh`, sin red), no se salta
+  ni con hook output presente. Sin esta excepción, worktrees huérfanos de sesiones ya
+  cerradas se acumulan indefinidamente sin que nada del harness lo note (caso real: sesión
+  2026-09-02, 3 worktrees acumulados descubiertos solo porque el usuario notó que no
+  desaparecían de la pantalla de sesiones de Claude Code).
 - **Ejecutar directamente paso 5** (mem_context) y luego paso 6 (resumen)
 - **Repo health** (branch protection de main/develop) → omitir; solo ejecutar bajo demanda o
   una vez por semana
-- Esto reduce las tool calls de ~10 a **4** (visibilidad + PRs abiertas + PRs base-branch +
-  mem_context)
+- Esto reduce las tool calls de ~10 a **5** (visibilidad + PRs abiertas + PRs base-branch +
+  worktrees huérfanos + mem_context)
 - **Nota:** El hook también inyecta `harness_update_available` (boolean) y `harness_latest_version` (string); ver Paso 6 para cómo mostrar la línea de aviso
 
 Si el hook output NO está presente → ejecutar el protocolo completo desde el Paso 2.
@@ -202,6 +208,28 @@ directo contra `main`, saltándose `develop` por completo, sin que ningún chequ
 detectara antes del merge — causa raíz probable: `worktree.baseRef:"fresh"` de Claude Code
 crea worktrees/ramas nuevas desde el default branch del repo, no desde `develop`. Ver
 `docs/aura/specs/2026-08-29-claude-code-worktree-conflict-and-agent-browser.md`.
+
+### Worktrees Huérfanos (local, no requiere `gh`)
+
+Chequeo local, no requiere red — corre siempre, sin dependencias de `gh`:
+
+```bash
+bash skills/repo-integrity/scripts/check-orphaned-worktrees.sh
+```
+
+Si imprime una o más líneas `ORPHANED-WORKTREE: ...` → incluirlas tal cual en la sección
+"Advertencias" del Resumen Ejecutivo (Paso 6), con la acción sugerida ya embebida en cada
+línea. Si no imprime nada, no mostrar ninguna línea (advertencia condicional, mismo patrón
+que "Drift de Release" e "Integridad del Manifest").
+
+Detecta dos casos, sin borrar nada — solo informa: (1) un worktree con lock cuyo PID dueño
+ya no existe (la sesión terminó sin pasar por el flujo normal de `ExitWorktree`); (2) un
+worktree sin lock cuya rama ya está mergeada a `develop` o con remoto `gone`. Nunca marca
+un worktree cuyo PID de lock sigue vivo — eso es una sesión activa real, no huérfana. Caso
+real que motivó este chequeo: sesión 2026-09-02, 3 worktrees acumulados de sesiones ya
+cerradas (ninguno limpiado automáticamente pese a que la herramienta documenta que "el
+worktree puede eliminarse junto con la sesión") — descubiertos solo porque el usuario notó
+que no desaparecían de la pantalla de sesiones de Claude Code.
 
 #### Gate de datos sensibles (si `visibility == public`)
 

@@ -4,6 +4,73 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-02 — PR #177 — feat(harness): capability agent-browser — testing E2E headless
+
+**Plan:** `docs/aura/specs/2026-09-01-agent-browser-integration-design.md` (gitignored,
+spec-validation PASS, challenger GO)
+**Qué se agregó:** Issue #168 (scope "core" del split acordado con el challenger): nueva
+capability `agents/browser-testing.md` + `skills/e2e-testing/SKILL.md` para testing
+E2E/headless de apps web sin supervisión humana, vía CLI de `vercel-labs/agent-browser`
+(nunca su modo `mcp`, Pilar P1) — complementaria a `agents/browser-control.md` (navegador
+real del usuario). Incluye permisos nuevos en `.claude/settings.json` y routing en
+`protocols/router.md`/`AGENTS.md`. Dogfooding real ejecutado en la misma sesión:
+`agent-browser` instalado con aprobación explícita del usuario, flujo completo
+open→snapshot→get text→click por ref→screenshot→close contra una app de prueba.
+Verificado por `doc-guardian`: ÍNTEGRO. Issue #169 (ADR-008 + integración a
+`/run-dev-loop`) queda pendiente, depende de este merge.
+**Archivos clave:** agents/browser-testing.md, skills/e2e-testing/SKILL.md
+
+## 2026-09-02 — PR #176 — feat(repo-integrity): detectar worktrees huérfanos de sesiones cerradas
+
+**Qué se agregó:** El usuario notó que worktrees de sesiones ya cerradas no desaparecían
+de la pantalla de sesiones de Claude Code — 3 se habían acumulado en
+`.claude/worktrees/` (ramas ya mergeadas, o lock con PID muerto). Nuevo
+`skills/repo-integrity/scripts/check-orphaned-worktrees.sh` (solo informa, nunca borra),
+wireado en `session_start.md` Paso 3 y como excepción del Hook Fast-Path. Limpieza manual
+de los 3 huérfanos realizada en la misma sesión (no versionada, era estado local). Gap de
+fondo (el worktree no se elimina automáticamente al cerrar sesión pese a estar
+documentado) reportado como feedback de producto a Anthropic, no resoluble solo desde el
+harness.
+**Archivos clave:** skills/repo-integrity/scripts/check-orphaned-worktrees.sh, protocols/session_start.md
+
+## 2026-09-02 — PR #175 — docs(plans): cerrar plan skill-aura marketplace GitHub — fix confirmado
+
+**Qué se agregó:** Tercera y última iteración de la investigación de
+`Skill(aura:auto-research)` fallando con "Unknown skill". Causa raíz real confirmada: un
+marketplace `aura-local` con `source: Directory` (checkout local, cualquiera sea el path)
+no hace que Claude Code registre las skills del plugin para el Skill tool nativo;
+`source: GitHub` sí. Las hipótesis previas (`enabledPlugins` vacío, frontmatter, worktree
+efímero) eran causas contribuyentes ya corregidas, no la raíz. Cierra
+`.agent/memory/plans/2026-09-01-skill-aura-github-marketplace-worktree-cleanup.md` a
+`status: done`. Detalle en Engram (`topic_key: bug/skill-aura-not-registered`).
+**Archivos clave:** .agent/memory/plans/2026-09-01-skill-aura-github-marketplace-worktree-cleanup.md
+
+## 2026-09-02 — PR #174 — docs(plans): registrar plan aprobado — marketplace GitHub + limpieza worktree
+
+**Qué se agregó:** Segunda iteración de la misma investigación (ver PR #175 arriba):
+descarta en vivo la hipótesis del worktree efímero (con el marketplace apuntando al
+checkout principal, la skill seguía sin registrarse) y deja aplicado el experimento
+`source: GitHub` para la próxima sesión. También documenta el cierre de un worktree
+colgado (`worktree-conflict-brainstorm`) verificado como residuo post-merge sin trabajo
+perdido.
+**Archivos clave:** .agent/memory/plans/2026-09-01-skill-aura-github-marketplace-worktree-cleanup.md
+
+## 2026-09-01 — PR #173 — fix(harness): habilitar aura@aura-local en enabledPlugins
+
+**Qué se agregó:** Primera hipótesis (luego descartada como causa raíz, ver PR #175) para
+`Skill(aura:auto-research)` fallando: `enabledPlugins` vacío en `.claude/settings.json`.
+Corregido a `{"aura@aura-local": true}` — causa contribuyente real, aunque no suficiente
+por sí sola.
+**Archivos clave:** .claude/settings.json
+
+## 2026-09-01 — PR #171 — fix(harness): registrar aura-agent-kit como plugin nativo de Claude Code
+
+**Qué se agregó:** Issue #170: `.claude-plugin/plugin.json` + `marketplace.json` nuevos
+para que `aura-agent-kit` se registre como plugin nativo de Claude Code (marketplace local
+`aura-local`), primer paso de la saga de investigación de `Skill(aura:auto-research)`
+fallando con "Unknown skill" (resuelta recién en PR #175).
+**Archivos clave:** .claude-plugin/plugin.json, .claude-plugin/marketplace.json
+
 ## 2026-08-30 — PR #166 — fix(harness): worktree.baseRef no apuntaba a develop + .env ausente en worktrees
 
 **Plan:** `docs/aura/specs/2026-08-29-claude-code-worktree-conflict-and-agent-browser.md`

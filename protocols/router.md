@@ -30,6 +30,7 @@
 | **Lanzar agentes ad-hoc fuera del loop** | `agents/complexity-tiering.md` | Orquestación manual de un bloque de 3+ tareas repetitivas delegadas a agentes, sin pasar por `agentic-dev-loop` |
 | **Manejo de datos sensibles / repo público** | `.claude/rules/sensitive-data-safety.md` | Repo público con datos de cliente, antes de commit/push, o session_start detecta `visibility=public` |
 | **Ver / controlar el navegador** | `agents/browser-control.md` | No hay CLI/MCP que alcance la tarea, o el usuario pide que se le muestre/guíe algo en pantalla |
+| **Testing E2E/headless de una app web** | `agents/browser-testing.md` (+ `skills/e2e-testing/SKILL.md` si es multi-paso) | Validar programáticamente un flujo sin supervisión humana — smoke test post-issue, regresión visual, o dentro de `/run-dev-loop` |
 | **Cierre de sesión** | `protocols/session_end.md` | "Terminamos", "cerramos", fin de trabajo |
 
 ---

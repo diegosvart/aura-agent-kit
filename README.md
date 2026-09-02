@@ -70,6 +70,22 @@ versiona — cada desarrollador lo corre una vez, igual que `gh auth login`. Si 
 de `skills/*.md` cambia después de instalar, correr `claude plugin update aura@aura-local`
 para refrescar la caché.
 
+### Opción C — Solo plugin, sin submodule
+
+Para no vendorizar `.aura/` en el repo consumidor: registrar el marketplace apuntando al
+repositorio real en GitHub (no una ruta local) e instalar el plugin directamente.
+
+```bash
+claude plugin marketplace add diegosvart/aura-agent-kit
+claude plugin install aura@aura-local --scope project
+```
+
+Los hooks (`.claude/hooks/*.ps1`) no se distribuyen automáticamente por esta vía — copiarlos
+una vez desde el `installPath` que reporta `claude plugin list --json` (ver
+[QUICKSTART.md](QUICKSTART.md) Opción C para el paso a paso completo, incluyendo el registro
+en `settings.json`). Sin ese paso, `session-start.ps1` nunca corre y el harness no detecta
+nada — ver ADR-009.
+
 ### Desinstalar / revertir
 
 ```bash
@@ -132,6 +148,7 @@ merge + close issue       Ciclo completo
 | `/auto-research` | Detecta fricción en el harness y propone mejoras |
 | `/doc-check` | Verifica consistencia de documentación |
 | `/stack` | Detecta o cambia el stack tecnológico de sesión |
+| `/harness-update` | Actualiza el harness a la última versión (submodule o plugin, detecta el canal solo) |
 
 ---
 
@@ -181,13 +198,25 @@ aura-agent-kit/
 
 ## Actualizar el harness
 
-```bash
-# Si instalaste como submodule
-git -C .aura pull origin main
+**Recomendado, para cualquier canal de instalación:**
 
-# Volver a copiar hooks si cambiaron
+```
+/harness-update
+```
+
+Detecta solo si instalaste como submodule o como plugin (ver ADR-009) y aplica la
+actualización completa (checkout de tag o `claude plugin update`, resync de hooks,
+`CLAUDE.md` y permisos). Ver `skills/harness-update/SKILL.md` para el detalle.
+
+<details>
+<summary>Manual (solo canal submodule, sin resync de hooks/permisos)</summary>
+
+```bash
+git -C .aura pull origin main
 cp .aura/.claude/hooks/*.ps1 .claude/hooks/
 ```
+
+</details>
 
 ---
 

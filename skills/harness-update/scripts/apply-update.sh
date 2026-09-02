@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Aplica la actualización del harness: checkout de tag, copia de hooks, resync de CLAUDE.md.
+# Aplica la actualización del harness: canal submodule (checkout de tag) o canal plugin
+# (claude plugin update), seguido de los mismos pasos de sincronización en ambos casos
+# (hooks, CLAUDE.md, permisos, registro de hooks críticos) — ver ADR-009 y
+# docs/aura/specs/2026-09-02-harness-update-plugin-apply-design.md.
 # Uso: apply-update.sh <version_tag> [aura_path]
 # Exit code: 0 si éxito, 1 si error
 set -uo pipefail
@@ -11,31 +14,113 @@ fi
 
 VERSION_TAG="$1"
 AURA_PATH="${2:-.aura}"
+CACHE_FILE=".agent/memory/harness-update-check.json"
 
 echo "Aplicando actualización del harness: $VERSION_TAG"
 echo ""
 
-# Validar .aura/ — -e (no -d): en un git submodule .aura/.git es un ARCHIVO
-# gitlink ("gitdir: ..."), no un directorio (caso real: crawler-mcp-diagram)
+# Detección de canal — misma señal que session-start.ps1: .aura/.git existe -> submodule;
+# si no, se busca el plugin_id que dejó el hook en el cache (harness_update_plugin_id).
+CHANNEL="submodule"
+SOURCE_PATH="$AURA_PATH"
+PLUGIN_ID=""
+
 if [ ! -e "$AURA_PATH/.git" ]; then
-  echo "ERROR: $AURA_PATH no es un checkout git" >&2
-  exit 1
+  if [ -f "$CACHE_FILE" ]; then
+    PLUGIN_ID=$(python3 -c "
+import json, sys
+try:
+    with open(sys.argv[1], encoding='utf-8') as f:
+        data = json.load(f)
+    print(data.get('harness_update_plugin_id') or '')
+except Exception:
+    print('')
+" "$CACHE_FILE" 2>/dev/null || echo "")
+  fi
+
+  if [ -n "$PLUGIN_ID" ]; then
+    CHANNEL="plugin"
+  else
+    echo "ERROR: $AURA_PATH no es un checkout git, y no se detectó instalación vía plugin" >&2
+    echo "(harness_update_plugin_id ausente en $CACHE_FILE)." >&2
+    echo "Corré 'claude plugin marketplace list' para diagnosticar, o verificá que $AURA_PATH exista como submodulo." >&2
+    exit 1
+  fi
 fi
 
-# Fetch tags
-echo "[1/6] Descargando tags de .aura/..."
-git -C "$AURA_PATH" fetch --tags origin >/dev/null 2>&1 || {
-  echo "WARN: No se pudo descargar tags (¿sin red?), continuando con tags locales..." >&2
-}
+echo "Canal detectado: $CHANNEL"
+echo ""
 
-# Checkout del tag
-echo "[2/6] Checkout de $VERSION_TAG en .aura/..."
-checkout_err=$(git -C "$AURA_PATH" checkout "$VERSION_TAG" 2>&1 >/dev/null)
-if [ $? -ne 0 ]; then
-  echo "ERROR: No se puede hacer checkout a $VERSION_TAG" >&2
-  echo "$checkout_err" >&2
-  exit 1
+if [ "$CHANNEL" = "submodule" ]; then
+  # Fetch tags
+  echo "[1/6] Descargando tags de $AURA_PATH/..."
+  git -C "$AURA_PATH" fetch --tags origin >/dev/null 2>&1 || {
+    echo "WARN: No se pudo descargar tags (¿sin red?), continuando con tags locales..." >&2
+  }
+
+  # Checkout del tag
+  echo "[2/6] Checkout de $VERSION_TAG en $AURA_PATH/..."
+  checkout_err=$(git -C "$AURA_PATH" checkout "$VERSION_TAG" 2>&1 >/dev/null)
+  if [ $? -ne 0 ]; then
+    echo "ERROR: No se puede hacer checkout a $VERSION_TAG" >&2
+    echo "$checkout_err" >&2
+    exit 1
+  fi
+else
+  # Canal plugin: no hay tag que checkoutear -- "actualizar" es refrescar el cache del
+  # marketplace y pedirle a Claude Code que instale la última versión disponible del plugin.
+  MARKETPLACE_NAME="${PLUGIN_ID#*@}"
+
+  echo "[1/6] Refrescando marketplace '$MARKETPLACE_NAME'..."
+  marketplace_err=$(claude plugin marketplace update "$MARKETPLACE_NAME" 2>&1)
+  if [ $? -ne 0 ]; then
+    echo "WARN: No se pudo refrescar el marketplace '$MARKETPLACE_NAME' (¿sin red?), continuando con el cache existente..." >&2
+    echo "$marketplace_err" >&2
+  fi
+
+  # El scope instalado real puede ser distinto del default ("user") de `claude plugin
+  # update` -- se resuelve antes de aplicar, priorizando "project" si hay ambos (mismo
+  # criterio que session-start.ps1).
+  installed_before=$(claude plugin list --json 2>/dev/null || echo "[]")
+  PLUGIN_SCOPE=$(python3 -c "
+import json, sys
+try:
+    data = json.loads(sys.argv[1]) if sys.argv[1] else []
+except Exception:
+    data = []
+matches = [e for e in data if e.get('id') == sys.argv[2]]
+matches.sort(key=lambda e: e.get('scope') != 'project')
+print(matches[0]['scope'] if matches else 'user')
+" "$installed_before" "$PLUGIN_ID" 2>/dev/null || echo "user")
+
+  echo "[2/6] Actualizando plugin $PLUGIN_ID (scope: $PLUGIN_SCOPE)..."
+  update_err=$(claude plugin update "$PLUGIN_ID" --scope "$PLUGIN_SCOPE" -y 2>&1)
+  if [ $? -ne 0 ]; then
+    echo "ERROR: 'claude plugin update $PLUGIN_ID' falló" >&2
+    echo "$update_err" >&2
+    exit 1
+  fi
+
+  installed_after=$(claude plugin list --json 2>/dev/null || echo "[]")
+  SOURCE_PATH=$(python3 -c "
+import json, sys
+try:
+    data = json.loads(sys.argv[1]) if sys.argv[1] else []
+except Exception:
+    data = []
+matches = [e for e in data if e.get('id') == sys.argv[2] and e.get('scope') == sys.argv[3]]
+print(matches[0].get('installPath', '') if matches else '')
+" "$installed_after" "$PLUGIN_ID" "$PLUGIN_SCOPE" 2>/dev/null || echo "")
+
+  if [ -z "$SOURCE_PATH" ] || [ ! -d "$SOURCE_PATH" ]; then
+    echo "ERROR: No se pudo resolver installPath tras actualizar $PLUGIN_ID" >&2
+    exit 1
+  fi
 fi
+
+# A partir de acá, ambos canales comparten los mismos pasos de sincronización — $SOURCE_PATH
+# apunta a .aura/ (submodule) o al installPath del plugin recién actualizado (plugin), que
+# contiene el mismo árbol de archivos del repo en ambos casos.
 
 # Crear .claude/hooks y .githooks si no existen
 mkdir -p .claude/hooks .githooks
@@ -43,8 +128,8 @@ mkdir -p .claude/hooks .githooks
 # Copiar hooks (sobreescritura directa, sin confirmación per D5)
 echo "[3/6] Sincronizando hooks (.claude/hooks/*.ps1 + .githooks/pre-push)..."
 hooks_changed=0
-if [ -d "$AURA_PATH/.claude/hooks" ]; then
-  for hook_file in "$AURA_PATH"/.claude/hooks/*.ps1; do
+if [ -d "$SOURCE_PATH/.claude/hooks" ]; then
+  for hook_file in "$SOURCE_PATH"/.claude/hooks/*.ps1; do
     if [ -f "$hook_file" ]; then
       hook_name=$(basename "$hook_file")
       target=".claude/hooks/$hook_name"
@@ -59,9 +144,9 @@ fi
 
 # Sincronizar el hook nativo de Git (.githooks/pre-push) — segunda capa de enforcement
 # independiente de Claude Code (ver session-start.ps1, que setea core.hooksPath).
-if [ -f "$AURA_PATH/.githooks/pre-push" ]; then
-  if ! diff -q "$AURA_PATH/.githooks/pre-push" ".githooks/pre-push" >/dev/null 2>&1; then
-    cp "$AURA_PATH/.githooks/pre-push" ".githooks/pre-push"
+if [ -f "$SOURCE_PATH/.githooks/pre-push" ]; then
+  if ! diff -q "$SOURCE_PATH/.githooks/pre-push" ".githooks/pre-push" >/dev/null 2>&1; then
+    cp "$SOURCE_PATH/.githooks/pre-push" ".githooks/pre-push"
     chmod +x ".githooks/pre-push"
     echo "  - Actualizado: .githooks/pre-push"
     ((++hooks_changed))
@@ -75,12 +160,12 @@ fi
 # Resincronizar bloque aura:begin/aura:end en CLAUDE.md (si existe)
 echo "[4/6] Resincronizando CLAUDE.md..."
 if [ -f "CLAUDE.md" ] && grep -q "aura:begin" CLAUDE.md 2>/dev/null; then
-  if [ -f "$AURA_PATH/CLAUDE.md" ]; then
-    # Extraer bloque aura:begin/aura:end de .aura/CLAUDE.md
-    aura_block=$(sed -n '/aura:begin/,/aura:end/p' "$AURA_PATH/CLAUDE.md" 2>/dev/null || echo "")
+  if [ -f "$SOURCE_PATH/CLAUDE.md" ]; then
+    # Extraer bloque aura:begin/aura:end de $SOURCE_PATH/CLAUDE.md
+    aura_block=$(sed -n '/aura:begin/,/aura:end/p' "$SOURCE_PATH/CLAUDE.md" 2>/dev/null || echo "")
     if [ -n "$aura_block" ]; then
       # Usar python para hacer el reemplazo preservando la estructura
-      python3 - "$AURA_PATH/CLAUDE.md" << 'PYTHON_RESYNC'
+      python3 - "$SOURCE_PATH/CLAUDE.md" << 'PYTHON_RESYNC'
 import re
 import sys
 
@@ -109,10 +194,10 @@ PYTHON_RESYNC
         exit 1
       fi
     else
-      echo "  ($AURA_PATH/CLAUDE.md sin bloque aura:begin/aura:end — resync omitido)"
+      echo "  ($SOURCE_PATH/CLAUDE.md sin bloque aura:begin/aura:end — resync omitido)"
     fi
   else
-    echo "  ($AURA_PATH/CLAUDE.md no existe — resync omitido)"
+    echo "  ($SOURCE_PATH/CLAUDE.md no existe — resync omitido)"
   fi
 else
   echo "  (CLAUDE.md local sin bloque aura:begin/aura:end — resync omitido)"
@@ -267,6 +352,7 @@ sensitive_guard_added="$HOOK_SYNC_RESULT"
 # Leer CHANGELOG para reportar lo que se aplicó
 echo ""
 echo "=== RESUMEN DE CAMBIOS ==="
+echo "Canal: $CHANNEL"
 echo "Versión actualizada a: $VERSION_TAG"
 if [ $hooks_changed -gt 0 ]; then
   echo "Hooks actualizados: $hooks_changed archivo(s)"
@@ -289,13 +375,20 @@ else
   echo "sensitive-data-guard.ps1 en PreToolUse: ya estaba registrado"
 fi
 
+if [ "$CHANNEL" = "plugin" ]; then
+  echo ""
+  echo "⚠ Canal plugin: Claude Code requiere reiniciar la sesión para que el contenido"
+  echo "  actualizado del plugin ($PLUGIN_ID) tome efecto — limitación conocida del CLI"
+  echo "  ('claude plugin update --help': 'restart required to apply')."
+fi
+
 # Intentar extraer entradas del CHANGELOG
 echo ""
-if [ -f "$AURA_PATH/CHANGELOG.md" ]; then
+if [ -f "$SOURCE_PATH/CHANGELOG.md" ]; then
   echo "=== CHANGELOG ==="
   # Extraer solo las entradas del tag que se acaba de aplicar
   # Formato esperado: ## [tag] - YYYY-MM-DD
-  python3 - "$VERSION_TAG" "$AURA_PATH/CHANGELOG.md" << 'PYTHON_CHANGELOG'
+  python3 - "$VERSION_TAG" "$SOURCE_PATH/CHANGELOG.md" << 'PYTHON_CHANGELOG'
 import re
 import sys
 

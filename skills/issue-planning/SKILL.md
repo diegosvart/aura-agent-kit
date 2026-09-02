@@ -1,3 +1,8 @@
+---
+name: issue-planning
+description: Refina el requerimiento del usuario y lo convierte en uno o varios issues de GitHub listos para trabajar. Usar cuando el usuario describe trabajo nuevo o quiere planificar.
+---
+
 # Skill — Issue Planning
 
 > **Propósito:** Refinar el requerimiento del usuario y convertirlo en uno o varios issues de GitHub listos para trabajar.

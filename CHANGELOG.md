@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Ninguna de las 15 skills (`skills/*/SKILL.md`) ni los 13 comandos (`commands/*.md`) del
+  harness eran invocables vía el Skill tool / slash commands nativos de Claude Code. Se
+  registra el repo como plugin (`aura`) vía `.claude-plugin/plugin.json` +
+  `marketplace.json`, y se agrega el frontmatter YAML faltante a 8 skills. Ver ADR-008,
+  Issue #170.
+
 ## [2.4.1] - 2026-08-29
 
 ### Fixed

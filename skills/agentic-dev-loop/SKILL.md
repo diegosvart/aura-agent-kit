@@ -1,3 +1,8 @@
+---
+name: agentic-dev-loop
+description: Ejecuta issues con label ready usando agentes, separando desarrollo (no supervisado) de verificación (nunca mergea sola). Usar al correr /run-dev-loop.
+---
+
 # Skill — Agentic Dev Loop (desarrollo + verificación de issues)
 
 > **Propósito:** Ejecutar issues `ready` con agentes, separando desarrollo (no supervisado) de

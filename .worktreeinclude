@@ -1,0 +1,22 @@
+# Copia archivos gitignoreados necesarios para operar a cada worktree nuevo que Claude Code
+# crea (sesiones aisladas, subagentes con isolation:worktree). Sin esto, un worktree fresco
+# no trae estos archivos -- solo trae lo trackeado por git -- y el harness/proyecto queda sin
+# configuracion local necesaria. Ver docs/aura/specs/2026-08-29-claude-code-worktree-conflict-and-agent-browser.md.
+#
+# Sintaxis .gitignore. Solo copia archivos que ademas esten gitignorados (nunca duplica
+# archivos trackeados). Cada entrada corresponde a una categoria de .gitignore de este repo.
+
+# Identidad local del agente (AGENTS.md -> @../AGENTS.local.md)
+AGENTS.local.md
+
+# Variables de entorno / secretos de proyectos consumidores de este harness
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+secrets/
+
+# Denylist local de sensitive-data-guard.ps1 (terminos reales del proyecto)
+.claude/sensitive-terms.local.txt

@@ -1,4 +1,61 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "PowerShell(git *)",
+      "Bash(gh:*)",
+      "PowerShell(gh *)",
+      "Read(**)",
+      "Edit(**)",
+      "Bash(python:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(cargo:*)",
+      "Bash(ruff:*)",
+      "Bash(pytest:*)",
+      "Bash(eslint:*)",
+      "Bash(agent-browser:*)",
+      "PowerShell(agent-browser *)",
+      "Bash(where:*)",
+      "Bash(which:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(New-Item *)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Select-String *)",
+      "mcp__plugin_engram_engram__mem_save",
+      "mcp__plugin_engram_engram__mem_save_prompt",
+      "mcp__plugin_engram_engram__mem_search",
+      "mcp__plugin_engram_engram__mem_context",
+      "mcp__plugin_engram_engram__mem_session_summary",
+      "mcp__plugin_engram_engram__mem_session_start",
+      "mcp__plugin_engram_engram__mem_session_end",
+      "mcp__plugin_engram_engram__mem_current_project",
+      "mcp__plugin_engram_engram__mem_get_observation",
+      "mcp__plugin_engram_engram__mem_judge",
+      "mcp__plugin_engram_engram__mem_update",
+      "mcp__plugin_engram_engram__mem_suggest_topic_key",
+      "mcp__plugin_engram_engram__mem_capture_passive",
+      "mcp__plugin_engram_engram__mem_compare",
+      "mcp__plugin_engram_engram__mem_doctor",
+      "WebSearch"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean -f:*)",
+      "PowerShell(Remove-Item -Recurse *)",
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(*.pem)",
+      "Edit(*.key)",
+      "Edit(*.secret)"
+    ]
+  },
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -77,67 +134,7 @@
       }
     ]
   },
-  "permissions": {
-    "allow": [
-      "Bash(git:*)",
-      "PowerShell(git *)",
-
-      "Bash(gh:*)",
-      "PowerShell(gh *)",
-
-      "Read(**)",
-
-      "Edit(**)",
-
-      "Bash(python:*)",
-      "Bash(node:*)",
-      "Bash(npm:*)",
-      "Bash(npx:*)",
-      "Bash(cargo:*)",
-      "Bash(ruff:*)",
-      "Bash(pytest:*)",
-      "Bash(eslint:*)",
-
-      "Bash(where:*)",
-      "Bash(which:*)",
-      "Bash(ls:*)",
-      "Bash(grep:*)",
-      "PowerShell(Get-ChildItem *)",
-      "PowerShell(New-Item *)",
-      "PowerShell(Test-Path *)",
-      "PowerShell(Select-String *)",
-
-      "mcp__plugin_engram_engram__mem_save",
-      "mcp__plugin_engram_engram__mem_save_prompt",
-      "mcp__plugin_engram_engram__mem_search",
-      "mcp__plugin_engram_engram__mem_context",
-      "mcp__plugin_engram_engram__mem_session_summary",
-      "mcp__plugin_engram_engram__mem_session_start",
-      "mcp__plugin_engram_engram__mem_session_end",
-      "mcp__plugin_engram_engram__mem_current_project",
-      "mcp__plugin_engram_engram__mem_get_observation",
-      "mcp__plugin_engram_engram__mem_judge",
-      "mcp__plugin_engram_engram__mem_update",
-      "mcp__plugin_engram_engram__mem_suggest_topic_key",
-      "mcp__plugin_engram_engram__mem_capture_passive",
-      "mcp__plugin_engram_engram__mem_compare",
-      "mcp__plugin_engram_engram__mem_doctor",
-
-      "WebSearch"
-    ],
-    "deny": [
-      "Bash(rm -rf:*)",
-      "Bash(git push --force:*)",
-      "Bash(git push -f:*)",
-      "Bash(git reset --hard:*)",
-      "Bash(git clean -f:*)",
-      "PowerShell(Remove-Item -Recurse *)",
-
-      "Edit(.env)",
-      "Edit(.env.*)",
-      "Edit(*.pem)",
-      "Edit(*.key)",
-      "Edit(*.secret)"
-    ]
+  "enabledPlugins": {
+    "aura@aura-local": true
   }
 }

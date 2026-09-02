@@ -19,10 +19,23 @@ Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`
   cerrarse; no se salta ni con hook output presente (ver Issue #109 — el gap real que
   motivó este paso: una PR abierta quedó invisible en el resumen porque nada en el fast-path
   ni en el hook la consultaba)
+- **Excepción:** correr igual `bash skills/repo-integrity/scripts/check-base-branch.sh` (ver
+  Paso 3 → "PRs contra la Rama Base Incorrecta") — el hook no trae este dato; no se salta ni
+  con hook output presente. Llamada adicional barata (un `gh pr list` propio, no reusa el de
+  la excepción anterior). Sin esta excepción, el chequeo que debía detectar el próximo caso
+  como PR #159 no correría nunca en el camino común (fast-path activo) — gap real encontrado
+  en code review de PR #166.
+- **Excepción:** correr igual `bash skills/repo-integrity/scripts/check-orphaned-worktrees.sh`
+  (ver Paso 3 → "Worktrees Huérfanos") — chequeo 100% local (sin `gh`, sin red), no se salta
+  ni con hook output presente. Sin esta excepción, worktrees huérfanos de sesiones ya
+  cerradas se acumulan indefinidamente sin que nada del harness lo note (caso real: sesión
+  2026-09-02, 3 worktrees acumulados descubiertos solo porque el usuario notó que no
+  desaparecían de la pantalla de sesiones de Claude Code).
 - **Ejecutar directamente paso 5** (mem_context) y luego paso 6 (resumen)
 - **Repo health** (branch protection de main/develop) → omitir; solo ejecutar bajo demanda o
   una vez por semana
-- Esto reduce las tool calls de ~10 a **3** (visibilidad + PRs abiertas + mem_context)
+- Esto reduce las tool calls de ~10 a **5** (visibilidad + PRs abiertas + PRs base-branch +
+  worktrees huérfanos + mem_context)
 - **Nota:** El hook también inyecta `harness_update_available` (boolean) y `harness_latest_version` (string); ver Paso 6 para cómo mostrar la línea de aviso
 
 Si el hook output NO está presente → ejecutar el protocolo completo desde el Paso 2.
@@ -176,6 +189,48 @@ ninguna línea (advertencia condicional, mismo patrón que "Drift de Release" ar
 Ver ADR-007 (`docs/aura/adr/ADR-007-repo-integrity-manifest.md`) para el contrato completo
 y `skills/repo-integrity/manifest.txt` para la lista de referencia.
 
+### PRs contra la Rama Base Incorrecta (si `gh` autenticado)
+
+Ejecutar solo si `gh auth status` pasó en Paso 2:
+
+```bash
+bash skills/repo-integrity/scripts/check-base-branch.sh
+```
+
+Si imprime una o más líneas `BASE-BRANCH: ...` → incluirlas tal cual en la sección
+"Advertencias" del Resumen Ejecutivo (Paso 6). Si no imprime nada, no mostrar ninguna línea
+(advertencia condicional, mismo patrón que "Drift de Release" y "Integridad del Manifest").
+
+Detecta PRs abiertas con rama `feature/*`/`fix/*`/`chore/*`/etc. que apuntan contra `main` en
+vez de `develop` (excluyendo el PR legítimo de `promote` de `cut-release.sh`, que sí tiene
+`base=main`/`head=develop`). Caso real que motivó este chequeo: PR #159 se ramificó y mergeó
+directo contra `main`, saltándose `develop` por completo, sin que ningún chequeo existente lo
+detectara antes del merge — causa raíz probable: `worktree.baseRef:"fresh"` de Claude Code
+crea worktrees/ramas nuevas desde el default branch del repo, no desde `develop`. Ver
+`docs/aura/specs/2026-08-29-claude-code-worktree-conflict-and-agent-browser.md`.
+
+### Worktrees Huérfanos (local, no requiere `gh`)
+
+Chequeo local, no requiere red — corre siempre, sin dependencias de `gh`:
+
+```bash
+bash skills/repo-integrity/scripts/check-orphaned-worktrees.sh
+```
+
+Si imprime una o más líneas `ORPHANED-WORKTREE: ...` → incluirlas tal cual en la sección
+"Advertencias" del Resumen Ejecutivo (Paso 6), con la acción sugerida ya embebida en cada
+línea. Si no imprime nada, no mostrar ninguna línea (advertencia condicional, mismo patrón
+que "Drift de Release" e "Integridad del Manifest").
+
+Detecta dos casos, sin borrar nada — solo informa: (1) un worktree con lock cuyo PID dueño
+ya no existe (la sesión terminó sin pasar por el flujo normal de `ExitWorktree`); (2) un
+worktree sin lock cuya rama ya está mergeada a `develop` o con remoto `gone`. Nunca marca
+un worktree cuyo PID de lock sigue vivo — eso es una sesión activa real, no huérfana. Caso
+real que motivó este chequeo: sesión 2026-09-02, 3 worktrees acumulados de sesiones ya
+cerradas (ninguno limpiado automáticamente pese a que la herramienta documenta que "el
+worktree puede eliminarse junto con la sesión") — descubiertos solo porque el usuario notó
+que no desaparecían de la pantalla de sesiones de Claude Code.
+
 #### Gate de datos sensibles (si `visibility == public`)
 
 Si la visibilidad es **pública** y el proyecto maneja datos de un cliente real
@@ -271,7 +326,19 @@ Si `.agent/memory/observability/sessions.jsonl` existe y tiene al menos una lín
 - Tokens de salida: <output_tokens>
 - Tool uses: LLM <n> · Script/Comando <n> · Delegado a agente <n> · Otro <n>
 - Duración: <duration_ms convertido a min:seg, o "—" si es null>
+- Delegation rate: <ver formato exacto abajo>
 ```
+
+La línea "Delegation rate" (Issue #179) toma `delegation_rate.a`/`.b`/`.rate` de la entrada
+correspondiente en `sessions.jsonl`. Formato exacto de la línea completa:
+
+- Si `a > 0`: `Delegation rate: <b>/<a> (<rate>) — ver .aura/rules/subagent-dispatch.md`
+- Si `a == 0`: `Delegation rate: — (sin triggers detectados) — ver .aura/rules/subagent-dispatch.md`
+  (reemplaza la línea entera, no solo el paréntesis — no dividir por cero)
+
+Mostrar siempre los valores crudos `a`/`b` junto al cociente cuando `a > 0` — un `a` bajo (0 o
+1) hace que el ratio no sea representativo por sí solo (ver "Salvaguarda" en
+`.aura/rules/subagent-dispatch.md`).
 
 Si el archivo no existe, está vacío, o el script devolvió error → omitir esta sección por
 completo (no mostrar un bloque vacío ni un mensaje de error).

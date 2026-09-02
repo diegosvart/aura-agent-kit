@@ -1,3 +1,8 @@
+---
+name: repo-integrity
+description: Detecta trabajo stranded (issue cerrado sin PR mergeada) y ramas que requieren limpieza. Invocada desde el Paso 3 de session_start.
+---
+
 # Skill — Repo Integrity Check
 
 > **Cuándo usar:** Invocada desde Paso 3 de `protocols/session_start.md`.

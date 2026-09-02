@@ -1,0 +1,13 @@
+{
+  "name": "aura-local",
+  "owner": {
+    "name": "Diego Morales"
+  },
+  "plugins": [
+    {
+      "name": "aura",
+      "source": "./",
+      "description": "Harness de trabajo para agentes IA sobre Claude Code: memoria persistente, protocolos de sesion, ciclo de vida de objetivos y automatizacion del flujo git/GitHub."
+    }
+  ]
+}

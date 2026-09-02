@@ -1,3 +1,8 @@
+---
+name: spec-validation
+description: Valida técnicamente que una spec es implementable antes de pasarla al challenger. Usar después de aprobar el diseño en /brainstorm, antes de invocar challenger. HARD-GATE para /write-plan.
+---
+
 # Skill — Spec Validation
 
 > **Propósito:** Validar técnicamente que una spec es implementable antes de pasarla al challenger.

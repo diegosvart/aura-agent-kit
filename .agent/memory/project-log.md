@@ -4,6 +4,110 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-02 — PR #177 — feat(harness): capability agent-browser — testing E2E headless
+
+**Plan:** `docs/aura/specs/2026-09-01-agent-browser-integration-design.md` (gitignored,
+spec-validation PASS, challenger GO)
+**Qué se agregó:** Issue #168 (scope "core" del split acordado con el challenger): nueva
+capability `agents/browser-testing.md` + `skills/e2e-testing/SKILL.md` para testing
+E2E/headless de apps web sin supervisión humana, vía CLI de `vercel-labs/agent-browser`
+(nunca su modo `mcp`, Pilar P1) — complementaria a `agents/browser-control.md` (navegador
+real del usuario). Incluye permisos nuevos en `.claude/settings.json` y routing en
+`protocols/router.md`/`AGENTS.md`. Dogfooding real ejecutado en la misma sesión:
+`agent-browser` instalado con aprobación explícita del usuario, flujo completo
+open→snapshot→get text→click por ref→screenshot→close contra una app de prueba.
+Verificado por `doc-guardian`: ÍNTEGRO. Issue #169 (ADR-008 + integración a
+`/run-dev-loop`) queda pendiente, depende de este merge.
+**Archivos clave:** agents/browser-testing.md, skills/e2e-testing/SKILL.md
+
+## 2026-09-02 — PR #176 — feat(repo-integrity): detectar worktrees huérfanos de sesiones cerradas
+
+**Qué se agregó:** El usuario notó que worktrees de sesiones ya cerradas no desaparecían
+de la pantalla de sesiones de Claude Code — 3 se habían acumulado en
+`.claude/worktrees/` (ramas ya mergeadas, o lock con PID muerto). Nuevo
+`skills/repo-integrity/scripts/check-orphaned-worktrees.sh` (solo informa, nunca borra),
+wireado en `session_start.md` Paso 3 y como excepción del Hook Fast-Path. Limpieza manual
+de los 3 huérfanos realizada en la misma sesión (no versionada, era estado local). Gap de
+fondo (el worktree no se elimina automáticamente al cerrar sesión pese a estar
+documentado) reportado como feedback de producto a Anthropic, no resoluble solo desde el
+harness.
+**Archivos clave:** skills/repo-integrity/scripts/check-orphaned-worktrees.sh, protocols/session_start.md
+
+## 2026-09-02 — PR #175 — docs(plans): cerrar plan skill-aura marketplace GitHub — fix confirmado
+
+**Qué se agregó:** Tercera y última iteración de la investigación de
+`Skill(aura:auto-research)` fallando con "Unknown skill". Causa raíz real confirmada: un
+marketplace `aura-local` con `source: Directory` (checkout local, cualquiera sea el path)
+no hace que Claude Code registre las skills del plugin para el Skill tool nativo;
+`source: GitHub` sí. Las hipótesis previas (`enabledPlugins` vacío, frontmatter, worktree
+efímero) eran causas contribuyentes ya corregidas, no la raíz. Cierra
+`.agent/memory/plans/2026-09-01-skill-aura-github-marketplace-worktree-cleanup.md` a
+`status: done`. Detalle en Engram (`topic_key: bug/skill-aura-not-registered`).
+**Archivos clave:** .agent/memory/plans/2026-09-01-skill-aura-github-marketplace-worktree-cleanup.md
+
+## 2026-09-02 — PR #174 — docs(plans): registrar plan aprobado — marketplace GitHub + limpieza worktree
+
+**Qué se agregó:** Segunda iteración de la misma investigación (ver PR #175 arriba):
+descarta en vivo la hipótesis del worktree efímero (con el marketplace apuntando al
+checkout principal, la skill seguía sin registrarse) y deja aplicado el experimento
+`source: GitHub` para la próxima sesión. También documenta el cierre de un worktree
+colgado (`worktree-conflict-brainstorm`) verificado como residuo post-merge sin trabajo
+perdido.
+**Archivos clave:** .agent/memory/plans/2026-09-01-skill-aura-github-marketplace-worktree-cleanup.md
+
+## 2026-09-01 — PR #173 — fix(harness): habilitar aura@aura-local en enabledPlugins
+
+**Qué se agregó:** Primera hipótesis (luego descartada como causa raíz, ver PR #175) para
+`Skill(aura:auto-research)` fallando: `enabledPlugins` vacío en `.claude/settings.json`.
+Corregido a `{"aura@aura-local": true}` — causa contribuyente real, aunque no suficiente
+por sí sola.
+**Archivos clave:** .claude/settings.json
+
+## 2026-09-01 — PR #171 — fix(harness): registrar aura-agent-kit como plugin nativo de Claude Code
+
+**Qué se agregó:** Issue #170: `.claude-plugin/plugin.json` + `marketplace.json` nuevos
+para que `aura-agent-kit` se registre como plugin nativo de Claude Code (marketplace local
+`aura-local`), primer paso de la saga de investigación de `Skill(aura:auto-research)`
+fallando con "Unknown skill" (resuelta recién en PR #175).
+**Archivos clave:** .claude-plugin/plugin.json, .claude-plugin/marketplace.json
+
+## 2026-08-30 — PR #166 — fix(harness): worktree.baseRef no apuntaba a develop + .env ausente en worktrees
+
+**Plan:** `docs/aura/specs/2026-08-29-claude-code-worktree-conflict-and-agent-browser.md`
+(gitignored, decidida vía `/brainstorm` en vivo)
+**Qué se agregó:** Corrige la causa raíz confirmada del incidente de PR #159 (mergeado
+directo a `main`, saltándose `develop` — ver Issue #161): `worktree.baseRef:"fresh"` de
+Claude Code crea worktrees/ramas nuevas desde el default branch de GitHub, no desde
+`develop`. Tres correcciones: (1) default branch de GitHub cambiado de `main` a `develop`
+(`gh repo edit`), verificado seguro primero (ambas ramas ya tenían protecciones idénticas);
+(2) `.worktreeinclude` nuevo en la raíz — copia `AGENTS.local.md`, `.env*`, credenciales y
+la denylist de `sensitive-data-guard.ps1` a cada worktree nuevo (mecanismo oficial de
+Claude Code, sin código propio); (3) `skills/repo-integrity/scripts/check-base-branch.sh`
+nuevo, detecta PRs `feature/*`/`fix/*`/`chore/*` contra `main` en vez de `develop`
+(excluye el PR legítimo de `promote`), wireado en `session_start.md` Paso 3. Bug real
+encontrado en vivo durante la implementación: el script dependía de `jq` externo, ausente
+en este entorno Windows/Git Bash — corregido usando el motor `--jq` embebido de `gh`
+(gojq). Segundo bug encontrado en code review post-implementación: el chequeo nuevo se
+agregó dentro del Paso 3, pero el Hook Fast-Path saltea los Pasos 2-4 enteros sin una
+excepción propia — corregido agregando esa excepción explícita (mismo patrón que "PRs
+Abiertas"). Parte B de la spec (evaluación de `vercel-labs/agent-browser`) queda "needs
+spike" — no integrada, falta hipótesis P4 de un caso de uso real.
+**Archivos clave:** .worktreeinclude, skills/repo-integrity/scripts/check-base-branch.sh,
+protocols/session_start.md, .gitattributes
+
+## 2026-08-29 — Reconciliación main/develop + release v2.4.1 (PRs #160/#162-165, Issue #161)
+
+**Plan:** `.agent/memory/plans/2026-08-29-reconciliar-release-v2.4.1.md`
+**Qué se agregó:** Tarea original (volcar bitácora de v2.3.0 + PR #153, cortar patch
+v2.3.1) escaló al detectar que `main` y `develop` habían divergido: PR #159 se había
+mergeado directo contra `main`, saltándose `develop`, y esa misma sesión también taggeó y
+publicó su propio GitHub Release `v2.4.0` sin pasar por `cut-release.sh`. Reconciliado vía
+PR #160 (main→develop), Issue #161 abierto para trazabilidad del incidente, y release
+`v2.4.1` cortado (PRs #162-165) sin tocar el `v2.4.0` ya publicado — consolida el fix CRLF
+de PR #153 y la reconciliación. Verificado: sin divergencia `main`/`develop`, sin PRs
+abiertas, `check-repo-manifest.sh`/`check-release-drift.sh` limpios.
+**Archivos clave:** .agent/memory/project-log.md, CHANGELOG.md
+
 ## 2026-08-28 — PR #159 — feat(harness): agente browser-control (visión/control de navegador)
 
 **Qué se agregó:** Nuevo `agents/browser-control.md` que incorpora `claude-in-chrome` como

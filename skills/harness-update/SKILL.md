@@ -8,22 +8,32 @@ description: Detect and apply updates to the harness submodule
 > **Propósito:** Detectar actualizaciones disponibles del harness (`aura-agent-kit`) y
 > aplicarlas de forma controlada (nunca automático, solo a pedido explícito del usuario).
 > **Comando asociado:** `/harness-update`
-> **Spec / hipótesis:** `docs/aura/specs/2026-07-30-harness-self-update.md` (P4)
-> **Precondición:** `.aura/` debe existir como un checkout git (git submodule) del harness.
-> Si no existe, el skill avisa pero no falla — salvo que aplique el chequeo alternativo para
-> consumidores vía plugin (ver "Canal alternativo" abajo).
+> **Spec / hipótesis:** `docs/aura/specs/2026-07-30-harness-self-update.md`,
+> `docs/aura/specs/2026-09-02-harness-update-plugin-apply-design.md` (P4)
+> **Precondición:** el repo debe tener el harness instalado por al menos uno de los dos
+> canales soportados (`.aura/` como submodule, o el plugin `aura` instalado vía marketplace
+> de Claude Code). `/harness-update` detecta cuál aplica automáticamente (ver ADR-009) — si
+> ninguno aplica, avisa pero no falla.
 
 ---
 
-## Dos Canales de Detección (Issue #181)
+## Dos Canales, un Solo Comando (Issue #181 / #187, ADR-009)
 
 El harness se distribuye por dos vías, y cada una necesita su propio mecanismo de detección
-de actualizaciones — mutuamente excluyentes por construcción en el hook:
+y aplicación de actualizaciones — mutuamente excluyentes por construcción, tanto en el hook
+de detección como en `apply-update.sh`:
 
-| Canal | Cómo se instala | Detección | Aplicación |
+| Canal | Cómo se instala | Detección | Aplicación (ambas vía `/harness-update`) |
 |---|---|---|---|
-| `submodule` (legacy) | `.aura/` como git submodule | `check-update.sh` compara tags git | `/harness-update` |
-| `plugin` | `claude plugin install aura@<marketplace>` | compara versión instalada vs. cache local del marketplace | `claude plugin update <plugin_id>` |
+| `submodule` (legacy) | `.aura/` como git submodule | `check-update.sh` compara tags git | `apply-update.sh` hace `git fetch --tags` + `git checkout <tag>` en `.aura/` |
+| `plugin` | `claude plugin install aura@<marketplace>` (ver `QUICKSTART.md` Opción C) | compara versión instalada vs. cache local del marketplace | `apply-update.sh` hace `claude plugin marketplace update` + `claude plugin update <plugin_id>` |
+
+Ningún agente necesita saber a mano qué canal aplica ni armar el comando de `claude plugin`
+correspondiente — `/harness-update` detecta el canal (misma señal en ambos scripts: ¿existe
+`.aura/.git`?) y ejecuta la rama correcta. Los 4 pasos de sincronización posteriores (hooks,
+`CLAUDE.md`, permisos, registro de `git-guard.ps1`/`sensitive-data-guard.ps1`) son
+**idénticos** en ambos canales — solo cambia la fuente (`.aura/`, o el `installPath` del
+plugin recién actualizado, resuelto vía `claude plugin list --json`).
 
 ### Canal `plugin` — cómo funciona
 
@@ -70,14 +80,21 @@ para detectar actualizaciones.
 
 3. **Aplicación** (manual, a pedido del usuario vía `/harness-update`)
    - Ejecuta `.aura/skills/harness-update/scripts/apply-update.sh <version>` desde la raíz del
-     repo consumidor (el script vive dentro de `.aura/`, no en la raíz — ver issue #96)
-   - Checkout del tag en `.aura/`
+     repo consumidor (el script vive dentro de `.aura/`, no en la raíz — ver issue #96) — o,
+     si no hay `.aura/`, el mismo script instalado por el plugin (resuelto por su propio
+     `installPath`)
+   - Detecta el canal (`.aura/.git` existe → submodule; si no → plugin, leyendo
+     `harness_update_plugin_id` del cache del hook)
+   - Trae la versión nueva: `git checkout <tag>` (submodule) o `claude plugin marketplace
+     update` + `claude plugin update <id>` (plugin) — **canal plugin: Claude Code requiere
+     reiniciar la sesión para que el contenido nuevo tome efecto**
    - Copia de `.claude/hooks/*.ps1` (sobreescritura directa, sin confirmación — D5)
    - Resincronización del bloque `aura:begin/aura:end` en `CLAUDE.md` (si existe)
    - Sincronización de patrones muertos `Write(...)` → `Edit(...)` en `permissions.allow`/
      `permissions.deny` de `.claude/settings.json` (si existe y aplica — ver tabla abajo)
-   - Verificación/registro de `git-guard.ps1` como `PreToolUse` en `.claude/settings.json`
-     (autofix, sin confirmación — ver "Registro de `git-guard.ps1` en `PreToolUse`" abajo)
+   - Verificación/registro de `git-guard.ps1` y `sensitive-data-guard.ps1` como `PreToolUse`
+     en `.claude/settings.json` (autofix, sin confirmación — ver "Registro de
+     `git-guard.ps1` en `PreToolUse`" abajo)
    - Imprime resumen de lo que cambió + entradas relevantes del CHANGELOG
 
 ---
@@ -86,8 +103,8 @@ para detectar actualizaciones.
 
 | Script | Hace | Contrato |
 |---|---|---|
-| `check-update.sh [aura_path]` | Compara tag local vs. remoto en `.aura/` | stdout = versión nueva, o vacío si al día |
-| `apply-update.sh <tag> [aura_path]` | Checkout + copia de hooks + resync de CLAUDE.md + resync de permisos en `.claude/settings.json` | exit 0 si éxito, exit 1 si error; imprime resumen |
+| `check-update.sh [aura_path]` | Compara tag local vs. remoto en `.aura/` (solo canal submodule — el canal plugin se detecta en `session-start.ps1`, ver `.claude/hooks/session-start.ps1`) | stdout = versión nueva, o vacío si al día |
+| `apply-update.sh <tag> [aura_path]` | Detecta canal, trae la versión nueva (checkout de tag o `claude plugin update`) + copia de hooks + resync de CLAUDE.md + resync de permisos en `.claude/settings.json` | exit 0 si éxito, exit 1 si error; imprime resumen |
 
 ### Resync de `.claude/settings.json` (patrones muertos `Write(...)`)
 
@@ -140,18 +157,23 @@ estaba presente.
 
 ## Precondición de Contenido
 
-`.aura/` debe ser un checkout git del harness (`aura-agent-kit`). Si es una instalación antigua
-con `.aura/` copiado (no submodule), el skill avisa pero no falla — sin actualización
-disponible en ese caso.
+Uno de los dos: `.aura/` como checkout git del harness (`aura-agent-kit`), o el plugin `aura`
+instalado vía `claude plugin install` con su marketplace registrado. Si es una instalación
+antigua con `.aura/` copiado (no submodule, no plugin), el skill avisa pero no falla — sin
+actualización disponible en ese caso.
 
 ---
 
 ## Defin ición de Done (DoD) para `/harness-update`
 
-- [ ] Hook `SessionStart` injeta `harness_update_available` y `harness_latest_version` en contexto
-- [ ] Línea de aviso aparece en Resumen Ejecutivo si hay actualización
-- [ ] `/harness-update` ejecuta `check-update.sh` y `apply-update.sh` sin error
-- [ ] Hooks en `.claude/hooks/` se actualizan si hay cambios
+- [ ] Hook `SessionStart` injeta `harness_update_available`, `harness_latest_version` y
+      `harness_update_channel` en contexto, para ambos canales
+- [ ] Línea de aviso aparece en Resumen Ejecutivo si hay actualización, con el comando
+      correcto según el canal
+- [ ] `/harness-update` ejecuta `apply-update.sh` sin error en ambos canales (submodule y
+      plugin), sin que el agente arme comandos de `claude plugin` a mano
+- [ ] Hooks en `.claude/hooks/` se actualizan si hay cambios (desde `.aura/` o desde el
+      `installPath` del plugin, según el canal)
 - [ ] Bloque `aura:begin/aura:end` en `CLAUDE.md` se resincroniza si existe
 - [ ] Patrones muertos `Write(...)` en `.claude/settings.json` se resincronizan a `Edit(...)` si existen
 - [ ] `git-guard.ps1` queda registrado como `PreToolUse` (`Bash` y `PowerShell`) en `.claude/settings.json` si el hook existe

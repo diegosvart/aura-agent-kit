@@ -1,3 +1,8 @@
+---
+name: plan-reporting
+description: Genera reporte de gestión, tareas accionables y análisis de riesgo de un plan estratégico. Usar cuando el usuario pide un reporte de estado de un plan.
+---
+
 # Skill — plan-reporting
 
 > **Comando:** `/plan-report "<nombre del plan>"`

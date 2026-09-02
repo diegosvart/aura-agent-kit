@@ -1,3 +1,8 @@
+---
+name: auto-research
+description: Formaliza la mejora continua del harness con hipótesis documentadas. Usar cuando se detecta fricción repetida, un workaround recurrente, una pregunta que se repite entre sesiones, un paso de protocolo que se saltea sistemáticamente, o una inconsistencia entre skills/protocolos.
+---
+
 # Skill — Auto-Research (Evolución del Harness)
 
 > **Propósito:** Formalizar la disciplina de mejora continua del harness con hipótesis documentadas antes de cualquier cambio.

@@ -23,4 +23,6 @@ skills/stack-selection/SKILL.md
 skills/plan-reporting/SKILL.md
 skills/agentic-dev-loop/SKILL.md
 .claude/rules/sensitive-data-safety.md
+.claude-plugin/plugin.json
+.claude-plugin/marketplace.json
 AGENTS.local.md #optional

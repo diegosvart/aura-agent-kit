@@ -1,3 +1,8 @@
+---
+name: stack-selection
+description: Detecta o selecciona el stack tecnológico de la sesión y lo persiste en session-stack.json. Usar al iniciar sesión sin stack detectado, o al invocar /stack.
+---
+
 # Skill — Stack Selection
 
 > **Cuándo usar:** Al iniciar sesión si no hay `session-stack.json`, o cuando el usuario invoca `/stack`.

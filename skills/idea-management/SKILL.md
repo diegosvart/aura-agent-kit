@@ -1,3 +1,8 @@
+---
+name: idea-management
+description: Captura, madura y promueve objetivos de alto nivel a través de un ciclo de vida estructurado. Usar cuando el usuario quiere registrar una idea, explorarla, o promoverla a planificación.
+---
+
 # Skill — Idea Management
 
 > **Propósito:** Capturar, madurar y promover objetivos de alto nivel a través de un ciclo de vida estructurado.

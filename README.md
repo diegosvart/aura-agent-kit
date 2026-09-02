@@ -53,6 +53,23 @@ cp .aura/.claude/hooks/*.ps1 .claude/hooks/
 
 Luego editar `.claude/settings.json` para registrar los hooks (ver [QUICKSTART.md](QUICKSTART.md)).
 
+### Registrar el plugin (skills y comandos invocables)
+
+Paso único por máquina, para que las skills (`skills/*/SKILL.md`) y comandos
+(`commands/*.md`) queden invocables como `aura:<nombre>` / `/aura:<nombre>` vía el Skill
+tool nativo de Claude Code (ver ADR-008):
+
+```bash
+# Desde la raíz del repo (o .aura/ si se instaló como submodule)
+claude plugin marketplace add .
+claude plugin install aura@aura-local --scope project
+```
+
+El registro del marketplace es estado de usuario/máquina (`~/.claude/plugins/`), no se
+versiona — cada desarrollador lo corre una vez, igual que `gh auth login`. Si el contenido
+de `skills/*.md` cambia después de instalar, correr `claude plugin update aura@aura-local`
+para refrescar la caché.
+
 ### Desinstalar / revertir
 
 ```bash
@@ -127,14 +144,18 @@ aura-agent-kit/
 ├── QUICKSTART.md          ← Guía de inicio rápido
 │
 ├── .claude/
-│   ├── settings.json      ← Permisos y registro de hooks
+│   ├── settings.json      ← Permisos, registro de hooks y del plugin (enabledPlugins)
 │   ├── hooks/             ← PS1: session-start, session-resume, session-end
 │   └── rules/             ← Reglas de comportamiento del agente
 │
+├── .claude-plugin/
+│   ├── plugin.json        ← Manifiesto del plugin `aura` (ADR-008)
+│   └── marketplace.json   ← Marketplace local para registrar el plugin
+│
 ├── protocols/             ← session_start, session_end, task_start, router
 ├── agents/                ← Especialistas: github, language, infra, reviewer, challenger
-├── skills/                ← Skills invocables: idea-management, issue-planning, brainstorming...
-├── commands/              ← Definición de comandos /idea, /plan-work, /finish-branch...
+├── skills/                ← Skills invocables (`aura:<nombre>`): idea-management, issue-planning, brainstorming...
+├── commands/              ← Comandos invocables (`/aura:<nombre>`): /idea, /plan-work, /finish-branch...
 │
 └── .agent/
     └── memory/

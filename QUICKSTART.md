@@ -83,7 +83,24 @@ Agregar al `.claude/settings.json` de tu proyecto (mergear si ya existe):
 
 ---
 
-## Paso 4 — Identidad local (opcional pero recomendado)
+## Paso 4 — Registrar el plugin (skills y comandos invocables)
+
+Para que las skills (`skills/*/SKILL.md`) y comandos (`commands/*.md`) queden invocables como
+`aura:<nombre>` / `/aura:<nombre>` vía el Skill tool nativo (ver ADR-008):
+
+```bash
+# Desde la raíz de tu proyecto (donde vive .aura/)
+claude plugin marketplace add ./.aura
+claude plugin install aura@aura-local --scope project
+```
+
+Paso único por máquina — el registro del marketplace es estado de usuario
+(`~/.claude/plugins/`), no se versiona. Si `skills/*.md` cambia después de instalar, correr
+`claude plugin update aura@aura-local`.
+
+---
+
+## Paso 5 — Identidad local (opcional pero recomendado)
 
 ```bash
 cp .aura/AGENTS.local.example.md AGENTS.local.md
@@ -94,7 +111,7 @@ Este archivo es gitignoreado — es tuyo, no del repositorio.
 
 ---
 
-## Paso 5 — Reglas opt-in
+## Paso 6 — Reglas opt-in
 
 `.aura/CLAUDE.md` carga solo `harness-core.md` por defecto. Para activar reglas adicionales, editar `.aura/CLAUDE.md` en tu proyecto y descomentar las que quieras:
 
@@ -107,7 +124,7 @@ Este archivo es gitignoreado — es tuyo, no del repositorio.
 
 ---
 
-## Paso 6 — Primera sesión
+## Paso 7 — Primera sesión
 
 ```bash
 claude .

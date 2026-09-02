@@ -241,6 +241,15 @@ try {
         # .aura/ es un checkout git real (se esperaba poder chequear) pero no se pudo resolver
         # bash de Git for Windows — a diferencia de "sin .aura/", esto sí es una falla real.
         $output.harness_update_check_error = "gitBash no resuelto (Git for Windows no encontrado)"
+    } elseif (Test-Path $auraPath) {
+        # .aura/ existe pero sin .git — no es submódulo (modelo legacy), y este chequeo no
+        # tiene forma de evaluar la versión de un consumidor instalado vía plugin/marketplace
+        # (Claude Code nativo). Antes esta rama quedaba muda (ni error, ni aviso), lo que hizo
+        # indistinguible "no aplica" de "el chequeo nunca corrió" — mismo anti-patrón que
+        # motivó harness_update_check_error (Issue #111), ahora aplicado a este caso. No se
+        # expone en el resumen de sesión (ruidoso en cada sesión de un repo que ya no usa
+        # submódulo) — queda en el JSON del hook para diagnóstico manual.
+        $output.harness_update_not_applicable = "sin .git en .aura/ (no es submódulo) — ver Issue de seguimiento sobre chequeo de version para consumidores vía plugin"
     }
 } catch {
     # Mismo patrón que el bloque de git info básica (línea ~27): no tragarse el error, dejarlo

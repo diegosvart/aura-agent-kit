@@ -291,6 +291,20 @@ mem_context(
 )
 ```
 
+### Contenido completo del último session_summary (obligatorio, no solo el preview)
+
+`mem_context` devuelve un preview truncado a ~300 caracteres por observación — insuficiente
+para extraer "Pendiente"/"Próximo paso" de un `session_summary`, que suele quedar después de
+`Goal`/`Instructions`/`Discoveries` en el texto completo. **Antes de declarar el campo
+"Pendiente"/"Próximo paso" del Resumen Ejecutivo (Paso 6), llamar `mem_get_observation` sobre
+el `session_summary` más reciente devuelto por `mem_context`** y leer sus secciones
+`Accomplished`/`🔲` completas — nunca conformarse con el preview truncado para esta sección
+específica. Afirmar "no hay next_step" sin haber hecho esta llamada es una violación de la
+regla de `.aura/rules/harness-core.md` de no afirmar estado sin verificar (caso real,
+2026-09-02: el preview truncado no mostraba el `🔲 Pendiente` de la observación `#564`, que sí
+estaba completo tanto en Engram como en `current-session.json`; el agente declaró
+incorrectamente que no había next_step en memoria).
+
 ### Fallback — Engram no disponible o sin resultados
 
 > **Desde ADR-006:** `current-session.json` existe únicamente para este caso — es un puntero

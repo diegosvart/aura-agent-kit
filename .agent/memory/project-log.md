@@ -4,6 +4,19 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-05 — PR #216 — fix: agregar git fetch antes de chequeos de rama mergeada en session_start
+
+**Issue:** #214
+**Qué se agregó:** El Paso 3 de `protocols/session_start.md` ("Salud de Ramas") corría
+`git branch --merged develop` y `git branch -r --merged origin/develop` sin actualizar antes
+la referencia local de `develop`. Si el `develop` local estaba desactualizado, una rama ya
+mergeada en remoto no se detectaba como tal (falso negativo) — encontrado en vivo el mismo
+día con un worktree cuyos commits ya estaban mergeados vía PR #211/#212 pero no aparecían
+como "merged". Se agregó `git fetch origin develop --quiet` antes de ambos chequeos.
+Verificado reproduciendo el falso negativo con una rama local desactualizada y confirmando
+que, tras el fetch, el chequeo detecta la rama como mergeada correctamente.
+**Archivos clave:** `protocols/session_start.md`
+
 ## 2026-09-05 — PR #211 — docs(plans): registrar plan aprobado para issues 021/022 (delegation gap)
 
 **Plan:** `.agent/memory/plans/2026-09-05-issues-021-022-delegation-gap-plan.md` (status: approved)

@@ -59,6 +59,21 @@ try {
     $output.gh_authenticated = $false
 }
 
+# Nombre y topics del repo activo (Issue #201) — permite sugerir la identidad de commit
+# correcta (personal vs. corporativa) sin depender de que el operador se acuerde de mirarlo.
+if ($output.gh_authenticated) {
+    try {
+        $repoJson = gh repo view --json name,repositoryTopics 2>$null
+        if ($repoJson) {
+            $repoInfo = $repoJson | ConvertFrom-Json
+            $output.repo_name = $repoInfo.name
+            $output.repo_topics = @($repoInfo.repositoryTopics | ForEach-Object { $_.name })
+        }
+    } catch {
+        # Fail-open — sin nombre/topics no debe bloquear session-start
+    }
+}
+
 # current-session.json
 $sessionFile = Join-Path $projectRoot ".agent\memory\current-session.json"
 if (Test-Path $sessionFile) {

@@ -34,8 +34,23 @@ if ! git show-ref --verify --quiet "refs/heads/$branch"; then
   exit 0
 fi
 
-if ! git branch --merged develop | grep -qx "  $branch"; then
-  echo "La rama local '$branch' existe pero NO aparece como mergeada en develop localmente (¿falta git fetch/pull?) — no se borra automáticamente." >&2
+git fetch origin develop --quiet || true
+
+merge_base=$(git merge-base develop "$branch") || {
+  echo "No se pudo calcular el merge-base entre 'develop' y '$branch'." >&2
+  exit 1
+}
+changed_files=$(git diff --name-only "$merge_base" "$branch")
+
+# Ancestría real (merge normal) O contenido idéntico en los archivos que la rama tocó (cubre
+# squash-merge, donde el commit local nunca queda como ancestro de develop pero el contenido
+# final ya está incorporado). Ver docs/aura/experiments/2026-09-05-cleanup-branch-squash-merge-gap.md.
+if git branch --merged develop | grep -qx "  $branch"; then
+  :
+elif [ -z "$changed_files" ] || git diff --quiet develop "$branch" -- $changed_files; then
+  :
+else
+  echo "La rama local '$branch' existe pero NO aparece como mergeada en develop (ni por ancestría ni por contenido) — ¿falta git fetch/pull, o el merge no está completo?" >&2
   echo "Sugerido: git fetch origin develop && git checkout develop && git pull, y volver a correr este script." >&2
   exit 1
 fi

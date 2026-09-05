@@ -4,6 +4,22 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-05 — PR #215 — fix(observability): pasar rutas Windows via env var en heredocs de process-session.sh
+
+**Issue:** #205 (parte del plan `.agent/memory/plans/2026-09-05-issues-021-022-delegation-gap-plan.md`)
+**Qué se agregó:** `process-session.sh` nunca había completado un run exitoso — sus heredocs
+de Python interpolaban rutas (`$SESSIONS_OUTPUT`, `$transcript_path`, `$ROUTER_MD`, `$line`,
+y un cuarto heredoc no cubierto por el diagnóstico previo) como literales dentro de heredocs
+sin comillas en el delimitador. En Windows esas rutas traen backslashes, que bash colapsa
+antes de que Python las reciba, corrompiendo el JSON/path. Consecuencia: `delegation_rate`
+(Issue #179) nunca se calculó pese a 27 sesiones reales en el índice, y nadie se enteró porque
+el paso que lo invoca falla en silencio. Fix: las rutas se pasan vía variable de entorno y los
+4 heredocs usan delimitador entre comillas simples. `sessions.jsonl` ahora existe y se genera
+correctamente (9 de 28 entradas procesables — el resto tiene transcripts ya rotados por Claude
+Code, comportamiento esperado, no un bug). Primer `delegation_rate` real observado: `a=10,
+b=0, rate=0.0` — confirma con datos reales el problema que motivó el Issue #179/#205.
+**Archivos clave:** `skills/observability/scripts/process-session.sh`
+
 ## 2026-09-05 — PR #211 — docs(plans): registrar plan aprobado para issues 021/022 (delegation gap)
 
 **Plan:** `.agent/memory/plans/2026-09-05-issues-021-022-delegation-gap-plan.md` (status: approved)

@@ -100,6 +100,11 @@ where engram 2>nul || echo "engram: no disponible"
 Detectar ramas que requieren limpieza:
 
 ```bash
+# Actualizar la referencia de develop antes de los chequeos de merge (Issue #214) -
+# sin esto, un develop local desactualizado produce falsos negativos: una rama ya
+# mergeada en origin/develop puede no detectarse como mergeada.
+git fetch origin develop --quiet
+
 # Ramas locales ya mergeadas en develop
 git branch --merged develop | grep -v "^\*\|main\|develop"
 

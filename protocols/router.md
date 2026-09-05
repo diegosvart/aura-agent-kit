@@ -11,6 +11,7 @@
 |-----------|------------------|---------|
 | **Inicio de sesión** | `protocols/session_start.md` | Primera interacción del día o contexto frío |
 | **Nueva tarea / issue** | `protocols/task_start.md` | Usuario menciona nueva feature, fix, chore, o tarea |
+| **Aislar trabajo de un solo issue** | `skills/agentic-dev-loop/scripts/new-branch-for-issue.sh` (rama + PR) | Default para trabajo cotidiano (Issue #200) — preferir sobre `EnterWorktree`/worktrees, reservados para paralelismo real o continuidad ante corte de sesión |
 | **Retomar tarea** | `protocols/task_start.md` + `.agent/memory/current-session.json` | "Continuemos con...", "seguimos donde..." |
 | **Operaciones git / GitHub** | `agents/github.md` | Crear rama, PR, issue, merge, push, cherry-pick |
 | **Escribir o revisar código** | `agents/language.md` | Implementar feature, fix bug, refactorizar |

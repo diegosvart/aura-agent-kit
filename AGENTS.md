@@ -72,6 +72,13 @@
 - **Nunca commit directo** a `develop` o `main`
 - **Nunca commitear** `.env`, keys, tokens
 - **Preferir `gh` CLI** sobre MCP GitHub (~80 tokens vs ~800 tokens)
+- **Preferir ramas sobre worktrees para trabajo cotidiano** (Issue #200): usar
+  `skills/agentic-dev-loop/scripts/new-branch-for-issue.sh` (rama + PR) para un issue a la vez.
+  Reservar worktrees para paralelismo real (2+ issues simultáneos) o continuidad ante corte de
+  sesión/PC — no como flujo por defecto. Motivo: un worktree nuevo no inicializa el submódulo
+  `.aura` automáticamente, lo que puede degradar la sesión a "sin protocolo" sin ningún error
+  visible (ver `agents/github.md` → "Regla anti-worktree"). No aplica al aislamiento de sesiones
+  en background de la plataforma, que es un mecanismo distinto fuera del control del harness.
 - **Al cerrar sesión**: Engram + `current-session.json` siempre
 - **Nunca modificar la BD**: ver `.aura/.claude/rules/data-safety.md`
 - **Nunca versionar datos corporativos del cliente**: ver

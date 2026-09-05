@@ -4,6 +4,57 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-05 — PR #216 — fix: agregar git fetch antes de chequeos de rama mergeada en session_start
+
+**Issue:** #214
+**Qué se agregó:** El Paso 3 de `protocols/session_start.md` ("Salud de Ramas") corría
+`git branch --merged develop` y `git branch -r --merged origin/develop` sin actualizar antes
+la referencia local de `develop`. Si el `develop` local estaba desactualizado, una rama ya
+mergeada en remoto no se detectaba como tal (falso negativo) — encontrado en vivo el mismo
+día con un worktree cuyos commits ya estaban mergeados vía PR #211/#212 pero no aparecían
+como "merged". Se agregó `git fetch origin develop --quiet` antes de ambos chequeos.
+Verificado reproduciendo el falso negativo con una rama local desactualizada y confirmando
+que, tras el fetch, el chequeo detecta la rama como mergeada correctamente.
+**Archivos clave:** `protocols/session_start.md`
+## 2026-09-05 — PR #215 — fix(observability): pasar rutas Windows via env var en heredocs de process-session.sh
+
+**Issue:** #205 (parte del plan `.agent/memory/plans/2026-09-05-issues-021-022-delegation-gap-plan.md`)
+**Qué se agregó:** `process-session.sh` nunca había completado un run exitoso — sus heredocs
+de Python interpolaban rutas (`$SESSIONS_OUTPUT`, `$transcript_path`, `$ROUTER_MD`, `$line`,
+y un cuarto heredoc no cubierto por el diagnóstico previo) como literales dentro de heredocs
+sin comillas en el delimitador. En Windows esas rutas traen backslashes, que bash colapsa
+antes de que Python las reciba, corrompiendo el JSON/path. Consecuencia: `delegation_rate`
+(Issue #179) nunca se calculó pese a 27 sesiones reales en el índice, y nadie se enteró porque
+el paso que lo invoca falla en silencio. Fix: las rutas se pasan vía variable de entorno y los
+4 heredocs usan delimitador entre comillas simples. `sessions.jsonl` ahora existe y se genera
+correctamente (9 de 28 entradas procesables — el resto tiene transcripts ya rotados por Claude
+Code, comportamiento esperado, no un bug). Primer `delegation_rate` real observado: `a=10,
+b=0, rate=0.0` — confirma con datos reales el problema que motivó el Issue #179/#205.
+**Archivos clave:** `skills/observability/scripts/process-session.sh`
+
+## 2026-09-05 — PR #211 — docs(plans): registrar plan aprobado para issues 021/022 (delegation gap)
+
+**Plan:** `.agent/memory/plans/2026-09-05-issues-021-022-delegation-gap-plan.md` (status: approved)
+**Qué se agregó:** El usuario venía sufriendo que ni tareas simples se delegaban a
+sub-agentes pese a que la regla existía (`.aura/rules/subagent-dispatch.md`). Investigación
+con 3 agentes de exploración + 1 de diseño encontró la causa raíz real: la métrica que debía
+mostrar si se delegaba o no (`delegation_rate`) nunca se calculó, porque el script que la
+genera nunca completó un run exitoso pese a tener 27 sesiones reales para procesar — y nadie
+se enteró porque el paso que lo invoca falla en silencio. Se crearon 6 issues en GitHub
+(#205-#210) con el diseño completo para: arreglar ese bug primero (máxima prioridad), un log
+de errores de proceso del agente, un comando `/harness-status` para ver el estado real del
+harness de un vistazo, y una hipótesis para ampliar el único mecanismo que hoy sí fuerza
+delegación real (`agentic-dev-loop`).
+**Archivos clave:** `.agent/memory/plans/2026-09-05-issues-021-022-delegation-gap-plan.md`
+
+## ⚠ Gap detectado (no corregido en esta sesión)
+
+Los PRs #202, #203 y #204 (mergeados 2026-09-05, sesión anterior) no tienen entrada en este
+log — nunca se actualizó pese a que la regla lo exige en el momento del merge. No se
+reconstruye acá con contenido inventado; señalado para que la próxima sesión decida si vale
+la pena backfillear desde los PRs reales (`gh pr view 202/203/204`) o dejarlo como hueco
+conocido.
+
 ## 2026-09-02 — PR #188 — feat(harness-update): unificar aplicación de actualización — canal plugin sin .aura/
 
 **Plan:** `docs/aura/specs/2026-09-02-harness-update-plugin-apply-design.md` (P4, gitignored),

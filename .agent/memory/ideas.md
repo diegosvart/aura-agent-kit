@@ -72,7 +72,7 @@ _(sin iterar)_
 ---
 
 ## [007] Protocolo de cierre por límite de contexto
-**Estado:** refined
+**Estado:** done
 **Capturado:** 2026-05-10
 **Prioridad:** Hacer — impacto alto, esfuerzo medio  
 **Contexto:** A 71% de contexto (141k/200k) con 14.5k libres el autocompact comprime y puede perder nuance. Necesitamos un mecanismo que detecte cuando el contexto supera ~65% y dispare automáticamente el protocolo de cierre de sesión (guardar Engram + current-session.json + avisar al usuario).
@@ -286,6 +286,40 @@ modo interactivo, lanzar un agente fresco alimentado solo con el plan file en ve
 en la misma sesión — y en qué casos el costo de ese salto (perder matices no
 serializados al plan) no compensa. Relacionado: idea [008] (/compact mid-session, estado
 raw, mecanismo distinto — comprime en vez de descartar).
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [020] Integración de /goal para ejecución autónoma de objetivos multi-issue
+**Estado:** refined  
+**Capturado:** 2026-05-14  
+**Prioridad:** Planificar — impacto alto, esfuerzo alto  
+**Contexto:** Claude Code tiene /goal: define una condición de completitud y Claude trabaja autónomamente entre turnos hasta cumplirla (evaluador Haiku post-turn). El objetivo es integrar esto con el harness para que un conjunto de issues ya planificados (vía /plan-work) se ejecuten autónomamente, y al finalizar el humano valide contra los tests y documentación generados que el objetivo fue alcanzado. Ref: https://code.claude.com/docs/en/goal
+
+### Iteraciones
+- [2026-05-14] Flujo diseñado en 3 fases: (1) Definición — agent verifica spec + issues ready, construye condición evaluador, presenta plan con opciones [go] / [iterar] / [cancelar]; (2) Ejecución autónoma — auto mode ON, loop por issue (branch → TDD → PR → merge → close), evaluador Haiku post-turn; (3) Validation Gate — auto mode OFF, informe con PRs + tests + docs, humano revisa y aprueba merge manualmente. NO reemplaza flujo semi-auto actual — es modo opt-in activado explícitamente con /goal.
+- [2026-09-02] Renumerada de [014] a [020] al resolver conflicto de merge con ideas [015]-[019] llegadas de `origin/develop` (mismo número, contenido distinto — la sesión que las creó nunca sincronizó local). Nota: Issue #30 ("crear spec formal del skill /goal", derivado de esta idea) fue creado y luego cerrado con label `blocked` sin PR asociada — la idea sigue vigente en estado `refined`, pendiente de desbloqueo antes de re-intentar el issue.
+
+---
+
+## [021] Mecanismo de validación/seguimiento de errores del agente
+**Estado:** raw  
+**Capturado:** 2026-09-05  
+**Prioridad:** Hacer — impacto alto, esfuerzo medio  
+**Contexto:** El usuario señaló que el agente comete errores durante una sesión (ej. esta misma sesión: crear una rama desde HEAD equivocado en vez de `develop`, mergear PR #203 antes que #202 generando conflictos evitables, no reintentar el `Write` del ledger de plan tras el rechazo de `EnterWorktree`) que hoy simplemente "quedan en el pasado" — nadie los aborda ni los registra sistemáticamente más allá de lo que Engram capture de forma dispersa. Falta un mecanismo explícito que: (a) detecte o permita marcar un error de proceso cuando ocurre, (b) lo registre en un lugar consultable (no solo una observación de Engram entre cientos), (c) alimente una revisión periódica (¿parte de `/auto-research`? ¿un nuevo paso de `session_end`?) que busque patrones repetidos antes de que se vuelvan crónicos. Relacionado con `.aura/rules/subagent-dispatch.md` (que ya tiene una métrica de auditoría post-hoc, `delegation_rate`, como precedente de "detección sin bloqueo duro") y con `skills/auto-research/SKILL.md` (que ya formaliza hipótesis de mejora, pero requiere que alguien note la fricción primero).
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [022] Visibilidad del harness — dashboard/diagrama de arquitectura completo
+**Estado:** raw  
+**Capturado:** 2026-09-05  
+**Prioridad:** Planificar — impacto alto, esfuerzo medio  
+**Contexto:** Tras muchos PRs y funcionalidades acumuladas (protocolos, skills, agentes, hooks, reglas), no hay una vista completa y general del harness que permita evaluarlo de un vistazo — ni para el usuario ni para el propio agente. El usuario propone seguir/inspirarse en `https://github.com/tt-a1i/archify` ("Agent skill for beautiful, verifiable architecture, workflow, sequence, data-flow, and lifecycle diagrams — self-contained HTML with motion and crisp export") para armar un flujo/diagrama visible del harness completo: qué protocolos existen, cómo se conectan (router.md), qué skills/agentes hay y cuándo se activan, y el estado real vs. lo documentado. Candidato de implementación: un artifact HTML autocontenido (o adoptar archify como skill) generado a partir de `AGENTS.md`/`router.md`/`skills/*/SKILL.md`, actualizable cada vez que se agrega una capability nueva — no un documento estático que se desactualice como pasó con `docs/aura/specs/2026-05-09-harness-pillars.md` (Issue #147, referenciado pero inexistente en disco).
 
 ### Iteraciones
 _(sin iterar)_

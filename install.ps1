@@ -41,7 +41,8 @@ if (Test-Path $AURA_DIR) {
 # Paso 2 — CLAUDE.md
 Write-Host "`n[2/3] Configurando CLAUDE.md..." -ForegroundColor Yellow
 
-$claude_entry = "$MARKER_BEGIN`n@.aura/CLAUDE.md`n$MARKER_END"
+$aura_notice = "> Este repo usa el harness Aura via submodulo ``.aura/``. Si ``.aura/CLAUDE.md`` no resuelve`n> (aparece vacio o inexistente), el submodulo no esta inicializado - correr`n> ``git submodule update --init .aura`` es el PRIMER paso obligatorio de cualquier sesion en`n> este repo, antes de cualquier otra accion. Omitirlo desperdicia el resto de la sesion`n> operando sin protocolo, sin que se note (ver Issue #200)."
+$claude_entry = "$MARKER_BEGIN`n$aura_notice`n@.aura/CLAUDE.md`n$MARKER_END"
 
 if (Test-Path "CLAUDE.md") {
     $content = Get-Content "CLAUDE.md" -Raw

@@ -4,6 +4,29 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-05 — PR #211 — docs(plans): registrar plan aprobado para issues 021/022 (delegation gap)
+
+**Plan:** `.agent/memory/plans/2026-09-05-issues-021-022-delegation-gap-plan.md` (status: approved)
+**Qué se agregó:** El usuario venía sufriendo que ni tareas simples se delegaban a
+sub-agentes pese a que la regla existía (`.aura/rules/subagent-dispatch.md`). Investigación
+con 3 agentes de exploración + 1 de diseño encontró la causa raíz real: la métrica que debía
+mostrar si se delegaba o no (`delegation_rate`) nunca se calculó, porque el script que la
+genera nunca completó un run exitoso pese a tener 27 sesiones reales para procesar — y nadie
+se enteró porque el paso que lo invoca falla en silencio. Se crearon 6 issues en GitHub
+(#205-#210) con el diseño completo para: arreglar ese bug primero (máxima prioridad), un log
+de errores de proceso del agente, un comando `/harness-status` para ver el estado real del
+harness de un vistazo, y una hipótesis para ampliar el único mecanismo que hoy sí fuerza
+delegación real (`agentic-dev-loop`).
+**Archivos clave:** `.agent/memory/plans/2026-09-05-issues-021-022-delegation-gap-plan.md`
+
+## ⚠ Gap detectado (no corregido en esta sesión)
+
+Los PRs #202, #203 y #204 (mergeados 2026-09-05, sesión anterior) no tienen entrada en este
+log — nunca se actualizó pese a que la regla lo exige en el momento del merge. No se
+reconstruye acá con contenido inventado; señalado para que la próxima sesión decida si vale
+la pena backfillear desde los PRs reales (`gh pr view 202/203/204`) o dejarlo como hueco
+conocido.
+
 ## 2026-09-02 — PR #188 — feat(harness-update): unificar aplicación de actualización — canal plugin sin .aura/
 
 **Plan:** `docs/aura/specs/2026-09-02-harness-update-plugin-apply-design.md` (P4, gitignored),

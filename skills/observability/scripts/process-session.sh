@@ -42,10 +42,11 @@ PROCESSED_FILE=$(mktemp)
 trap "rm -f $PROCESSED_FILE" EXIT
 
 if [[ -f "$SESSIONS_OUTPUT" ]]; then
-    python3 << EOPYTHON
+    SESSIONS_OUTPUT="$SESSIONS_OUTPUT" python3 << 'EOPYTHON'
 import json
+import os
 try:
-    with open('$SESSIONS_OUTPUT') as f:
+    with open(os.environ['SESSIONS_OUTPUT']) as f:
         for line in f:
             if line.strip():
                 entry = json.loads(line)
@@ -65,17 +66,23 @@ calculate_metrics() {
     fi
 
     # Usar Python para procesar el JSONL
-    python3 << EOPYTHON
+    # NOTA: transcript_path se pasa via env var (TRANSCRIPT_PATH_METRICS), nunca interpolado
+    # como literal dentro del heredoc — en Windows viene con backslashes (C:\Users\...) y
+    # el heredoc sin comillas de bash ya colapsa "\\" -> "\" antes de que Python lo vea,
+    # y una vez en Python un string no-raw interpreta "\U..." como escape unicode inválido.
+    TRANSCRIPT_PATH_METRICS="$transcript_path" python3 << 'EOPYTHON'
 import json
+import os
 import sys
 from datetime import datetime
 
+transcript_path = os.environ['TRANSCRIPT_PATH_METRICS']
 output_tokens = 0
 tool_uses = {'llm': 0, 'script_command': 0, 'agent_delegated': 0, 'other': 0}
 timestamps = []
 
 try:
-    with open('$transcript_path', encoding='utf-8', errors='replace') as f:
+    with open(transcript_path, encoding='utf-8', errors='replace') as f:
         for line in f:
             if not line.strip():
                 continue
@@ -145,12 +152,15 @@ calculate_delegation_rate() {
         return 0
     fi
 
-    python3 << EOPYTHON
+    # NOTA: rutas via env var (nunca interpoladas como literal en el heredoc) — ver
+    # comentario equivalente en calculate_metrics() sobre el bug de backslashes de Windows.
+    ROUTER_MD="$ROUTER_MD" TRANSCRIPT_PATH_DELEGATION="$transcript_path" python3 << 'EOPYTHON'
 import json
+import os
 import re
 
-ROUTER_MD = r'''$ROUTER_MD'''
-TRANSCRIPT = r'''$transcript_path'''
+ROUTER_MD = os.environ['ROUTER_MD']
+TRANSCRIPT = os.environ['TRANSCRIPT_PATH_DELEGATION']
 
 # --- Denominador a: triggers de router.md detectados mecánicamente ---
 # Palabras genéricas frecuentes en las columnas de router.md que, solas, no distinguen
@@ -286,19 +296,29 @@ while IFS= read -r line; do
         continue
     fi
 
-    # Parsear entrada del índice usando Python
-    read session_id transcript_path ended_at <<< $(python3 << EOPYTHON
+    # Parsear entrada del índice usando Python.
+    # NOTA (Issue #205): la línea se pasa via env var LINE, nunca interpolada como literal
+    # dentro del heredoc. transcript_path en Windows viene con backslashes escapados como
+    # "\\" en el JSON (ej. "C:\\Users\\..."); un heredoc de bash SIN comillas en el
+    # delimitador expande el contenido como en un string entre comillas dobles, donde
+    # backslash solo retiene significado especial antes de $, `, \ o newline — por lo que
+    # "\\" se colapsa a un solo "\" ANTES de que Python reciba el texto, corrompiendo el
+    # JSON (ej. "\\U" -> "\U", escape inválido) y provocando que TODAS las entradas fallen
+    # el parseo por igual. Separador de salida: tab, para tolerar valores con espacios.
+    IFS=$'\t' read -r session_id transcript_path ended_at <<< "$(LINE="$line" python3 << 'EOPYTHON'
 import json
+import os
+line = os.environ['LINE']
 try:
-    entry = json.loads('''$line''')
+    entry = json.loads(line)
     session_id = entry.get('session_id', '')
     transcript_path = entry.get('transcript_path', '')
     ended_at = entry.get('ended_at', '')
-    print(f"{session_id} {transcript_path} {ended_at}")
+    print(f"{session_id}\t{transcript_path}\t{ended_at}")
 except json.JSONDecodeError:
-    print(" ")
+    print("\t\t")
 EOPYTHON
-)
+)"
 
     if [[ -z "$session_id" ]] || [[ -z "$transcript_path" ]]; then
         echo "WARN: Entrada inválida en sessions-index.jsonl (faltan session_id o transcript_path): $line" >&2
@@ -327,15 +347,21 @@ EOPYTHON
     processed_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
     # Construir entrada de salida usando Python
-    output_entry=$(python3 << EOPYTHON
+    # NOTA (Issue #205): igual que los bloques anteriores -- todo pasa via env var, nunca
+    # interpolado como literal dentro del heredoc, y el delimitador va entre comillas
+    # simples ('EOPYTHON') para que bash no expanda nada. transcript_path en Windows
+    # (backslashes) es el caso que rompia este bloque en particular.
+    output_entry=$(METRICS_JSON="$metrics" DELEGATION_JSON="$delegation" ENTRY_SESSION_ID="$session_id" ENTRY_TRANSCRIPT_PATH="$transcript_path" ENTRY_ENDED_AT="$ended_at" ENTRY_PROCESSED_AT="$processed_at" python3 << 'EOPYTHON'
 import json
-metrics = json.loads('''$metrics''')
-delegation = json.loads('''$delegation''')
+import os
+
+metrics = json.loads(os.environ['METRICS_JSON'])
+delegation = json.loads(os.environ['DELEGATION_JSON'])
 entry = {
-    'session_id': '$session_id',
-    'transcript_path': '$transcript_path',
-    'ended_at': '$ended_at',
-    'processed_at': '$processed_at',
+    'session_id': os.environ['ENTRY_SESSION_ID'],
+    'transcript_path': os.environ['ENTRY_TRANSCRIPT_PATH'],
+    'ended_at': os.environ['ENTRY_ENDED_AT'],
+    'processed_at': os.environ['ENTRY_PROCESSED_AT'],
     'output_tokens': metrics['output_tokens'],
     'tool_uses': metrics['tool_uses'],
     'duration_ms': metrics['duration_ms'],

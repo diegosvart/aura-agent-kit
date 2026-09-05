@@ -51,12 +51,57 @@ try {
     # Fail-open — sin rastro si ni el log funciona, no debe bloquear session-start
 }
 
+# Auto-init de .aura sin inicializar (Issue #200) — un worktree nuevo comparte .git pero no
+# el checkout de submódulos; `.aura` puede existir como gitlink vacío sin que nada lo note. Se
+# reutiliza el mismo patrón fail-open del bloque de arriba: detectar, actuar, exponer en el
+# output para que session_start.md lo reporte, nunca bloquear si falla.
+try {
+    $auraPath = Join-Path $projectRoot ".aura"
+    if (Test-Path $auraPath) {
+        Push-Location $projectRoot
+        try {
+            $submoduleStatus = git submodule status .aura 2>$null
+        } finally {
+            Pop-Location
+        }
+        if ($submoduleStatus -and $submoduleStatus.TrimStart().StartsWith("-")) {
+            Push-Location $projectRoot
+            try {
+                git submodule update --init .aura 2>$null
+                $output.aura_submodule_initialized = ($LASTEXITCODE -eq 0)
+            } finally {
+                Pop-Location
+            }
+        } else {
+            $output.aura_submodule_initialized = $false
+        }
+    }
+} catch {
+    # Fail-open — igual que el bloque de core.hooksPath
+}
+
 # gh auth check
 try {
     $null = gh auth status 2>&1
     $output.gh_authenticated = ($LASTEXITCODE -eq 0)
 } catch {
     $output.gh_authenticated = $false
+}
+
+# Nombre y topics del repo activo (Issue #201) — mismo costo que la consulta de visibility
+# que ya corre en protocols/session_start.md Paso 3; se resuelve acá para no duplicar la
+# llamada gh en dos lugares distintos.
+if ($output.gh_authenticated) {
+    try {
+        $repoJson = gh repo view --json name,repositoryTopics 2>$null
+        if ($repoJson) {
+            $repoInfo = $repoJson | ConvertFrom-Json
+            $output.repo_name = $repoInfo.name
+            $output.repo_topics = @($repoInfo.repositoryTopics | ForEach-Object { $_.name })
+        }
+    } catch {
+        # Fail-open — sin nombre/topics no debe bloquear session-start
+    }
 }
 
 # current-session.json

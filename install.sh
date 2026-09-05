@@ -44,6 +44,11 @@ echo ""
 echo "[2/3] Configurando CLAUDE.md..."
 
 CLAUDE_ENTRY="${MARKER_BEGIN}
+> Este repo usa el harness Aura vía submódulo \`.aura/\`. Si \`.aura/CLAUDE.md\` no resuelve
+> (aparece vacío o inexistente), el submódulo no está inicializado — correr
+> \`git submodule update --init .aura\` es el PRIMER paso obligatorio de cualquier sesión en
+> este repo, antes de cualquier otra acción. Omitirlo desperdicia el resto de la sesión
+> operando sin protocolo, sin que se note (ver Issue #200).
 @.aura/CLAUDE.md
 ${MARKER_END}"
 

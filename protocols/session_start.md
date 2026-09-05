@@ -115,6 +115,22 @@ git remote prune origin --dry-run
 
 Incluir en el resumen si hay ramas que requieren limpieza.
 
+### Worktrees Adicionales (Issue #200 — regla anti-worktree)
+
+```bash
+git worktree list
+```
+
+Si devuelve más de una entrada (el checkout activo cuenta como una): reportar cada worktree
+adicional en el resumen ejecutivo (sección Advertencias) y **proponer** su eliminación
+(`git worktree remove <path>`), con confirmación del usuario antes de ejecutar — ver
+`agents/github.md` → "Regla anti-worktree" para el criterio completo (worktrees son un recurso
+de excepción, no el flujo por defecto de este harness; ver también Issue #200 para el motivo:
+un worktree nuevo no inicializa `.aura` y puede degradar la sesión a "sin protocolo" sin aviso).
+No aplica al worktree que la sesión de background actual esté usando para su propio
+aislamiento (mecanismo de la plataforma, no del harness) — solo a worktrees adicionales/huérfanos
+detectados junto al checkout activo.
+
 ### Integridad Repo-Remote (si gh autenticado)
 
 Ejecutar solo si `gh auth status` pasó en Paso 2.
@@ -370,6 +386,9 @@ completo (no mostrar un bloque vacío ni un mensaje de error).
 | engram      | ✓/✗   | disponible o no |
 
 ## Repositorio
+- **Nombre:** <repo_name> (del hook, `gh repo view --json name`)
+- **Topics:** <lista separada por comas, o "sin topics" si viene vacío — ver
+  `agents/github.md` → "Convención de Topics de GitHub" para qué significa cada uno>
 - **Branch:** <nombre>
 - **Sin rastrear:** N archivos
 - **Cambios sin commit:** N
@@ -408,6 +427,11 @@ Rama sugerida: `{{TIPO}}/{{CODIGO}}-{{descripcion}}`
 > ⚠ Si `harness_update_check_error` viene presente en el JSON del hook, incluir una sola línea:
 >   `⚠ Chequeo de actualización del harness no pudo ejecutarse: <harness_update_check_error>`
 >   (distingue "se chequeó, no hay update" de "el chequeo nunca corrió" — Issue #111)
+> ⚠ Si `aura_submodule_initialized: true` (del hook), incluir una sola línea (Issue #200):
+>   `⚠ .aura estaba sin inicializar — se corrió 'git submodule update --init .aura' automáticamente`
+> ⚠ Si `git worktree list` devuelve más de una entrada (Paso 3, ver "Salud de Ramas" abajo),
+>   incluir una línea por worktree adicional detectado y la propuesta de limpieza — ver
+>   `agents/github.md` → "Regla anti-worktree"
 ```
 
 ### Nota sobre la línea de aviso de actualización del harness

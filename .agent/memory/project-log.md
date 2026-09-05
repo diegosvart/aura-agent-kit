@@ -4,6 +4,15 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-05 — PR #225 — feat: formalizar traza de sesión como skill (Fase 0 auto-aprendizaje)
+
+**Plan:** `.agent/memory/plans/2026-09-05-aura-auto-aprendizaje-trace-evaluator.md` (Fase 0 de 4)
+**Qué se agregó:** El harness ahora documenta, como capability formal, cómo generar una traza
+visual (diagrama Archify) del comportamiento real de una sesión al cerrarla — útil para revisar
+después qué fricciones u desvíos del flujo esperado ocurrieron, sin depender solo de memoria
+textual. Es un paso opcional que nunca bloquea el cierre de sesión.
+**Archivos clave:** `skills/session-trace/SKILL.md`, `protocols/session_end.md` (Paso 10.5).
+
 ## 2026-09-05 — PR #216 — fix: agregar git fetch antes de chequeos de rama mergeada en session_start
 
 **Issue:** #214

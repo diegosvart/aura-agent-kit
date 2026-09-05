@@ -51,6 +51,35 @@ try {
     # Fail-open — sin rastro si ni el log funciona, no debe bloquear session-start
 }
 
+# Auto-init de .aura sin inicializar (Issue #200) — un worktree nuevo comparte .git pero no
+# el checkout de submódulos; `.aura` puede existir como gitlink vacío sin que nada lo note. Se
+# reutiliza el mismo patrón fail-open del bloque de arriba: detectar, actuar, exponer en el
+# output para que session_start.md lo reporte, nunca bloquear si falla.
+try {
+    $auraPath = Join-Path $projectRoot ".aura"
+    if (Test-Path $auraPath) {
+        Push-Location $projectRoot
+        try {
+            $submoduleStatus = git submodule status .aura 2>$null
+        } finally {
+            Pop-Location
+        }
+        if ($submoduleStatus -and $submoduleStatus.TrimStart().StartsWith("-")) {
+            Push-Location $projectRoot
+            try {
+                git submodule update --init .aura 2>$null
+                $output.aura_submodule_initialized = ($LASTEXITCODE -eq 0)
+            } finally {
+                Pop-Location
+            }
+        } else {
+            $output.aura_submodule_initialized = $false
+        }
+    }
+} catch {
+    # Fail-open — igual que el bloque de core.hooksPath
+}
+
 # gh auth check
 try {
     $null = gh auth status 2>&1

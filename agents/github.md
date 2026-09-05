@@ -39,6 +39,25 @@
   estar en `main` para publicar el tag es correcto ahí, no un caso a abortar (ver sección
   "Proceso de Release" más abajo).
 
+### Regla anti-worktree (Issue #200)
+
+Worktrees (`git worktree add` / `EnterWorktree`) **no son el flujo por defecto** de este
+harness para trabajo interactivo cotidiano — usar ramas (`new-branch-for-issue.sh` + PR) en su
+lugar. Motivo: un worktree nuevo comparte `.git` pero no inicializa el submódulo `.aura`
+automáticamente, lo que puede degradar la sesión a "sin protocolo" sin ningún error visible (ver
+spec `docs/aura/specs/2026-09-05-issue-200-worktree-aura-autoinit.md`).
+
+- Worktrees quedan reservados para paralelismo real (2+ issues simultáneos) o continuidad ante
+  corte de sesión/PC — no para el caso común de "un issue, una sesión".
+- `protocols/session_start.md` Paso 3 detecta (`git worktree list`) si hay más de una entrada
+  además del checkout activo y **propone** su eliminación (`git worktree remove <path>`) —
+  siempre con confirmación previa del usuario (regla universal "nunca ejecutar sin aprobación"),
+  nunca borrado automático silencioso, porque un worktree con cambios sin commitear se pierde
+  sin aviso.
+- **No aplica** al worktree que una sesión de background de Claude Code use para su propio
+  aislamiento — ese es un mecanismo de la plataforma, no del harness, y se limpia según las
+  reglas de esa sesión (commit/push antes de terminar, o descarte si no hubo cambios).
+
 ---
 
 ## Comandos常用

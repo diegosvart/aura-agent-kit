@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.1] - 2026-09-05
+
+### Fixed
+- `skills/observability/scripts/process-session.sh`: 4 heredocs de Python interpolaban rutas
+  Windows (`$SESSIONS_OUTPUT`, `$transcript_path`, `$ROUTER_MD`, `$line`) como literales sin
+  comillas en el delimitador — bash colapsaba los backslashes antes de que Python los recibiera,
+  corrompiendo el path/JSON. `delegation_rate` (Issue #179) nunca se calculaba pese a tener
+  sesiones reales para procesar. Fix: rutas pasadas vía variable de entorno, delimitadores entre
+  comillas simples en los 4 heredocs (Issue #205, PR #215)
+- `protocols/session_start.md` Paso 3 ("Salud de Ramas"): `git branch --merged develop` corría
+  sin actualizar antes la referencia local de `develop`, produciendo falsos negativos cuando el
+  `develop` local estaba desactualizado respecto del remoto. Se agrega `git fetch origin develop
+  --quiet` antes de los chequeos de rama mergeada (Issue #214, PR #216)
+
 ## [2.6.0] - 2026-09-02
 
 ### Added

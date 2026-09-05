@@ -1,5 +1,9 @@
 ---
 status: approved
+fase_0_status: done
+fase_0_pr: "#225"
+fase_0_commit: ddf523c838e029f9fe2720b05953fbf8d70eda55
+fase_0_completed_at: 2026-09-05
 ---
 
 # Plan — Auto-aprendizaje de Aura: traza de sesión + loop de mejora continua + proyecto de evaluación

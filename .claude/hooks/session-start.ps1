@@ -88,9 +88,8 @@ try {
     $output.gh_authenticated = $false
 }
 
-# Nombre y topics del repo activo (Issue #201) — mismo costo que la consulta de visibility
-# que ya corre en protocols/session_start.md Paso 3; se resuelve acá para no duplicar la
-# llamada gh en dos lugares distintos.
+# Nombre y topics del repo activo (Issue #201) — permite sugerir la identidad de commit
+# correcta (personal vs. corporativa) sin depender de que el operador se acuerde de mirarlo.
 if ($output.gh_authenticated) {
     try {
         $repoJson = gh repo view --json name,repositoryTopics 2>$null

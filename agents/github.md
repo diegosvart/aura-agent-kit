@@ -76,6 +76,36 @@ nombre de la rama creada. Falla explícitamente (exit 1) si la rama ya existe o 
 
 ---
 
+## Convención de Topics de GitHub (Issue #201)
+
+GitHub repository topics (`gh repo edit <repo> --add-topic <topic>`) — metadata nativa de
+GitHub, consultable vía `gh search repos --topic=<x> --owner=<user>` sin clonar cada repo,
+visible en la UI. Tres dimensiones independientes, aplicables a cualquier repo propio:
+
+| Dimensión | Valores | Ejemplo |
+|-----------|---------|---------|
+| Ownership | `personal` / `<empresa>-copropiedad` | `ebi-copropiedad` |
+| Dominio/stack | `frontend`, `backend`, `automation`, `ml`, `mobile`, `infra`, etc. (catálogo abierto) | `automation` |
+| Nombre de repo nuevo (no es topic) | `<empresa>-<proyecto>` (corporativo) / nombre directo (personal) | `ebi-facturacion-app` |
+
+**Un topic es declarativo, no un instrumento legal de cesión de propiedad intelectual.** Si la
+copropiedad implica trazabilidad legal real (ej. trabajo pagado por la compañía), eso requiere
+un acuerdo escrito aparte — el topic solo dice "esto está marcado como tal".
+
+**No confundir con `topic_key` de Engram** (ver más abajo, "Convención `topic_key`") — es un
+concepto de agrupación de observaciones de memoria, completamente distinto a un GitHub
+repository topic.
+
+**Convención de nombre de repo nuevo:** aplica solo a repos creados de acá en adelante — nunca
+renombrar repos existentes (rompe clones locales, CI, links, remotes de otros colaboradores).
+
+**Auditoría (solo reporta, nunca modifica):**
+```bash
+skills/repo-integrity/scripts/audit-repo-topics.sh
+```
+
+---
+
 ## Salud del Repositorio
 
 Verificar al inicio de sesión (Paso 3 de `protocols/session_start.md`).

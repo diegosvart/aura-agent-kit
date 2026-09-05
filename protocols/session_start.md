@@ -370,6 +370,9 @@ completo (no mostrar un bloque vacío ni un mensaje de error).
 | engram      | ✓/✗   | disponible o no |
 
 ## Repositorio
+- **Nombre:** <repo_name> (del hook, `gh repo view --json name`)
+- **Topics:** <lista separada por comas, o "sin topics" si viene vacío — ver
+  `agents/github.md` → "Convención de Topics de GitHub" para qué significa cada uno>
 - **Branch:** <nombre>
 - **Sin rastrear:** N archivos
 - **Cambios sin commit:** N

@@ -31,8 +31,11 @@ case "$SUBCOMMAND" in
       echo "Debe correrse estando en 'develop'." >&2
       exit 1
     fi
-    if ! grep -q "^## \[$VERSION\]" CHANGELOG.md; then
-      echo "CHANGELOG.md no tiene una seccion '## [$VERSION]' -- agregala antes de correr este paso." >&2
+    # CHANGELOG.md nunca usa el prefijo "v" en sus encabezados (## [2.6.0], no ## [v2.6.0]) --
+    # mismo criterio que el bump de plugin.json un poco mas abajo.
+    changelog_version="${VERSION#v}"
+    if ! grep -q "^## \[$changelog_version\]" CHANGELOG.md; then
+      echo "CHANGELOG.md no tiene una seccion '## [$changelog_version]' -- agregala antes de correr este paso." >&2
       exit 1
     fi
     if git diff --quiet CHANGELOG.md && git diff --cached --quiet CHANGELOG.md; then

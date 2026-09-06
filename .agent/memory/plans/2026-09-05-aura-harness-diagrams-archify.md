@@ -1,5 +1,5 @@
 ---
-status: approved
+status: done
 ---
 
 # Plan — Repo `aura-harness-diagrams` (visualización del flujo diseñado del harness con Archify)

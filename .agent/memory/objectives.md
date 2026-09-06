@@ -56,6 +56,12 @@ de implementación en curso delegado, verificar estado real de cada issue antes 
 - PR #215 (Issue #205) y PR #216 (Issue #214) abiertos — verificar si el usuario ya los
   mergeó antes de asumir que siguen pendientes.
 - Sandbox `diegosvart/aura-agent-kit-sandbox` creado (repo vacío, falta el push del mirror).
+- **Repo `aura-harness-diagrams` creado y scaffolded** (2026-09-05, sesión de cierre):
+  privado, `.aura/` pinneado a `v2.6.1`, hooks + `settings.json` + `AGENTS.local.md` +
+  `CLAUDE.md` commiteados y pusheados (`main`). 3 issues `ready` creados (#1 router, #2
+  ciclo de sesión, #3 ciclo de issue). Falta el handoff real: el usuario debe correr
+  `claude .` en ese repo para que una sesión nueva resuelva los issues (ver plan
+  `.agent/memory/plans/2026-09-05-aura-harness-diagrams-archify.md`, `status: done`).
 
 ---
 

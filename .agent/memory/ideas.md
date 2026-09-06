@@ -326,7 +326,7 @@ _(sin iterar)_
 
 
 ## [023] Review obligatorio (gate duro) + agente en loop hasta objetivo medible
-**Estado:** raw
+**Estado:** exploring
 **Capturado:** 2026-09-06
 **Prioridad:** Hacer — impacto alto, esfuerzo medio
 **Contexto:** Surge al cerrar el Issue #231 (PR #237, frontmatter piloto de
@@ -344,6 +344,27 @@ seguimiento manual entre sesiones en vez de un loop verificado). Relacionado:
 idea [021] (mecanismo de validacion/seguimiento de errores del agente).
 
 ### Iteraciones
-_(sin iterar)_
+- [2026-09-06] Usuario pide agregar una **capa de rendimiento esperado**: definir cómo debería
+  comportarse el harness después de estos cambios (hook `pr-base-guard.ps1`, `evaluator.md`
+  flow-conformance-check, frontmatter piloto) y si eso ya queda reflejado en los logs
+  almacenados. Verificado contra el código real de las 2 skills candidatas antes de responder:
+  `skills/observability/SKILL.md` mide `output_tokens`/`tool_uses`/`duration_ms`/
+  `delegation_rate` (cuantitativo, por sesión) pero no registra el contenido de un error o
+  denegación de permiso — solo cuenta el tool_use. `skills/session-trace/SKILL.md` genera un
+  diagrama narrativo **autoreado a mano** al cierre de sesión (opcional, no determinístico),
+  puede mencionar una fricción solo si el agente decide incluirla. `agents/evaluator.md`
+  (`flow-conformance-check`, Frente C de #148) compara la traza real contra el diagrama de
+  flujo esperado — conformidad estructural (¿se siguió `router.md`?), no rendimiento ni log de
+  errores técnicos. **Gap confirmado:** los errores de consola que el usuario ve (ej. esta
+  sesión: el `Agent` tool bloqueado por el clasificador de Auto Mode al intentar delegar un
+  borrado de ramas, el guardia de aislamiento de worktree rechazando comandos git compuestos)
+  no quedan escritos en ningún lugar hoy salvo que el agente los note manualmente en Engram —
+  ninguno de los 3 mecanismos existentes los captura de forma sistemática. Esto es el mismo gap
+  ya descrito en la idea [021], ahora con evidencia nueva y concreta (bloqueos reales del
+  clasificador, no solo errores de razonamiento del agente). Próximo paso natural: `/idea 23`
+  o `/idea 21` para explorar (PM→Planner→Engineer) si conviene fusionar ambas ideas en un único
+  mecanismo — captura de error/denegación de tool en el momento (posible hook o wrapper),
+  guardado consultable (¿extensión de `sessions.jsonl`?), y una definición explícita de
+  "comportamiento esperado" contra la cual medir cada corrida, no solo `delegation_rate`.
 
 ---

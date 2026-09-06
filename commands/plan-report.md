@@ -1,7 +1,7 @@
 # Comando — /plan-report
 
 > **Skill:** `skills/plan-reporting/SKILL.md` (fuente de verdad del procedimiento)
-> **Agente:** `.claude/agents/plan-reporter.md` (ejecuta el skill en contexto aislado)
+> **Agente:** `agents/plan-reporter.md` (ejecuta el skill en contexto aislado)
 > **Cuándo usar:** Para generar un reporte de gestión de un plan estratégico — tareas accionables, análisis de riesgo, sugerencias de bucket.
 
 ---

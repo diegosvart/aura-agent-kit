@@ -1,3 +1,9 @@
+---
+name: reviewer
+description: Use proactively when implementation work is complete and ready for a pre-merge quality gate — code quality, architecture, security, and test coverage. Use after tests pass locally and before opening or merging a PR.
+tools: Read, Grep, Glob, Bash
+---
+
 # Agente Reviewer — Tests, Arquitectura, Calidad
 
 > **Propósito:** Revisar código antes de merges, garantizar calidad, validar arquitectura y tests.

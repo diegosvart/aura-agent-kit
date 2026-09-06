@@ -36,8 +36,14 @@ Generar mensaje de review:
     - Decisiones no obvias
     - Preguntas específicas para el reviewer
     ↓
-gh pr create / gh pr edit con el mensaje
+gh pr create --repo <owner>/<repo> --base develop --head <rama> --title "<título>" --body-file <archivo>
+(si la PR ya existe: gh pr edit <N> --title "<título>" --body-file <archivo> — sin tocar --base)
 ```
+
+`--base develop` es obligatorio y explícito, nunca implícito (ver `pr-base-guard.ps1`,
+Issue #148/#230 — 3 incidentes reales de `gh pr create` sin `--base` cayendo al default
+branch del repo). Única excepción legítima: `--base main --head develop`, el paso
+`promote` de `cut-release.sh`.
 
 ---
 

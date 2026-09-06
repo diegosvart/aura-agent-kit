@@ -4,6 +4,51 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-06 — PR #237 — feat(agents): frontmatter YAML piloto en reviewer/challenger/github
+
+**Issue:** #231 (Frente B de `docs/aura/specs/2026-09-06-flujo-respetado-orchestrator.md`,
+causa raíz de #148) — issue queda abierto post-merge, no lo cierra este PR.
+**Qué se agregó:** Frontmatter YAML (`name`/`description`/`tools`) en 3 agentes piloto
+(`agents/reviewer.md`, `agents/challenger.md`, `agents/github.md`), con `description` en el
+patrón "use proactively when X / use after Y" que Claude Code usa para auto-delegar
+subagentes — mecanismo real de delegación, ninguno de los 9 `agents/*.md` lo tenía hasta
+ahora. Verificado con TDD real: nuevo script
+`skills/repo-integrity/scripts/check-agent-frontmatter.sh` corrido en RED (sin frontmatter,
+`NO-FRONTMATTER` en los 3) y GREEN (con frontmatter, `OK` en los 3) antes de commitear. El
+criterio de cierre del issue (`delegation_rate >= 25%` medido en ≥5 sesiones posteriores)
+queda pendiente, acumulando evidencia real — no bloqueó este PR.
+**Archivos clave:** `agents/reviewer.md`, `agents/challenger.md`, `agents/github.md`,
+`skills/repo-integrity/scripts/check-agent-frontmatter.sh`
+
+## 2026-09-06 — PR #233 — fix(hooks): bloquear gh pr create/merge/edit --base fuera de develop
+
+**Issue:** #230 (Frente A de `docs/aura/specs/2026-09-06-flujo-respetado-orchestrator.md`, causa raíz de #148)
+**Qué se agregó:** Nuevo hook `PreToolUse` `.claude/hooks/pr-base-guard.ps1` (mismo patrón
+fail-open+log que `git-guard.ps1`/`sensitive-data-guard.ps1`): bloquea `gh pr create` sin
+`--base` o con `--base` distinto de `develop`, `gh pr edit --base` fuera de `develop`, y
+`gh pr merge` cuyo `baseRefName` (resuelto vía `gh pr view --json`) no sea `develop`. Única
+excepción: `--base main` + `--head develop` (release promote). Es el primer enforcement duro
+real para el bug de #148 (3 incidentes previos, ningún chequeo existente lo bloqueaba antes
+del merge, solo detección informativa post-hoc). `commands/request-review.md:39` generalizado
+con el comando completo (`--base develop` explícito).
+`/code-review` sobre el PR encontró 2 bugs reales antes de mergear (comandos shell
+encadenados `&&`/`;` dejaban pasar un segundo `gh pr create` con `--base` incorrecto; un flag
+booleano antes del positional en `gh pr merge --squash 123` hacía que se resolviera la PR de
+la rama actual en vez de la indicada) — corregidos con tests de regresión antes del merge.
+Primer test Pester del harness (no había precedente); solo Pester 3.4.0 disponible en este
+entorno (sintaxis legacy `Should Be`). Suite final: 14/14 PASSED.
+**Archivos clave:** `.claude/hooks/pr-base-guard.ps1`, `.claude/hooks/pr-base-guard.Tests.ps1`,
+`.claude/settings.json`, `commands/request-review.md`
+
+## 2026-09-05 — PR #225 — feat: formalizar traza de sesión como skill (Fase 0 auto-aprendizaje)
+
+**Plan:** `.agent/memory/plans/2026-09-05-aura-auto-aprendizaje-trace-evaluator.md` (Fase 0 de 4)
+**Qué se agregó:** El harness ahora documenta, como capability formal, cómo generar una traza
+visual (diagrama Archify) del comportamiento real de una sesión al cerrarla — útil para revisar
+después qué fricciones u desvíos del flujo esperado ocurrieron, sin depender solo de memoria
+textual. Es un paso opcional que nunca bloquea el cierre de sesión.
+**Archivos clave:** `skills/session-trace/SKILL.md`, `protocols/session_end.md` (Paso 10.5).
+
 ## 2026-09-05 — PR #216 — fix: agregar git fetch antes de chequeos de rama mergeada en session_start
 
 **Issue:** #214

@@ -81,6 +81,11 @@
             "type": "command",
             "command": "pwsh -NonInteractive -File .claude/hooks/sensitive-data-guard.ps1",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File .claude/hooks/pr-base-guard.ps1",
+            "timeout": 5
           }
         ]
       },
@@ -95,6 +100,11 @@
           {
             "type": "command",
             "command": "pwsh -NonInteractive -File .claude/hooks/sensitive-data-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File .claude/hooks/pr-base-guard.ps1",
             "timeout": 5
           }
         ]

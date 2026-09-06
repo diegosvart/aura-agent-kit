@@ -417,7 +417,7 @@ completo (no mostrar un bloque vacío ni un mensaje de error).
 > Si no hay: "✓ Sin PRs abiertas"
 
 ## Ideas en Backlog
-> N ideas — revisar con `/ideas` o abrir `.agent/memory/ideas.md`
+> N ideas — revisar con `/idea` o abrir `.agent/memory/ideas.md`
 > (Si ideas_count == 0: omitir esta sección)
 
 ## Próxima Acción Recomendada

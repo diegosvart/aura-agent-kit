@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-09-06
+
+### Added
+- `.claude/hooks/pr-base-guard.ps1`: nuevo hook `PreToolUse` que bloquea `gh pr create` sin
+  `--base` o con `--base` distinto de `develop`, `gh pr edit --base` fuera de `develop`, y
+  `gh pr merge` cuyo `baseRefName` no sea `develop` (única excepción: release promote
+  `--base main --head develop`). Primer enforcement duro real para el bug del 3er incidente
+  de PR contra rama base incorrecta (Issue #148, causa raíz — Issue #230, PR #233)
+- `agents/evaluator.md`: nuevo agente evaluador retrospectivo de sesiones con proceso
+  `flow-conformance-check` — compara la traza real de una sesión (`session-trace`) contra un
+  diagrama de flujo esperado versionado en un repo externo, más config cross-repo y
+  manifiesto vivo de capabilities (`docs/aura/CAPABILITIES.md`) mantenido por `doc-guardian`
+  (Issue #232, PR #235)
+- `skills/session-trace/SKILL.md`: formaliza como capability documentada la generación de una
+  traza visual (diagrama Archify) del comportamiento real de una sesión al cerrarla — Fase 0
+  de auto-aprendizaje del harness (Issue #223, PR #225)
+- Frontmatter YAML (`name`/`description`/`tools`) en `agents/reviewer.md`,
+  `agents/challenger.md`, `agents/github.md` — piloto de 3 agentes con `description` en el
+  patrón "use proactively when X / use after Y" que Claude Code usa para auto-delegar
+  subagentes; incluye `skills/repo-integrity/scripts/check-agent-frontmatter.sh` como gate de
+  formato (Issue #231, PR #237)
+- `agents/plan-reporter.md`, `skills/observability/SKILL.md`: recuperados tras quedar
+  huérfanos de un squash-merge anterior — cierran 2 referencias rotas preexistentes
+  (`commands/plan-report.md` apuntaba a un archivo inexistente; `skills/observability/` no
+  era invocable como el resto de las skills) (PR #236)
+
+### Fixed
+- `skills/agentic-dev-loop/scripts/cleanup-merged-branch.sh`: no detectaba ramas
+  squash-mergeadas como listas para borrar, dejando ramas locales obsoletas acumulándose
+  (PR #227)
+- 4 inconsistencias de documentación encontradas por `doc-guardian`: referencias rotas a
+  `.claude/agents/plan-reporter.md`, a `/ideas`, y a `aura:executing-plans` (PR #236)
+
 ## [2.6.1] - 2026-09-05
 
 ### Fixed

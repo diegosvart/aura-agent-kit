@@ -84,3 +84,7 @@ docs/aura/experiments/
 # Denylist local de sensitive-data-guard.ps1 — términos reales del proyecto (cliente,
 # stakeholders), nunca versionar. Ver .claude/sensitive-terms.local.txt.example.
 .claude/sensitive-terms.local.txt
+
+# Config cross-repo de agents/evaluator.md — ruta de checkout local a aura-harness-diagrams,
+# específica de cada máquina. Ver .agent/memory/evaluator-config.json.example.
+.agent/memory/evaluator-config.json

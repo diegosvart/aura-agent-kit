@@ -270,6 +270,28 @@ Antes de cerrar, dedicar 30 segundos a observar:
 
 ---
 
+## Paso 10.5 — Traza de Sesión (opcional, fail-open)
+
+Ver `skills/session-trace/SKILL.md` para el proceso completo. Aplicar el mismo criterio de
+"vale la pena" que Paso 10 (Auto-Research) — no preguntar en cada cierre, solo cuando hubo
+señal concreta:
+
+- ¿Hubo fricción real del harness, un desvío notable del flujo esperado, o una decisión de
+  diseño no obvia que costó varios intentos resolver?
+
+**Si sí** → proponer antes de cerrar:
+> "Esta sesión tuvo [fricción/desvío concreto]. ¿Querés que genere una traza Archify para
+> poder revisarla visualmente después?"
+
+**Si el usuario acepta** → seguir el proceso de `skills/session-trace/SKILL.md` (autorear JSON
+IR → validar `showcase` → entregar HTML → informar ruta local).
+
+**Si el usuario rechaza, o no hay señal concreta** → cerrar normalmente, sin insistir. Este
+paso nunca bloquea el cierre de sesión — el flujo completo de este protocolo funciona igual con
+o sin traza.
+
+---
+
 ## Reglas
 
 1. **No cerrar si hay checks fallando** — el usuario debe saberlo

@@ -1,3 +1,9 @@
+---
+name: github
+description: Use proactively for git/GitHub operations — creating or cleaning up branches, opening or merging PRs, closing issues, checking branch protection. Use after implementation work is done and ready to open a PR toward develop.
+tools: Bash, Read
+---
+
 # Agente GitHub — Ramas, Issues, PRs, Merge
 
 > **Propósito:** Gestionar toda la operativa de Git y GitHub para mantener el flujo de trabajo ordenado.

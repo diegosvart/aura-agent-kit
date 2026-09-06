@@ -93,8 +93,16 @@ Agregar al `.claude/settings.json` de tu proyecto (mergear si ya existe):
       { "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/context-guard.ps1", "timeout": 5 }] }
     ],
     "PreToolUse": [
-      { "matcher": "Bash",       "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1", "timeout": 5 }] },
-      { "matcher": "PowerShell", "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1", "timeout": 5 }] }
+      { "matcher": "Bash",       "hooks": [
+        { "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1", "timeout": 5 },
+        { "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/sensitive-data-guard.ps1", "timeout": 5 },
+        { "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/pr-base-guard.ps1", "timeout": 5 }
+      ] },
+      { "matcher": "PowerShell", "hooks": [
+        { "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1", "timeout": 5 },
+        { "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/sensitive-data-guard.ps1", "timeout": 5 },
+        { "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/pr-base-guard.ps1", "timeout": 5 }
+      ] }
     ],
     "SessionStart": [
       { "matcher": "startup", "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/session-start.ps1", "timeout": 30 }] },
@@ -198,11 +206,11 @@ git submodule deinit -f .aura
 git rm -f .aura
 rm -rf .git/modules/.aura
 # Eliminar bloque <!-- aura:begin --> ... <!-- aura:end --> de CLAUDE.md
-rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1
+rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1 .claude/hooks/sensitive-data-guard.ps1 .claude/hooks/pr-base-guard.ps1
 ```
 
 **Opción C (solo plugin):**
 ```bash
 claude plugin uninstall aura@aura-agent-kit
-rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1
+rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1 .claude/hooks/sensitive-data-guard.ps1 .claude/hooks/pr-base-guard.ps1
 ```

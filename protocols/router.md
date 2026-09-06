@@ -19,6 +19,7 @@
 | **Revisar antes de merge** | `agents/reviewer.md` | Pre-merge, code review, quality gate |
 | **Cuestionar un plan o spec** | `agents/challenger.md` | Spec lista para pasar a /write-plan |
 | **Validar spec técnicamente** | `skills/spec-validation/SKILL.md` | Después de /brainstorm, antes de challenger |
+| **Crear un proyecto nuevo (repo consumidor de Aura)** | `skills/new-project-setup/SKILL.md` via `/new-project` | Usuario quiere iniciar un repo nuevo con el harness instalado de punta a punta (directorio local, submodule/plugin, identidad, primer push) |
 | **Planificar trabajo nuevo** | `skills/issue-planning/SKILL.md` via `/plan-work` | Usuario describe trabajo nuevo, no hay issues ready |
 | **Rama lista para PR** | `skills/finishing-a-development-branch/SKILL.md` via `/finish-branch` | Commits sin PR, rama completa |
 | **Solicitar code review** | `skills/requesting-code-review/SKILL.md` via `/request-review` | PR abierta lista para revisión |
@@ -57,7 +58,7 @@
 | Diseño + implementación completa | `task_start.md` → (brainstorm) → `spec-validation` → `challenger` → `language.md` → `github.md` → `reviewer.md` |
 | Inicio sin issues pendientes | `session_start.md` → `/plan-work` → `task_start.md` |
 | Inicio sin stack detectado | `session_start.md` → `stack-selection/SKILL.md` → capability menu |
-| Proyecto nuevo desde cero | `stack-selection/SKILL.md` → estructura inicial → `github.md` → `/plan-work` |
+| Proyecto nuevo desde cero (repo consumidor de Aura) | `/new-project` (`new-project-setup/SKILL.md`, incluye `stack-selection` en su Paso 6) → `github.md` → `/plan-work` |
 | Rama terminada | `session_end.md` → `/finish-branch` → `/request-review` |
 | Cierre con cambios en .md | `session_end.md` → `/doc-check` |
 | Cierre con fricción detectada | `session_end.md` → `/auto-research` |

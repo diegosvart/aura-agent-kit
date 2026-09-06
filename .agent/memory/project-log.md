@@ -4,6 +4,22 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-06 — PR #237 — feat(agents): frontmatter YAML piloto en reviewer/challenger/github
+
+**Issue:** #231 (Frente B de `docs/aura/specs/2026-09-06-flujo-respetado-orchestrator.md`,
+causa raíz de #148) — issue queda abierto post-merge, no lo cierra este PR.
+**Qué se agregó:** Frontmatter YAML (`name`/`description`/`tools`) en 3 agentes piloto
+(`agents/reviewer.md`, `agents/challenger.md`, `agents/github.md`), con `description` en el
+patrón "use proactively when X / use after Y" que Claude Code usa para auto-delegar
+subagentes — mecanismo real de delegación, ninguno de los 9 `agents/*.md` lo tenía hasta
+ahora. Verificado con TDD real: nuevo script
+`skills/repo-integrity/scripts/check-agent-frontmatter.sh` corrido en RED (sin frontmatter,
+`NO-FRONTMATTER` en los 3) y GREEN (con frontmatter, `OK` en los 3) antes de commitear. El
+criterio de cierre del issue (`delegation_rate >= 25%` medido en ≥5 sesiones posteriores)
+queda pendiente, acumulando evidencia real — no bloqueó este PR.
+**Archivos clave:** `agents/reviewer.md`, `agents/challenger.md`, `agents/github.md`,
+`skills/repo-integrity/scripts/check-agent-frontmatter.sh`
+
 ## 2026-09-06 — PR #233 — fix(hooks): bloquear gh pr create/merge/edit --base fuera de develop
 
 **Issue:** #230 (Frente A de `docs/aura/specs/2026-09-06-flujo-respetado-orchestrator.md`, causa raíz de #148)

@@ -323,3 +323,27 @@ _(sin iterar)_
 
 ### Iteraciones
 _(sin iterar)_
+
+
+## [023] Review obligatorio (gate duro) + agente en loop hasta objetivo medible
+**Estado:** raw
+**Capturado:** 2026-09-06
+**Prioridad:** Hacer — impacto alto, esfuerzo medio
+**Contexto:** Surge al cerrar el Issue #231 (PR #237, frontmatter piloto de
+reviewer/challenger/github): el PR se mergeó con `reviewDecision` vacío — no hay branch
+protection que exija una aprobación real antes de mergear, mismo patrón de "gate declarado en
+texto pero no forzado" que motivó `.aura/rules/repo-integrity.md` y el hook
+`pr-base-guard.ps1` (Issue #148/#230). Dos pedidos del usuario, relacionados pero distintos:
+(1) el review de un PR debería ser un gate duro (branch protection real con
+`required_pull_request_reviews`, no solo la convención de invocar `/request-review`); (2) el
+agente no debería declarar una tarea terminada tras una sola pasada — debe operar en loop
+hasta verificar el criterio de éxito medible de esa tarea (paralelo directo al criterio de
+cierre del propio Issue #231: `delegation_rate >= 25%` en >=5 sesiones, que hoy queda como
+seguimiento manual entre sesiones en vez de un loop verificado). Relacionado:
+`.aura/rules/subagent-dispatch.md` (metrica de auditoria post-hoc como precedente),
+idea [021] (mecanismo de validacion/seguimiento de errores del agente).
+
+### Iteraciones
+_(sin iterar)_
+
+---

@@ -21,8 +21,10 @@
 3. Verifica consistencia de versión
 4. Detecta placeholders sin completar fuera de templates
 5. Verifica estructura requerida en SKILL.md y agents/*.md
-6. Emite reporte con [ROTO], [INCONSISTENTE], [INCOMPLETO], [OK]
-7. Veredicto final: **ÍNTEGRO** o **REQUIERE CORRECCIÓN**
+6. Con `--all` (o sin argumentos, repo completo): regenera el manifiesto vivo
+   `docs/aura/CAPABILITIES.md` (agentes, skills, comandos, protocolos)
+7. Emite reporte con [ROTO], [INCONSISTENTE], [INCOMPLETO], [OK]
+8. Veredicto final: **ÍNTEGRO** o **REQUIERE CORRECCIÓN**
 
 ---
 

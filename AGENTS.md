@@ -56,6 +56,7 @@
 | Cambios en documentación | `/doc-check` → `agents/doc-guardian.md` |
 | Gestionar objetivos / ideas | `/idea` → `skills/idea-management/SKILL.md` |
 | Mejorar el harness | `/auto-research` → `skills/auto-research/SKILL.md` |
+| Evaluar sesiones pasadas | `/evaluate-sessions` → `agents/evaluator.md` |
 | Reporte de un plan estratégico | `/plan-report` → `skills/plan-reporting/SKILL.md` → `.claude/agents/plan-reporter.md` |
 | Loop de desarrollo + verificación de issues | `/run-dev-loop` → `skills/agentic-dev-loop/SKILL.md` |
 | Manejo de datos sensibles / repo público | `.claude/rules/sensitive-data-safety.md` |

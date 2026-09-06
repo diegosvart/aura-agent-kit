@@ -1,5 +1,5 @@
 ---
-status: approved
+status: done
 ---
 
 # Plan — Issue #232: agents/evaluator.md (Fase 1 auto-aprendizaje)

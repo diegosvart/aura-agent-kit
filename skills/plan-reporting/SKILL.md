@@ -6,7 +6,7 @@ description: Genera reporte de gestión, tareas accionables y análisis de riesg
 # Skill — plan-reporting
 
 > **Comando:** `/plan-report "<nombre del plan>"`
-> **Agente:** `.claude/agents/plan-reporter.md` ejecuta este procedimiento.
+> **Agente:** `agents/plan-reporter.md` ejecuta este procedimiento.
 > **Cuándo activar:** Usuario pide reporte de gestión, tareas accionables, análisis de riesgo, o estado de un plan estratégico.
 
 ---

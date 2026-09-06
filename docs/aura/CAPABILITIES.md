@@ -18,6 +18,7 @@
 | Agente | GitHub — Ramas, Issues, PRs, Merge | `agents/github.md` | Gestionar toda la operativa de Git y GitHub para mantener el flujo de trabajo ordenado. |
 | Agente | Infra — Docker, CI/CD, Environments, Secrets | `agents/infra.md` | Gestionar la infraestructura del proyecto: contenedores, pipelines de CI/CD, entornos y gestión de secretos. |
 | Agente | Language — Stack del Proyecto | `agents/language.md` | Ser el experto en la tecnología del proyecto, ejecutando código, entendiendo el dominio y aplicando las mejores prácticas del stack. |
+| Agente | Plan Reporter | `agents/plan-reporter.md` | Ejecutar `skills/plan-reporting/SKILL.md` en contexto aislado — genera un |
 | Agente | Reviewer — Tests, Arquitectura, Calidad | `agents/reviewer.md` | Revisar código antes de merges, garantizar calidad, validar arquitectura y tests. |
 | Skill | agentic-dev-loop | `skills/agentic-dev-loop/SKILL.md` | Ejecuta issues con label ready usando agentes, separando desarrollo (no supervisado) de verificación (nunca mergea sola). Usar al correr /run-dev-loop. |
 | Skill | auto-research | `skills/auto-research/SKILL.md` | Formaliza la mejora continua del harness con hipótesis documentadas. Usar cuando se detecta fricción repetida, un workaround recurrente, una pregunta que se repite entre sesiones, un paso de protocolo que se saltea sistemáticamente, o una inconsistencia entre skills/protocolos. |
@@ -27,6 +28,7 @@
 | Skill | harness-update | `skills/harness-update/SKILL.md` | Detect and apply updates to the harness submodule |
 | Skill | idea-management | `skills/idea-management/SKILL.md` | Captura, madura y promueve objetivos de alto nivel a través de un ciclo de vida estructurado. Usar cuando el usuario quiere registrar una idea, explorarla, o promoverla a planificación. |
 | Skill | issue-planning | `skills/issue-planning/SKILL.md` | Refina el requerimiento del usuario y lo convierte en uno o varios issues de GitHub listos para trabajar. Usar cuando el usuario describe trabajo nuevo o quiere planificar. |
+| Skill | observability | `skills/observability/SKILL.md` | Procesa el índice de sesiones (sessions-index.jsonl) y calcula métricas por sesión — output_tokens, tool_uses por categoría, duration_ms y delegation_rate (Issue #179). Invocada automáticamente desde el Paso 5.5 de protocols/session_start.md; no requiere invocación manual normalmente. |
 | Skill | plan-reporting | `skills/plan-reporting/SKILL.md` | Genera reporte de gestión, tareas accionables y análisis de riesgo de un plan estratégico. Usar cuando el usuario pide un reporte de estado de un plan. |
 | Skill | repo-integrity | `skills/repo-integrity/SKILL.md` | Detecta trabajo stranded (issue cerrado sin PR mergeada) y ramas que requieren limpieza. Invocada desde el Paso 3 de session_start. |
 | Skill | requesting-code-review | `skills/requesting-code-review/SKILL.md` | Use after completing significant implementation work, before merging or moving forward |
@@ -58,9 +60,9 @@
 
 ## Notas de esta generación
 
-- `skills/observability/` no aparece en la tabla porque no tiene `SKILL.md` (el manifiesto
-  se construye vía `Glob` sobre `skills/*/SKILL.md`) — ver hallazgo `[INCOMPLETO]` en el
-  reporte de `/doc-check --all` correspondiente.
+- `agents/plan-reporter.md` y `skills/observability/SKILL.md` (ambos creados en esta sesión
+  para resolver referencias colgantes detectadas en la corrida anterior de `/doc-check --all`)
+  ya aparecen en la tabla — la corrida anterior los excluía porque no existían.
 - `commands/idea.md` no tiene una línea de propósito bajo el título (`> **Propósito:**`,
   `> **Qué hace:**` o `> **Cuándo usar:**`) como las demás — la descripción de esta fila es
   un fallback derivado del contenido, no una extracción literal.

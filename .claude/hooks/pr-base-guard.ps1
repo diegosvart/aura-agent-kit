@@ -66,7 +66,72 @@ function Resolve-PrBaseHead {
     }
 }
 
-function Test-PrBaseGuard {
+# Divide un comando compuesto (&&, ||, ;, |) en segmentos, respetando comillas simples/dobles,
+# para que cada invocacion 'gh pr ...' se evalue de forma independiente. Sin esto, un comando
+# tipo 'gh pr create --base develop ... && gh pr create --base main ...' dejaba pasar el segundo
+# porque la extraccion de flags buscaba en todo el string, no por invocacion (code-review PR #233).
+function Split-ShellSegments {
+    param([string]$Command)
+    $segments = New-Object System.Collections.Generic.List[string]
+    $current = New-Object System.Text.StringBuilder
+    $inSingle = $false
+    $inDouble = $false
+    $i = 0
+    while ($i -lt $Command.Length) {
+        $ch = $Command[$i]
+        if ($ch -eq "'" -and -not $inDouble) { $inSingle = -not $inSingle; [void]$current.Append($ch); $i++; continue }
+        if ($ch -eq '"' -and -not $inSingle) { $inDouble = -not $inDouble; [void]$current.Append($ch); $i++; continue }
+        if (-not $inSingle -and -not $inDouble) {
+            if (($i + 1) -lt $Command.Length -and $Command.Substring($i, 2) -in @('&&', '||')) {
+                $segments.Add($current.ToString()) | Out-Null
+                [void]$current.Clear()
+                $i += 2
+                continue
+            }
+            if ($ch -eq ';' -or $ch -eq '|') {
+                $segments.Add($current.ToString()) | Out-Null
+                [void]$current.Clear()
+                $i += 1
+                continue
+            }
+        }
+        [void]$current.Append($ch)
+        $i++
+    }
+    $segments.Add($current.ToString()) | Out-Null
+    return $segments
+}
+
+# Extrae el target posicional de 'gh pr merge' (numero de PR, URL o rama) saltando flags que
+# preceden al positional -- 'gh pr merge --squash 123' debe resolver el PR 123, no la rama
+# actual (code-review PR #233). Solo los flags de $valueFlags consumen el token siguiente;
+# el resto (--squash, --merge, --rebase, --auto, --admin, --delete-branch, etc.) son booleanos.
+function Get-MergeTarget {
+    param([string]$Segment)
+    $valueFlags = @('repo', 'subject', 'body', 'body-file', 'match-head-commit')
+    $tokenMatches = [regex]::Matches($Segment, '"[^"]*"|''[^'']*''|\S+')
+    $tokens = @($tokenMatches | ForEach-Object { $_.Value.Trim('"').Trim("'") })
+
+    $mergeIdx = -1
+    for ($k = 1; $k -lt $tokens.Count; $k++) {
+        if ($tokens[$k] -eq 'merge' -and $tokens[$k - 1] -eq 'pr') { $mergeIdx = $k; break }
+    }
+    if ($mergeIdx -eq -1) { return $null }
+
+    $j = $mergeIdx + 1
+    while ($j -lt $tokens.Count) {
+        $tok = $tokens[$j]
+        if ($tok -match '^--?([A-Za-z-]+)') {
+            if ($tok -notmatch '=' -and ($Matches[1] -in $valueFlags)) { $j += 2; continue }
+            $j += 1
+            continue
+        }
+        return $tok
+    }
+    return $null
+}
+
+function Test-PrBaseGuardSegment {
     param([string]$Command)
 
     if ($Command -notmatch '\bgh\s+pr\s+(create|edit|merge)\b') { return $null }
@@ -80,10 +145,7 @@ function Test-PrBaseGuard {
     }
 
     if ($subcommand -eq 'merge') {
-        $target = $null
-        if ($Command -match '\bgh\s+pr\s+merge\s+(?!--)(\S+)') {
-            $target = $Matches[1]
-        }
+        $target = Get-MergeTarget -Segment $Command
         $prInfo = Resolve-PrBaseHead -Target $target -RepoSlug $repoFlag
         if (-not $prInfo) {
             Write-GuardLog "FAIL-OPEN: no se pudo resolver base/head via 'gh pr view' para: $Command"
@@ -110,6 +172,17 @@ function Test-PrBaseGuard {
 
     $reason = "pr-base-guard: 'gh pr $subcommand' bloqueado -- base '$base' fuera de develop (unica excepcion: base=main + head=develop, release promote). Ver agents/github.md."
     return @{ decision = 'block'; reason = $reason }
+}
+
+# Punto de entrada publico: evalua cada invocacion 'gh pr ...' de un comando compuesto por
+# separado (ver Split-ShellSegments) y bloquea si CUALQUIERA de ellas viola la regla.
+function Test-PrBaseGuard {
+    param([string]$Command)
+    foreach ($segment in (Split-ShellSegments -Command $Command)) {
+        $result = Test-PrBaseGuardSegment -Command $segment
+        if ($result) { return $result }
+    }
+    return $null
 }
 
 # --- Punto de entrada (solo al ejecutar directamente, no al dot-source para tests) ---

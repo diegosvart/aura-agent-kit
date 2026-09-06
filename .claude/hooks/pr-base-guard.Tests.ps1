@@ -70,6 +70,32 @@ Describe 'Test-PrBaseGuard - gh pr merge' {
     }
 }
 
+Describe 'Test-PrBaseGuard - comandos encadenados (code-review PR #233, hallazgo 1)' {
+
+    It 'bloquea el segundo gh pr create de un comando encadenado con &&, aunque el primero sea --base develop' {
+        $result = Test-PrBaseGuard -Command 'gh pr create --base develop --title a && gh pr create --base main --title b'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea el segundo gh pr create de un comando encadenado con ; ' {
+        $result = Test-PrBaseGuard -Command 'gh pr create --base develop --title a ; gh pr create --base staging --title b'
+        $result.decision | Should Be 'block'
+    }
+}
+
+Describe 'Test-PrBaseGuard - gh pr merge con flag antes del target (code-review PR #233, hallazgo 2)' {
+
+    It 'resuelve el PR 123 (no la rama actual) cuando hay un flag booleano antes del target' {
+        Mock Resolve-PrBaseHead {
+            param($Target, $RepoSlug)
+            if ($Target -eq '123') { return [pscustomobject]@{ baseRefName = 'staging'; headRefName = 'x' } }
+            return [pscustomobject]@{ baseRefName = 'develop'; headRefName = 'x' }
+        }
+        $result = Test-PrBaseGuard -Command 'gh pr merge --squash 123'
+        $result.decision | Should Be 'block'
+    }
+}
+
 Describe 'pr-base-guard.ps1 - entry point (fail-open)' {
 
     It 'input no parseable como JSON: no bloquea y queda logueado' {

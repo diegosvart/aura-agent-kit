@@ -125,7 +125,7 @@ After writing the complete plan, look at it with fresh eyes:
 
 **"Plan complete and saved to `docs/aura/plans/<filename>.md`. Two options:**
 
-**1. Execute Now** - Implement tasks in this session using aura:executing-plans
+**1. Execute Now** - Implement tasks in this session using `/execute-plan` (`commands/execute-plan.md`)
 
 **2. Save for Later** - Keep the plan for future implementation
 

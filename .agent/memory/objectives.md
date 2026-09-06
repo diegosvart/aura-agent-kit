@@ -25,12 +25,12 @@ de implementación en curso delegado, verificar estado real de cada issue antes 
   2026-09-06, `agents/evaluator.md` + manifiesto vivo, pendiente de review/merge manual del
   usuario). Queda pendiente el otro frente de la misma spec: **#231** (frontmatter piloto +
   delegation_rate).
-- **Backlog de limpieza nuevo (encontrado por doc-guardian real en #232, sin issue todavía)**:
-  `.claude/agents/plan-reporter.md` colgante referenciado desde `AGENTS.md`,
-  `commands/plan-report.md`, `skills/plan-reporting/SKILL.md` y `protocols/router.md`;
-  `skills/observability/` sin `SKILL.md`; `skills/writing-plans/SKILL.md` referencia
-  `aura:executing-plans` inexistente; `protocols/session_start.md` referencia `/ideas`
-  inexistente (el real es `/idea`). No corregido en #232 por alcance — crear issue aparte.
+- ~~**Backlog de limpieza de doc-guardian**~~ — resuelto en la misma rama de #232: se creó
+  `agents/plan-reporter.md` (no existía en ningún lado; la ruta real de subagentes del plugin
+  es `agents/*.md`, no `.claude/agents/*.md`), `skills/observability/SKILL.md`, y se
+  corrigieron las referencias rotas a `aura:executing-plans` (`writing-plans/SKILL.md`) y
+  `/ideas` (`session_start.md`). Verificado con segunda corrida real de doc-guardian, sin
+  hallazgos nuevos.
 - **#213** — current-session.json stale en sesiones background. Insight nuevo: el
   workaround "Bash en vez de Write" (usado para #205/#214/este mismo archivo) probablemente
   lo resuelve sin necesitar la P4 completa que el issue pide.

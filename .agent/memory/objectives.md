@@ -21,9 +21,16 @@ de implementación en curso delegado, verificar estado real de cada issue antes 
 
 ### P1 — Bugs con evidencia real de la sesión del 2026-09-05
 - ~~**#148**~~ — Frente A (enforcement duro) resuelto vía **#230 → PR #233** (mergeado
-  2026-09-06, hook `pr-base-guard.ps1`, 14/14 tests). Quedan pendientes los otros 2 frentes
-  de la misma spec: **#232** (evaluator.md, verificación esperado-vs-ejecutado) y **#231**
-  (frontmatter piloto + delegation_rate) — orden sugerido: #232 → #231.
+  2026-09-06, hook `pr-base-guard.ps1`, 14/14 tests). Frente C: **#232 → PR #235** (abierta
+  2026-09-06, `agents/evaluator.md` + manifiesto vivo, pendiente de review/merge manual del
+  usuario). Queda pendiente el otro frente de la misma spec: **#231** (frontmatter piloto +
+  delegation_rate).
+- **Backlog de limpieza nuevo (encontrado por doc-guardian real en #232, sin issue todavía)**:
+  `.claude/agents/plan-reporter.md` colgante referenciado desde `AGENTS.md`,
+  `commands/plan-report.md`, `skills/plan-reporting/SKILL.md` y `protocols/router.md`;
+  `skills/observability/` sin `SKILL.md`; `skills/writing-plans/SKILL.md` referencia
+  `aura:executing-plans` inexistente; `protocols/session_start.md` referencia `/ideas`
+  inexistente (el real es `/idea`). No corregido en #232 por alcance — crear issue aparte.
 - **#213** — current-session.json stale en sesiones background. Insight nuevo: el
   workaround "Bash en vez de Write" (usado para #205/#214/este mismo archivo) probablemente
   lo resuelve sin necesitar la P4 completa que el issue pide.

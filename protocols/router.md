@@ -25,6 +25,7 @@
 | **Cambios en documentación** | `agents/doc-guardian.md` via `/doc-check` | Se creó o modificó un archivo .md |
 | **Gestionar objetivos / ideas** | `skills/idea-management/SKILL.md` via `/idea` | Usuario escribe `/idea`, registra idea, o quiere explorar/promover un objetivo |
 | **Mejorar el harness** | `skills/auto-research/SKILL.md` + `docs/aura/specs/2026-05-09-harness-pillars.md` | Fricción detectada, patrón repetitivo |
+| **Evaluar sesiones pasadas** | `agents/evaluator.md` via `/evaluate-sessions` | Auditar si una sesión (o rango) respetó el flujo declarado del harness contra el diagrama de referencia de `aura-harness-diagrams` |
 | **Seleccionar / cambiar stack** | `skills/stack-selection/SKILL.md` via `/stack` | Sin session-stack.json, inicio de proyecto nuevo, o usuario quiere cambiar stack |
 | **Reporte de plan estratégico** | `skills/plan-reporting/SKILL.md` via `/plan-report` (ejecutado por `plan-reporter`) | Usuario pide reporte de gestión, tareas accionables, análisis de riesgo de un plan |
 | **Loop de desarrollo + verificación de issues** | `skills/agentic-dev-loop/SKILL.md` via `/run-dev-loop` | Usuario pide correr/automatizar el desarrollo de issues `ready`, o avisa que cerró/mergeó un issue y hay que revisarlo |

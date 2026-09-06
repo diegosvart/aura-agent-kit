@@ -70,6 +70,25 @@ Fuera de `templates/`:
 
 Si falta alguna sección → `[INCOMPLETO]`
 
+### 8. Manifiesto vivo de capacidades (`docs/aura/CAPABILITIES.md`)
+
+Al correr con `--all` (verificación de repo completo), reconstruir
+`docs/aura/CAPABILITIES.md`: tabla consolidada de todas las capacidades invocables del
+harness, generada por `Glob` sobre el propio repo — nunca mantenida a mano:
+
+| Tipo | Origen (`Glob`) | Descripción mostrada |
+|------|-----------------|----------------------|
+| Agente | `agents/*.md` | primera línea bajo el título (`> **Propósito:** ...`) |
+| Skill | `skills/*/SKILL.md` | `description` del frontmatter YAML |
+| Comando | `commands/*.md` | primera línea bajo el título |
+| Protocolo | `protocols/*.md` | primera línea bajo el título |
+
+Este manifiesto es la resolución sistemática del tipo de inconsistencia que motivó esta
+sección: un comando o skill referenciado en texto pero colgante (sin archivo real detrás),
+detectable hoy solo si alguien lo nota manualmente. Regenerar `CAPABILITIES.md` en cada
+`/doc-check --all` lo mantiene sincronizado con el estado real del repo, no con lo que algún
+`.md` narra sobre sí mismo.
+
 ---
 
 ## Tipos de Hallazgos
@@ -112,7 +131,9 @@ Fecha: <ISO>
 
 ## Reglas
 
-1. **No modificar archivos** — solo leer y reportar
+1. **No modificar archivos del repo bajo revisión** — solo leer y reportar. Única excepción:
+   regenerar `docs/aura/CAPABILITIES.md` (sección 8) en un `/doc-check --all`, que es en sí
+   mismo el artefacto que esta responsabilidad mantiene, no un side effect sobre código ajeno.
 2. **Ser específico** — indicar línea o sección donde está el problema cuando sea posible
 3. **No falsos positivos** — `{{placeholder}}` dentro de bloques de código de ejemplo en templates es correcto
 4. **Veredicto binario** — ÍNTEGRO si no hay [ROTO]/[INCONSISTENTE]/[INCOMPLETO]; REQUIERE CORRECCIÓN si hay al menos uno
@@ -123,4 +144,5 @@ Fecha: <ISO>
 
 - `Read` — leer archivos a verificar
 - `Glob` — listar archivos existentes para validar referencias
-- No requiere herramientas de escritura
+- `Write` — único uso: regenerar `docs/aura/CAPABILITIES.md` (sección 8) en un
+  `/doc-check --all`

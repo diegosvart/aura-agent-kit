@@ -4,6 +4,26 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-06 — PR #233 — fix(hooks): bloquear gh pr create/merge/edit --base fuera de develop
+
+**Issue:** #230 (Frente A de `docs/aura/specs/2026-09-06-flujo-respetado-orchestrator.md`, causa raíz de #148)
+**Qué se agregó:** Nuevo hook `PreToolUse` `.claude/hooks/pr-base-guard.ps1` (mismo patrón
+fail-open+log que `git-guard.ps1`/`sensitive-data-guard.ps1`): bloquea `gh pr create` sin
+`--base` o con `--base` distinto de `develop`, `gh pr edit --base` fuera de `develop`, y
+`gh pr merge` cuyo `baseRefName` (resuelto vía `gh pr view --json`) no sea `develop`. Única
+excepción: `--base main` + `--head develop` (release promote). Es el primer enforcement duro
+real para el bug de #148 (3 incidentes previos, ningún chequeo existente lo bloqueaba antes
+del merge, solo detección informativa post-hoc). `commands/request-review.md:39` generalizado
+con el comando completo (`--base develop` explícito).
+`/code-review` sobre el PR encontró 2 bugs reales antes de mergear (comandos shell
+encadenados `&&`/`;` dejaban pasar un segundo `gh pr create` con `--base` incorrecto; un flag
+booleano antes del positional en `gh pr merge --squash 123` hacía que se resolviera la PR de
+la rama actual en vez de la indicada) — corregidos con tests de regresión antes del merge.
+Primer test Pester del harness (no había precedente); solo Pester 3.4.0 disponible en este
+entorno (sintaxis legacy `Should Be`). Suite final: 14/14 PASSED.
+**Archivos clave:** `.claude/hooks/pr-base-guard.ps1`, `.claude/hooks/pr-base-guard.Tests.ps1`,
+`.claude/settings.json`, `commands/request-review.md`
+
 ## 2026-09-05 — PR #225 — feat: formalizar traza de sesión como skill (Fase 0 auto-aprendizaje)
 
 **Plan:** `.agent/memory/plans/2026-09-05-aura-auto-aprendizaje-trace-evaluator.md` (Fase 0 de 4)

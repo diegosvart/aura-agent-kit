@@ -20,8 +20,10 @@ de implementación en curso delegado, verificar estado real de cada issue antes 
   sandbox** (`diegosvart/aura-agent-kit-sandbox`, creado hoy) antes de tocar el repo real.
 
 ### P1 — Bugs con evidencia real de la sesión del 2026-09-05
-- **#148** (rojo) — `gh pr create` sin `--base` (3er incidente). El usuario ya lo marcó máxima
-  prioridad; pide solución estructural, no otro parche de texto.
+- ~~**#148**~~ — Frente A (enforcement duro) resuelto vía **#230 → PR #233** (mergeado
+  2026-09-06, hook `pr-base-guard.ps1`, 14/14 tests). Quedan pendientes los otros 2 frentes
+  de la misma spec: **#232** (evaluator.md, verificación esperado-vs-ejecutado) y **#231**
+  (frontmatter piloto + delegation_rate) — orden sugerido: #232 → #231.
 - **#213** — current-session.json stale en sesiones background. Insight nuevo: el
   workaround "Bash en vez de Write" (usado para #205/#214/este mismo archivo) probablemente
   lo resuelve sin necesitar la P4 completa que el issue pide.

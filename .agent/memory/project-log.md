@@ -4,6 +4,26 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-06 — Release v2.7.0 (PRs #240/#241, tag) + fix de drift (PR #243)
+
+**Qué se agregó:** Cortado el release v2.7.0 (hook `pr-base-guard.ps1` de Issue #230,
+`agents/evaluator.md` de Issue #232, frontmatter piloto de Issue #231, `session-trace` de
+Issue #223 — ver bloques de PR #233/#235/#237/#225 más abajo para el detalle de negocio de
+cada uno). Tag `v2.7.0` publicado sobre `main`.
+**Bug real encontrado y corregido en el propio proceso de release:** el PR #242 (sync-back
+`main`→`develop`, paso 4 obligatorio de `agents/github.md`) se mergeó como **squash** en vez
+de merge commit — mismo patrón de drift que el incidente de `v2.2.0` (Issue #120):
+`git describe --tags origin/develop` seguía resolviendo `v2.6.1-N-g...`, ignorando el tag
+recién creado. Corregido con un merge commit real (`--no-ff`) del tag sobre `develop` (PR
+#243, mergeado explícitamente con "Create a merge commit"). Verificado:
+`git describe --tags origin/develop` → `v2.7.0-18-gbf6e25d`,
+`git merge-base --is-ancestor v2.7.0 origin/develop` → true.
+**Por qué importa:** `cut-release.sh sync-back` abre el PR correctamente, pero **no controla
+qué botón de merge usa GitHub** — si el repo tiene squash como default o el usuario lo elige
+sin saber la implicancia, el drift se reproduce en cada release futura. Queda como hallazgo
+para la idea #023 (gate duro) — ver iteración agregada ahí.
+**Archivos clave:** `CHANGELOG.md`, `.claude-plugin/plugin.json`, tag `v2.7.0`.
+
 ## 2026-09-06 — PR #237 — feat(agents): frontmatter YAML piloto en reviewer/challenger/github
 
 **Issue:** #231 (Frente B de `docs/aura/specs/2026-09-06-flujo-respetado-orchestrator.md`,

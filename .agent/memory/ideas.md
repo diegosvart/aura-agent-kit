@@ -366,5 +366,16 @@ idea [021] (mecanismo de validacion/seguimiento de errores del agente).
   mecanismo — captura de error/denegación de tool en el momento (posible hook o wrapper),
   guardado consultable (¿extensión de `sessions.jsonl`?), y una definición explícita de
   "comportamiento esperado" contra la cual medir cada corrida, no solo `delegation_rate`.
+- [2026-09-06] Nueva evidencia concreta de "gate declarado en texto pero no forzado", esta vez
+  en el proceso de release: el PR de sync-back (`cut-release.sh sync-back`, paso 4 obligatorio)
+  se mergeó como squash en vez de merge commit, rompiendo la ancestría del tag `v2.7.0` en
+  `develop` (mismo patrón de drift que el incidente de `v2.2.0`, Issue #120). El script abre el
+  PR correctamente pero no controla ni valida qué botón de merge usa GitHub — el gate real
+  (ancestría del tag) depende de que el humano recuerde elegir "Create a merge commit". Refuerza
+  el pedido original de #023: el review/merge-method de un PR crítico debería ser un gate duro
+  (¿validación post-merge automática que corra `git describe`/`merge-base` y alerte si el tag no
+  quedó como ancestro, en vez de depender de que alguien lo note?), no una instrucción de texto
+  en el PR body. Ver `.agent/memory/project-log.md` (bloque "Release v2.7.0") para el detalle
+  completo del incidente y su fix (PR #243).
 
 ---

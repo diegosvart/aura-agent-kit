@@ -4,6 +4,23 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-06 — PR #245 — feat(skills): new-project-setup + /new-project
+
+**Qué se agregó:** Skill `skills/new-project-setup/SKILL.md` + comando `/new-project`: wizard
+end-to-end para scaffoldear un repo consumidor de Aura desde cero (repo remoto ya creado y
+vacío → directorio local, submodule `.aura` pinneado a un tag concreto, hooks, `AGENTS.local.md`,
+`.gitignore`, `session-stack.json`, primer commit+push), dejándolo listo para arrancar
+`claude .` sin fricción.
+**Por qué importa:** Formaliza un procedimiento ya ejecutado manualmente dos veces
+(`aura-harness-diagrams` 2026-09-05, `ebi-insight-power-apps` 2026-09-06) — evita rehacer el
+levantamiento de `QUICKSTART.md`/`install.sh` cada vez que se crea un proyecto nuevo.
+**Hallazgo corregido en la misma PR:** `doc-guardian` encontró que `QUICKSTART.md` y
+`README.md` documentaban solo 3 hooks en `PreToolUse`/desinstalar, pero
+`sensitive-data-guard.ps1` y `pr-base-guard.ps1` ya estaban activos en `settings.json` desde
+v2.7.0 — corregido en ambos archivos.
+**Archivos clave:** `skills/new-project-setup/SKILL.md`, `commands/new-project.md`,
+`AGENTS.md`, `protocols/router.md`, `QUICKSTART.md`, `README.md`, `CHANGELOG.md`.
+
 ## 2026-09-06 — Release v2.7.0 (PRs #240/#241, tag) + fix de drift (PR #243)
 
 **Qué se agregó:** Cortado el release v2.7.0 (hook `pr-base-guard.ps1` de Issue #230,

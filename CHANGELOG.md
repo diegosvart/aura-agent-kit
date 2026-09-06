@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `skills/new-project-setup/SKILL.md` (+ `/new-project`): wizard end-to-end para scaffoldear
+  un repo consumidor de Aura desde cero (directorio local, clonado del remoto, submodule
+  pinneado a un tag, hooks, identidad, `.gitignore`, stack de sesión y primer push), dejándolo
+  listo para arrancar `claude .` sin fricción. Formaliza el procedimiento manual ya ejecutado
+  en dos scaffolds reales (`aura-harness-diagrams`, `ebi-insight-power-apps`).
+
 ## [2.7.0] - 2026-09-06
 
 ### Added

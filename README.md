@@ -96,7 +96,7 @@ rm -rf .git/modules/.aura
 
 # Revertir CLAUDE.md (eliminar bloque entre marcadores aura:begin/end)
 # Eliminar hooks copiados
-rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1
+rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1 .claude/hooks/sensitive-data-guard.ps1 .claude/hooks/pr-base-guard.ps1
 ```
 
 ---
@@ -138,6 +138,7 @@ merge + close issue       Ciclo completo
 
 | Comando | Qué hace |
 |---------|----------|
+| `/new-project` | Scaffoldea un repo nuevo con Aura instalado, listo para arrancar `claude .` |
 | `/idea <texto>` | Registra un objetivo nuevo (1 turno, no interrumpe) |
 | `/idea <N>` | Explora el objetivo N con 3 perspectivas (PM, Planner, Engineer) |
 | `/idea promote <N>` | Promueve objetivo a `/plan-work` |

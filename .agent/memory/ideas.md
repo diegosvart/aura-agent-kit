@@ -379,3 +379,81 @@ idea [021] (mecanismo de validacion/seguimiento de errores del agente).
   completo del incidente y su fix (PR #243).
 
 ---
+
+## [024] Enforcement duro de cuenta git/gh por repo (personal vs. corporativo)
+**Estado:** raw
+**Capturado:** 2026-09-07
+**Contexto:** El usuario detectó una vulnerabilidad real en vivo: durante esta misma sesión la
+cuenta `gh` activa cambió de `diegosvart` (personal) a `ServiciosTIebi` (corporativa, token con
+scopes `admin:enterprise`/`admin:org`/`delete_repo`) sin que nada en el harness lo detectara ni
+bloqueara. Hoy el único control es el topic de GitHub `personal`/`<empresa>-copropiedad`
+(`agents/github.md` → "Convención de Topics de GitHub", Issue #201) — es **declarativo**, se lee
+una vez en `session-start.ps1` para sugerir la identidad de commit, pero ningún hook
+(`git-guard.ps1`, `sensitive-data-guard.ps1`, `pr-base-guard.ps1`) contrasta la cuenta `gh`
+activa (`gh auth status --active`) contra la clasificación del repo antes de un
+`push`/`gh pr create`/`gh repo edit`. Objetivo declarado por el usuario: **Aura debe identificar
+con qué cuenta git corresponde trabajar cada repo (personal o corporativo, clasificación por
+repo) y esa regla no puede saltarse** — es decir, pasar de sugerencia leída a enforcement duro
+(bloqueo real si la cuenta activa no coincide con la clasificación declarada del repo).
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [025] Aislar los archivos de Aura del repo que aloja el trabajo (no convivir en el mismo árbol)
+**Estado:** raw
+**Capturado:** 2026-09-07
+**Contexto:** Objetivo declarado por el usuario: los archivos del harness (`.aura/`, hooks,
+settings) no deben quedar versionados/mezclados dentro del repo consumidor que el agente usa
+para trabajar — deben poder vivir gitignoreados o fuera del árbol del repo, en vez de ser un
+submodule commiteado dentro de cada proyecto. Esto es un cambio de modelo de distribución más
+profundo que el canal "submodule pinneado a un tag" vigente hoy (`skills/new-project-setup/SKILL.md`,
+`agents/github.md`) — el objetivo explícito es que "aura no quede junto a los repositorios donde
+trabaja". Relacionado directo con [026] (worktrees), porque separar a Aura del árbol del repo
+resolvería de raíz el problema de que un `git worktree add` no trae consigo los archivos de
+Aura (hoy son parte del working tree versionado/submodule, así que cada worktree nuevo parte sin
+ellos).
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [026] Worktrees de Claude Code rompen el harness en todos los repos consumidores
+**Estado:** exploring
+**Capturado:** 2026-09-07
+**Prioridad:** Hacer — impacto alto (afecta todo repo consumidor), esfuerzo medio
+**Contexto:** El usuario reporta que "todo el harness se ve estropeado" por la funcionalidad de
+worktrees de Claude Code, con evidencia real de otra sesión: (1) un agente bloqueado al intentar
+tocar el submódulo `.aura` desde un worktree, porque `.gitmodules`/`.git/config` de submódulos
+es compartido entre todos los worktrees del mismo repo — modificarlo desde un worktree puede
+romper el checkout principal en uso; (2) errores repetidos de hooks
+`PreToolUse:Bash`/`PreToolUse:PowerShell` — `.claude/hooks/git-guard.ps1` y
+`.claude/hooks/sensitive-data-guard.ps1` no encontrados ("is not recognized as the name of a
+script file"). Diagnóstico ya hecho en esta sesión (verificado contra doc oficial de Claude Code
+vía agente `claude-code-guide`): los hooks de `settings.json` usan rutas **relativas**
+(`.claude/hooks/<script>.ps1`), que Claude Code resuelve contra `cwd` — y `cwd` sigue al
+worktree activo, mientras que la variable oficial `$CLAUDE_PROJECT_DIR` es **fija** y siempre
+apunta al checkout principal (no al worktree). El fix ingenuo (agregar `$CLAUDE_PROJECT_DIR` a
+todos los `command` de `settings.json`) arregla el "not found" pero rompe otra cosa: 3 hooks
+(`session-start.ps1`, `session-end.ps1`, `session-resume.ps1`) calculan `$projectRoot` a partir
+de `$PSScriptRoot` (dónde vive el archivo .ps1) — si se invocan vía `$CLAUDE_PROJECT_DIR`
+quedarían leyendo/escribiendo `.agent/memory/*` del **checkout principal**, no del worktree
+activo, silenciosamente. Fix identificado (no implementado): (a) `settings.json` → todos los
+`command` con `"$CLAUDE_PROJECT_DIR"/.claude/hooks/<script>.ps1`; (b) reemplazar el cálculo de
+`$projectRoot` en esos 3 scripts por `git rev-parse --show-toplevel` (worktree-aware) en vez de
+`$PSScriptRoot`. La regla existente `agents/github.md` → "Regla anti-worktree" (Issue #200) solo
+cubre el auto-init del submódulo, no estos dos problemas. Relacionado directo con [025]: el
+usuario plantea que la causa de fondo es que los worktrees "no son generados con los archivos de
+Aura" — separar a Aura del árbol del repo (idea 025) resolvería este síntoma de raíz en vez de
+parchear hook por hook.
+
+### Iteraciones
+- [2026-09-07] Causa raíz de los errores de hooks confirmada contra documentación oficial de
+  Claude Code (agente `claude-code-guide`): `cwd` sigue al worktree, `$CLAUDE_PROJECT_DIR` es
+  fijo al checkout principal. Fix acotado identificado (2 partes) pero no implementado — el
+  usuario pidió en cambio partir de una spec que declare los 3 objetivos (024/025/026) como
+  marco antes de tocar código, en vez de parchear el síntoma puntual de hooks.
+
+---

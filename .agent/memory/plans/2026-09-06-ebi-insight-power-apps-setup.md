@@ -1,5 +1,5 @@
 ---
-status: approved
+status: done
 ---
 
 # Plan — Setup inicial `ebi-insight-power-apps`

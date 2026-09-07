@@ -64,6 +64,53 @@ spec `docs/aura/specs/2026-09-05-issue-200-worktree-aura-autoinit.md`).
   aislamiento — ese es un mecanismo de la plataforma, no del harness, y se limpia según las
   reglas de esa sesión (commit/push antes de terminar, o descarte si no hubo cambios).
 
+### `gh issue create`/`gh pr create` con body multilínea desde un worktree aislado
+
+El guard de aislamiento de worktree (`bgIsolation`) rechaza comandos `gh` cuyo `--body` se arma
+con un heredoc inline (`--body "$(cat <<'EOF' ... EOF)"`) con el error "construct too complex to
+verify" — no distingue que el comando es `gh`, no `git`, y heredocs multilínea no son
+verificables como confinados al worktree. Esto se repite una vez por cada issue/PR con body
+largo que se intente crear así, sin excepción.
+
+**Patrón a usar en su lugar:** escribir el body a un archivo temporal (vía `Write`, en el
+directorio de scratch de la sesión) y pasar `--body-file <archivo>`:
+
+```bash
+gh issue create --repo <owner>/<repo> \
+  --title "<título>" \
+  --body-file "<ruta al archivo temporal>" \
+  --label "ready,enhancement"
+```
+
+Aplica igual a `gh pr create --body-file`. Ver experimento
+`docs/aura/experiments/2026-09-07-gh-body-file-worktree.md` (caso real: 16 creaciones de issue
+en la misma sesión, cada una rechazada primero con heredoc antes de aplicar este patrón).
+
+### Submódulo `.aura` sin inicializar dentro de un worktree (Issue #200, cara nueva)
+
+Un worktree nuevo (`EnterWorktree`) comparte `.git` con el checkout principal pero **no**
+inicializa submódulos — comportamiento estándar de `git worktree add`, no un bug de este
+harness. Efecto observado: dentro del worktree, `.aura/` aparece vacío, y cualquier intento de
+`Edit`/`Write` sobre archivos de `.aura` (para aplicar un experimento de `/auto-research`, por
+ejemplo) falla porque esos archivos no existen ahí todavía.
+
+**Fix verificado (sesión 2026-09-07):** correr, apenas se entra al worktree,
+
+```bash
+git submodule update --init --recursive
+```
+
+Esto puebla `.aura/` dentro del árbol del worktree (queda como una copia propia, con su propio
+`.git` apuntando al mismo remoto `aura-agent-kit`), y a partir de ahí `Edit`/`Write` sobre
+`.aura/...` dentro del worktree funcionan normalmente porque la ruta está físicamente contenida
+en el worktree. Cualquier cambio hecho ahí se commitea/pushea contra el repo `aura-agent-kit`
+igual que en un checkout normal del submódulo (crear rama propia ahí, nunca commitear a su
+`develop`/`main` directo).
+
+No confundir con el fix ya documentado arriba para la sesión interactiva normal (hook
+`session-start.ps1` corriendo `git submodule update --init .aura` sobre el checkout
+**principal**) — ese fix no cubre worktrees nuevos, que son un checkout físicamente distinto.
+
 ---
 
 ## Comandos常用

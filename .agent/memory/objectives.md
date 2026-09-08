@@ -21,10 +21,11 @@ de implementación en curso delegado, verificar estado real de cada issue antes 
 
 ### P1 — Bugs con evidencia real de la sesión del 2026-09-05
 - ~~**#148**~~ — Frente A (enforcement duro) resuelto vía **#230 → PR #233** (mergeado
-  2026-09-06, hook `pr-base-guard.ps1`, 14/14 tests). Frente C: **#232 → PR #235** (abierta
-  2026-09-06, `agents/evaluator.md` + manifiesto vivo, pendiente de review/merge manual del
-  usuario). Queda pendiente el otro frente de la misma spec: **#231** (frontmatter piloto +
-  delegation_rate).
+  2026-09-06, hook `pr-base-guard.ps1`, 14/14 tests). Frente C: ~~**#232 → PR #235**~~
+  mergeada y cerrada 2026-09-06 (`agents/evaluator.md` + manifiesto vivo) — verificado
+  2026-09-07: los 4 hallazgos preexistentes de `doc-guardian` que dejaba abiertos ya fueron
+  resueltos en PR #237. Queda pendiente el otro frente de la misma spec: **#231**
+  (frontmatter piloto + delegation_rate).
 - ~~**Backlog de limpieza de doc-guardian**~~ — resuelto en la misma rama de #232: se creó
   `agents/plan-reporter.md` (no existía en ningún lado; la ruta real de subagentes del plugin
   es `agents/*.md`, no `.claude/agents/*.md`), `skills/observability/SKILL.md`, y se

@@ -457,3 +457,35 @@ parchear hook por hook.
   marco antes de tocar código, en vez de parchear el síntoma puntual de hooks.
 
 ---
+
+## [028] Pipeline de agentes en paralelo por rol, con reglas no-saltables por el orquestador
+**Estado:** raw
+**Capturado:** 2026-09-08
+**Prioridad:** Explorar — impacto alto, esfuerzo alto
+**Contexto:** Surge al preparar la spec del Issue #217 (lock de checkout para el dev-runner).
+El usuario aclaró que su objetivo de fondo va más allá de resolver la concurrencia de un único
+dev-runner: quiere que en el futuro varios subagentes trabajen **en paralelo según el flujo**
+(unos en specs, otros como reviewers, otros como challengers, avanzando cada uno según el estado
+del pipeline), y que las reglas del harness que gobiernan ese flujo **no puedan ser salteadas por
+el agente orquestador** — ni por olvido, ni por presión de contexto.
+
+Distinción clave ya identificada al responder: el harness hoy separa implícitamente trabajo
+**mutante** (escribe al git/filesystem compartido — requiere exclusión mutua, es lo que cubre el
+lock de #217) de trabajo **no mutante** (leer/analizar/comentar/emitir veredicto — ya corre en
+paralelo sin conflicto, ver Fase 2 del loop: "auditar no muta código"). La visión de este pipeline
+encaja naturalmente en la segunda categoría para las etapas de spec/review/challenge, pero si el
+objetivo incluye además que **varios dev-runners escriban código en paralelo de verdad** (no solo
+analicen), eso requeriría aislamiento real de filesystem por rama — mismo problema ya abierto y
+sin resolver en ideas [025]/[026] (worktrees rotos en este harness).
+
+Sobre el enforcement: el patrón repetido de este repo (`git-guard.ps1`, `pr-base-guard.ps1`) es
+que una regla en prosa/prompt se salta hasta que se convierte en hook `PreToolUse` que bloquea la
+acción a nivel de herramienta. Cualquier diseño de este pipeline paralelo debería nacer ya como
+hook/mecanismo forzado, no como convención de prompt a la que se confía que cada agente adhiera —
+mismo aprendizaje aplicado en la corrección del propio Issue #217 (lock con hook de enforcement,
+no solo snippet en el prompt del dev-runner).
+
+### Iteraciones
+_(sin iterar)_
+
+---

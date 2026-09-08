@@ -484,6 +484,32 @@ acción a nivel de herramienta. Cualquier diseño de este pipeline paralelo debe
 hook/mecanismo forzado, no como convención de prompt a la que se confía que cada agente adhiera —
 mismo aprendizaje aplicado en la corrección del propio Issue #217 (lock con hook de enforcement,
 no solo snippet en el prompt del dev-runner).
+## [027] Regla irrompible — session_end no debe cerrar con worktrees abiertos/pendientes
+**Estado:** raw
+**Capturado:** 2026-09-07
+**Contexto:** Disparador concreto de esta misma sesión: el cierre quedó bloqueado porque el
+worktree de la sesión (`.claude/worktrees/issue-230-pr-base-guard`) seguía abierto y
+`protocols/session_end.md` no tiene ningún paso que lo detecte ni lo exija resuelto antes de
+terminar — a diferencia de `protocols/session_start.md` Paso 3, que sí detecta worktrees
+adicionales vía `git worktree list`, pero solo los **propone** eliminar (con confirmación del
+usuario), nunca bloquea el flujo. Objetivo declarado por el usuario: debe existir una regla
+**irrompible** — no una sugerencia — de que al cerrar sesión no queden worktrees abiertos o
+pendientes.
+
+Relacionado con [026] (worktrees rompiendo hooks) pero es un problema distinto: [026] es sobre
+compatibilidad técnica (hooks/submódulo no funcionan bien dentro de un worktree), mientras que
+[027] es sobre **higiene de ciclo de vida** (un worktree que sobrevive al cierre de la sesión
+que lo creó queda huérfano, acumulándose sin que nada lo note — mismo síntoma que ya motivó
+`skills/repo-integrity/scripts/check-orphaned-worktrees.sh`, pero ese script es un chequeo de
+*inicio* de sesión, no un gate de *cierre*). Ambos comparten la causa raíz de fondo: el harness
+no trata los worktrees como ciudadanos de primera clase del ciclo de vida de sesión.
+
+Implementación futura probable (no evaluada aún — pendiente de iterar con `/idea 027`): un nuevo
+paso obligatorio en `protocols/session_end.md` (ej. "Paso 0 — Verificar Worktrees Pendientes")
+que bloquee el cierre si `git worktree list` devuelve más de una entrada sin resolver — salvo el
+caso ya documentado en `agents/github.md` → "Regla anti-worktree" de un worktree de sesión de
+background que se limpia solo al terminar (vía `ExitWorktree`), que es precisamente el mecanismo
+que se usó para resolver el bloqueo de esta sesión en el momento en que se capturó esta idea.
 
 ### Iteraciones
 _(sin iterar)_

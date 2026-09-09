@@ -123,18 +123,35 @@ Prompt autocontenido (el agente parte de cero — sin memoria de esta sesión):
   únicamente en la verificación final antes de commitear — es el gate real, pero no hace falta
   pagarlo completo en cada iteración intermedia.
 - Instrucciones operativas:
-  1. **Aislamiento por worktree (obligatorio si el orquestador es una sesión de Claude Code):**
-     lanzar el agente de desarrollo con `isolation: "worktree"` en el Agent tool. El agente
-     resultante ya parte de un working directory aislado (`git worktree` propio) y debe hacer
-     `git fetch && git checkout develop && git pull && git checkout -b feature/issue-<N>-<slug-corto>`
-     **dentro de ese worktree**, nunca en el checkout compartido del repo. Caso real que motiva
-     esto: en otro proyecto que usa este harness, dos dev-runners corrieron sobre el mismo
-     working directory (sin `isolation: "worktree"`) y el segundo (Issue #76) heredó estado sucio
-     del primero (Issue #75), contaminando su rama con una entrada duplicada — se reparó a mano
-     con un splice quirúrgico de bytes (ver Errores Comunes). Si el orquestador no es una sesión
-     de Claude Code con el Agent tool disponible (ej. un futuro runner headless/cron, ver
-     "Extensión futura" al final de este documento), debe garantizar el mismo aislamiento por
-     otro medio antes de tocar `develop` — nunca compartir working directory entre dev-runners.
+  1. **Lock de checkout (obligatorio, reemplaza `isolation:"worktree"` — Issue #217):**
+     lanzar el agente de desarrollo **sin** `isolation: "worktree"` — corre sobre el checkout
+     compartido del repo, serializado por un mutex explícito. Todo el trabajo de este Paso 4
+     (branch + implementación + commit + push/PR) va envuelto en
+     `skills/agentic-dev-loop/scripts/with-checkout-lock.sh <N> <agent_id> -- <comando>`, que:
+     - adquiere un lock atómico (`.git/aura-checkout.lock/`, `mkdir` no admite carrera),
+     - exige `git status --short` limpio antes de tocar nada (si no lo está, aborta con el
+       detalle de qué quedó sucio — nunca auto-stashea ni auto-limpia),
+     - libera el lock siempre al salir (éxito o fallo) vía `trap EXIT`.
+
+     Dentro del lock: `git fetch && git checkout develop && git pull && git checkout -b
+     feature/issue-<N>-<slug-corto>`, igual que antes. El hook `.claude/hooks/
+     checkout-lock-guard.ps1` (PreToolUse) es el enforcement duro: mientras el lock esté
+     activo, bloquea cualquier `git checkout`/`switch`/`commit`/`push` que venga de una
+     sesión/agente distinta a la dueña del lock — no depende de que el dev-runner "se
+     acuerde" de usar el script.
+
+     Por qué se abandonó `isolation:"worktree"`: rompía otras partes de este mismo harness
+     (Issues #213/#214/#205 — worktrees nuevos no inicializan `.aura`, `current-session.json`
+     queda stale en sesiones background, un fix real quedó atrapado sin commitear en un
+     worktree). El riesgo original que `isolation:"worktree"` prevenía (dos dev-runners
+     corriendo sobre el mismo working directory sin aislamiento — Issues #75/#76, otro
+     proyecto con este harness, contaminación de rama reparada a mano con un splice
+     quirúrgico de bytes) nunca requirió un directorio físicamente distinto: requería que
+     nadie más tocara el checkout mientras un dev-runner trabajaba, y eso lo garantiza el
+     lock. Si el orquestador no es una sesión de Claude Code con el Agent tool disponible
+     (ej. un futuro runner headless/cron, ver "Extensión futura" al final de este documento),
+     debe invocar `with-checkout-lock.sh` de la misma forma — nunca compartir working
+     directory entre dev-runners sin el lock.
   2. Implementar **exactamente** las tareas listadas (RED→GREEN si el issue las trae así), sin
      tocar archivos fuera de la lista "Archivos" salvo que el DoD lo exija explícitamente.
   3. `verify.sh` debe quedar en verde antes de commitear (tests gateados por entorno real, ej.
@@ -248,7 +265,8 @@ varios issues `review` en la misma corrida — auditar no muta código, solo lee
 | Un issue con PR mergeado queda `OPEN` con label `review` sin que nada lo cierre | Consecuencia directa del gap de default branch (arriba): ni `close-cycle.sh` ni el verifier cierran el issue automáticamente tras un merge manual del usuario. Casos reales: Issue #44 tras PR #49, Issue #47/#62 tras PR #64/#63, Issue #71 tras PR #72 — todos cerrados a mano. Fix (Issue #74): `post-merge.sh <owner>/<repo> <issue_n> <pr_n>` verifica que el PR esté mergeado hacia `develop` y cierra el issue con el comentario estándar, de forma idempotente — invocado desde `agents/github.md` ("Al Mergear una PR a Develop") y `protocols/session_end.md` ("Post-merge a develop") |
 | El dev-runner escribe el keyword de cierre traducido ("Cierra #N") en vez de literal ("Closes #N") | GitHub solo reconoce el keyword en inglés para el autocierre real al mergear, y `close-cycle.sh`/`find-pr-for-issue.sh` buscan ese mismo string — una traducción rompe ambas cosas aunque el resto del PR esté perfecto. Pasó con Issue #28 → PR #41 (memo-digital): el dev-runner tradujo el keyword pese a la instrucción explícita, `close-cycle.sh` no encontró el PR y devolvió el issue a `ready` con un PR real abierto. Fix aplicado: `close-cycle.sh` ahora tiene el mismo fallback por `headRefName` (`^feature/issue-N-`) que ya tenía `find-pr-for-issue.sh`, y avisa por stderr si el PR encontrado no traía el keyword esperado (para corregir el body a mano, GitHub no autocierra sobre el fallback). Fix estructural posterior: `open-pr.sh` (ver tabla de scripts) inyecta el keyword él mismo — el agente ya no lo escribe, así que no puede traducirlo |
 | El dev-runner abre PR sin `--base` explícito y cae contra el default branch del repo (`main`) en vez de la rama de integración (`develop`) | Misma causa raíz que el gap de autoclose (arriba): el default branch del repo no es la rama a la que mergea el loop, y `gh pr create` sin `--base` usa el default branch por convención de `gh`. Caso real: Issues #75/#76 (otro proyecto con este harness), ambos dev-runners abrieron PR contra `main`; la auditoría (Fase 2) lo detectó y corrigió a mano antes de recomendar merge. Fix estructural: `open-pr.sh` hardcodea `--base develop`, no es parámetro — el agente no puede omitirlo porque nunca construye el comando |
-| Dos dev-runners comparten working directory y el segundo hereda estado sucio del primero | Sin aislamiento, un `checkout develop && pull` de un dev-runner puede pisar/heredar una rama a medio commitear de una corrida anterior. Caso real: Issue #76 (otro proyecto con este harness) heredó el working directory de Issue #75 y su commit terminó con una entrada duplicada — se reparó a mano con un splice quirúrgico de bytes para no corromper un byte mal codificado preexistente en el archivo. Fix: lanzar cada dev-runner con `isolation: "worktree"` en el Agent tool (ver Fase 1, Paso 4, sub-paso 1) — cada uno parte de un working directory realmente aislado, no de una convención que el agente deba recordar |
+| Dos dev-runners comparten working directory y el segundo hereda estado sucio del primero | Sin serialización, un `checkout develop && pull` de un dev-runner puede pisar/heredar una rama a medio commitear de una corrida anterior. Caso real: Issue #76 (otro proyecto con este harness) heredó el working directory de Issue #75 y su commit terminó con una entrada duplicada — se reparó a mano con un splice quirúrgico de bytes para no corromper un byte mal codificado preexistente en el archivo. Fix histórico: `isolation:"worktree"` en el Agent tool. Fix actual (Issue #217 — el worktree rompía otras partes del harness, ver Issues #213/#214/#205): `with-checkout-lock.sh` serializa el checkout compartido con un mutex explícito, enforced por `checkout-lock-guard.ps1` (ver Fase 1, Paso 4, sub-paso 1) — el requisito real nunca fue un directorio físicamente distinto, sino que nadie más toque el checkout mientras un dev-runner trabaja |
+| El estado de git (branch activo, working tree) es un recurso mutable compartido entre Bash/subagentes concurrentes de la misma sesión, sin mutex | Evidencia real encontrada en vivo redactando la hipótesis de Issue #217 (no solo el incidente original #75/#76): un cambio *uncommitted* de una tarea concurrente sobrevivió a `git checkout develop` y a un segundo `git checkout -b <rama nueva>` en el mismo checkout físico, y `git branch --show-current` cambió solo entre dos comandos `Bash` consecutivos — otro proceso de la misma sesión ejecutó `git checkout` en la ventana de tiempo, sin ningún mutex que lo impidiera. Confirma que el riesgo no es solo "dos dev-runners consecutivos" (ya cubierto por la Regla de Concurrencia de este skill) sino que el modelo de ejecución permite paralelismo real de `Bash` sobre un único checkout. Fix: mismo lock de `with-checkout-lock.sh` + `checkout-lock-guard.ps1` — cualquier `git checkout`/`switch`/`commit`/`push` de una sesión distinta a la dueña del lock queda bloqueado mientras el lock esté activo |
 | La rama local queda viva indefinidamente tras el merge | `post-merge.sh` cierra el issue pero nunca toca la rama local — queda acumulándose hasta que `session_start.md` (Paso 3, salud de ramas) la detecta pasivamente en una sesión posterior, o hasta una limpieza manual. Caso real: `crawler-mcp-diagram` (2026-08-03) acumuló 8 ramas locales + 10 remotas ya mergeadas sin que nada las hubiera limpiado antes de esa sesión. Fix: `cleanup-merged-branch.sh <owner>/<repo> <pr_n> [--delete]` (ver `agents/github.md`, "Al Mergear una PR a Develop", Paso 4) — dry-run por default, borra con `git branch -d` (nunca `-D`) solo tras confirmación explícita del usuario, invocado inmediatamente después de `post-merge.sh` en el mismo turno del merge en vez de esperar a la próxima sesión |
 
 ---

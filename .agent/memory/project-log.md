@@ -4,6 +4,23 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-09 — PR #255 — feat(agentic-dev-loop): reemplaza isolation de worktree por lock de checkout
+
+**Plan:** no hubo plan formal (ver Issue #217, ya `ready` con DoD actualizado).
+**Qué se agregó:** `agentic-dev-loop` deja de usar `isolation:"worktree"` para aislar el
+trabajo de un dev-runner y pasa a usar un lock explícito sobre el checkout compartido
+(`with-checkout-lock.sh` + `checkout-lock-guard.ps1`, enforcement duro vía PreToolUse).
+**Por qué importa:** el aislamiento por worktree rompía otras partes del harness (Issues
+#213/#214/#205 — `.aura` sin inicializar en worktrees nuevos, `current-session.json` stale
+en sesiones background, un fix real atrapado sin commitear). El riesgo que worktree
+prevenía nunca necesitó un directorio físico distinto, solo que nadie más tocara el
+checkout mientras un dev-runner trabajaba — eso lo resuelve un mutex.
+**Validado:** prototipado primero en el sandbox `aura-agent-kit-sandbox` (22 tests Pester +
+prueba real de concurrencia con dos procesos compitiendo por el lock) antes de portarlo
+idéntico al repo real.
+**Archivos clave:** `skills/agentic-dev-loop/scripts/with-checkout-lock.sh`,
+`.claude/hooks/checkout-lock-guard.ps1`, `skills/agentic-dev-loop/SKILL.md`.
+
 ## 2026-09-06 — PR #245 — feat(skills): new-project-setup + /new-project
 
 **Qué se agregó:** Skill `skills/new-project-setup/SKILL.md` + comando `/new-project`: wizard

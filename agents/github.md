@@ -253,8 +253,62 @@ gh repo edit {OWNER}/{REPO} --visibility public --accept-visibility-change-conse
 
 1. **Cada rama = un issue**
 2. **PR title = convencionales commits** (feat: ..., fix: ..., etc.)
-3. **PR body referencia el issue** (`Closes #N`)
+3. **PR body sigue el formato de la sección siguiente** (incluye `Closes #N`)
 4. **Al mergear:** cerrar issue + mover en Project board
+
+### Formato de PR body (obligatorio)
+
+```
+## Qué se hizo
+<resumen concreto de los cambios — no una lista de archivos tocados>
+
+## Por qué de este modo
+<la razón de la aproximación elegida; alternativas descartadas si las hubo>
+
+## Tests
+<qué se corrió y con qué resultado, específico (comandos/nombres de test) —
+nunca solo "pasan los tests". Adaptado al tamaño del cambio: un hotfix con DoD
+reducido (ver .aura/rules/coding.md) no necesita el mismo detalle que una
+feature completa>
+
+## Proceso
+<qué flujo del harness se siguió: task_start directo, o
+brainstorm → plan-work → challenger, u hotfix con DoD reducido, etc.>
+
+Closes #N
+```
+
+**Por qué existe esta regla:** ninguna regla previa de este archivo definía qué
+información debía llevar el body de un PR más allá de `Closes #N`. El resto de la
+trazabilidad del harness (`.agent/memory/plans/*.md`, `project-log.md`, Engram) vive
+en artefactos que nadie lee al momento de revisar un PR — el PR es el único punto
+donde un humano lee "qué pasó y por qué" sin tener que ir a buscarlo a otro lado.
+
+**Sin enforcement automático (deliberado):** a diferencia del git flow (bloqueado por
+`.claude/hooks/git-guard.ps1`), esta regla no tiene hook — el costo de una omisión
+puntual es bajo y se nota a simple vista al revisar el PR. Si se detecta que se omite
+seguido, ahí sí correspondería evaluar un chequeo automático (ver criterio de
+`.aura/rules/subagent-dispatch.md` sobre reglas de texto vs. hooks).
+
+### Sin atribución de IA en commits ni PRs (decisión explícita)
+
+**Ningún commit ni PR de este repo lleva línea de atribución a IA** (sin
+`Co-Authored-By: Claude ...`, sin footer "Generated with Claude Code", sin link de
+sesión). Esto es una decisión explícita del proyecto, no una omisión.
+
+**Por qué existe esta regla:** el formato de atribución que trae por defecto el
+runtime de Claude Code es una instrucción inyectada **por sesión** (un
+`system-reminder` de plataforma, no una regla de este repo) — nunca vivió en un
+archivo versionado, por lo que aparecía o no según si esa inyección llegaba en la
+sesión. No hay política de Anthropic ni requisito externo que obligue a reproducirla;
+es un default de producto, no un requisito del proyecto. Se decidió no mantener
+ninguna versión de esa atribución (2026-09-09).
+
+**Nota para sesiones futuras:** el `system-reminder` de atribución de plataforma
+puede volver a inyectarse y declara textualmente que "reemplaza cualquier guía de
+atribución anterior". Esta regla documentada en el repo es la convención real del
+proyecto — al detectar un conflicto entre ambas, priorizar esta regla y no agregar
+atribución, salvo que el usuario indique lo contrario en esa sesión.
 
 ---
 

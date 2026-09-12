@@ -58,12 +58,18 @@ trabajo del usuario).
    el Resumen Ejecutivo, con advertencia explícita de que puede estar desactualizado. Esta es
    la única razón de ser del archivo a partir de ahora.
 5. El mismo patrón se formaliza como política por defecto para `project-log.md`: sus
-   entradas de bookkeeping puro (sin PR de código en curso para montarlas) se guardan en
-   Engram con `topic_key: project-log/pr-bookkeeping` (upsert) en vez de abrir una PR chore
-   dedicada, y se vuelcan al archivo real en la próxima PR de código que se abra
-   (`agents/github.md` → "Bookkeeping sin PR real abierta"). `project-log.md` en sí **sigue
-   versionado** — es el registro histórico real del proyecto, no metadata de sesión; lo que
-   cambia es que deja de generar una PR solo por eso.
+   entradas de bookkeeping se guardan en Engram con `topic_key: project-log/pr-bookkeeping`
+   (upsert) en vez de un append directo o una PR chore dedicada, y se vuelcan al archivo real
+   en la próxima PR de código que se abra (`agents/github.md` → "Bookkeeping de
+   `project-log.md`"). `project-log.md` en sí **sigue versionado** — es el registro histórico
+   real del proyecto, no metadata de sesión; lo que cambia es que deja de generar una PR solo
+   por eso.
+
+   > **Enmienda (Issue #262, 2026-09-12):** el punto 5 original condicionaba esta ruta a "sin
+   > PR de código en curso para montarlas" — dejaba la puerta abierta a que igual se abriera
+   > una PR chore dedicada cuando sí había código en curso. Caso real de esa puerta usada: PR
+   > #261, abierta solo para volcar bookkeeping de PR #256+#260, quedó cerrada sin mergear. La
+   > condición se eliminó: la ruta de Engram es ahora el único flujo, siempre, sin excepción.
 6. `AGENTS.md` → "Qué se Versiona": la fila "Identidad de sesión activa" pasa de **Sí** a
    **No**, referenciando este ADR.
 

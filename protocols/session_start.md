@@ -274,8 +274,10 @@ completo (no mostrar un bloque vacío ni un mensaje de error).
 ## 2. Estado real — mío
 | Check | Estado |
 |---|---|
-| git / gh / engram | ✓/✗ |
+| git / gh / engram | ✓/✗ (detallar cuál si alguno falla) |
+| Repo | <repo_name> — topics: <lista o "sin topics"> |
 | Branch | <nombre> |
+| Sin rastrear | N archivos |
 | Cambios sin commit | N |
 | Último commit | <hash> "<mensaje>" |
 

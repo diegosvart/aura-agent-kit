@@ -329,7 +329,9 @@ planes + `project-log.md`) **ya debería estar hecho** en el momento del merge �
 hizo en su momento, hacerlo ahora antes de cerrar:
 1. Actualizar el ledger de planes (`.agent/memory/plans/<...>.md` → `status: done`) si
    corresponde.
-2. Append a `.agent/memory/project-log.md` si no hay entrada para ese PR todavía.
+2. Guardar el bloque de `project-log.md` en Engram (`topic_key: project-log/pr-bookkeeping`)
+   si no hay entrada para ese PR todavía — nunca un append directo ni una rama/PR dedicada
+   solo para esto (ver `agents/github.md` → "Bookkeeping de `project-log.md`").
 3. Verificar el merge y cerrar el issue referenciado (no reconstruir en prosa):
    ```bash
    skills/agentic-dev-loop/scripts/post-merge.sh <owner>/<repo> {{N}} {{PR}}

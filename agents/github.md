@@ -381,8 +381,9 @@ mergeado, aunque no lo haya mergeado esta sesión):
    a `status: done`, `pr: #N`, `commit: <hash del merge>`, `completed_at: <fecha>`. Si no
    existe un plan formal para ese trabajo, omitir este paso (no crear uno retroactivo salvo
    pedido explícito).
-2. **Append a `.agent/memory/project-log.md`** — agregar un bloque nuevo ARRIBA de todo
-   (orden cronológico inverso), nunca editar bloques anteriores. Formato:
+2. **Guardar el bloque de `project-log.md` en Engram** (nunca un append directo ni una PR
+   chore dedicada — ver "Bookkeeping de `project-log.md`" más abajo, que es el único flujo
+   documentado). Formato del bloque:
    ```
    ## {{FECHA}} — PR #{{N}} — {{título del PR}}
 
@@ -437,12 +438,11 @@ momento del merge, dentro del mismo turno en que se confirma el merge.
    Rama local 'feature/issue-40-mi-feature' borrada (PR #42 mergeado a develop).
    ```
 
-### Bookkeeping sin PR real abierta (fallback, desde ADR-006)
+### Bookkeeping de `project-log.md` (único flujo — nunca una PR chore dedicada)
 
-Si al cerrar una sesión hay contenido de `project-log.md` (Paso 2 de arriba) para agregar
-pero **ninguna PR de código está en curso** para montarlo (ej. sesión de solo
-investigación/decisión, sin rama de trabajo abierta): **no abrir una PR chore dedicada solo
-para eso**. Guardarlo en Engram en su lugar:
+`develop` está protegida (`git-guard.ps1` bloquea commits directos), así que el bloque de
+`project-log.md` de cada merge **nunca se commitea de inmediato**. El flujo es siempre el
+mismo, tenga o no una PR de código en curso en ese momento:
 
 ```
 mem_save(
@@ -453,11 +453,23 @@ mem_save(
 )
 ```
 
-`topic_key` hace upsert — cada cierre sin PR actualiza la misma observación en vez de crear
-una fila nueva. Se vuelca a `project-log.md` real (append normal, Paso 2) en la **próxima PR
-de código que sí se abra**, como un archivo más de ese diff — no como una PR aparte.
-Precedente real: Issue #127 (PR #140), donde el usuario, consultado explícitamente, eligió
-esta ruta en vez de la PR chore de costumbre (observación Engram #337).
+`topic_key` hace upsert — **reemplaza** el contenido de la observación existente, no lo
+mezcla. Si ya hay un bloque pendiente sin volcar (merge anterior sin PR de código posterior
+todavía) y aparece un merge nuevo, primero leer la observación existente
+(`mem_get_observation`) y guardar el `content` con **ambos** bloques concatenados (el nuevo
+arriba, orden cronológico inverso) — nunca llamar `mem_save` con `content` de un solo bloque
+si ya había uno pendiente, porque el upsert lo pisaría en silencio. Se vuelca a
+`project-log.md` real (append normal, arriba de todo) recién en la **próxima PR de código
+real que se abra**, como un archivo más de ese diff — y ahí se vacía la observación de Engram
+o se actualiza para reflejar que ya no hay pendientes.
+
+**Nunca abrir una rama/PR dedicada solo para este append** — es un PR de un solo archivo,
+sin código, sin revisión real posible, que solo agrega pasos (rama, commit, push, PR,
+esperar merge) sin aportar valor. Caso real que motivó esto: PR #261 (2026-09-12), abierta
+únicamente para volcar los bloques de PR #256 y #260, quedó cerrada sin mergear — el
+contenido tuvo que rescatarse de la rama local y recién ahí pasó a Engram. Precedente de que
+la ruta de Engram ya se había elegido antes: Issue #127 (PR #140), consultado explícitamente
+al usuario (observación Engram #337).
 
 ---
 

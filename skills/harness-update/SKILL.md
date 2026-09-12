@@ -74,7 +74,7 @@ para detectar actualizaciones.
    - Injeta `harness_update_available` y `harness_latest_version` en el JSON de contexto
    - Si no hay actualizaciones o no hay `.aura/`, estos campos simplemente no aparecen
 
-2. **Aviso** (en el Resumen Ejecutivo de `session_start.md`, Paso 6)
+2. **Aviso** (en el Resumen Ejecutivo de `session_start.md`, Paso 4)
    - Una sola línea: `⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — /harness-update para detalle`
    - No se repite sesión tras sesión mientras no se actualice
 

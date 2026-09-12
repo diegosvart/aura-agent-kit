@@ -47,7 +47,7 @@ vía la métrica `delegation_rate` (ver abajo), como detección, no como bloqueo
 ## Métrica de auditoría — `delegation_rate`
 
 Calculada por sesión en `skills/observability/scripts/process-session.sh` y expuesta en
-`protocols/session_start.md` Paso 5.5 (reporte de sesión anterior):
+`protocols/session_start.md` Paso 3.5 (reporte de sesión anterior):
 
 - **Denominador `a` (triggers aplicables):** derivado mecánicamente por matching de patrón
   entre el transcript de la sesión y las columnas "Situación"/"Trigger" de

@@ -1,19 +1,19 @@
 ---
 name: observability
-description: Procesa el índice de sesiones (sessions-index.jsonl) y calcula métricas por sesión — output_tokens, tool_uses por categoría, duration_ms y delegation_rate (Issue #179). Invocada automáticamente desde el Paso 5.5 de protocols/session_start.md; no requiere invocación manual normalmente.
+description: Procesa el índice de sesiones (sessions-index.jsonl) y calcula métricas por sesión — output_tokens, tool_uses por categoría, duration_ms y delegation_rate (Issue #179). Invocada automáticamente desde el Paso 3.5 de protocols/session_start.md; no requiere invocación manual normalmente.
 ---
 
 # Skill — Observability
 
 > **Script:** `skills/observability/scripts/process-session.sh`
-> **Invocado por:** `protocols/session_start.md` Paso 5.5 (fail-open, silencioso si no hay
+> **Invocado por:** `protocols/session_start.md` Paso 3.5 (fail-open, silencioso si no hay
 > datos), como reporte de la sesión anterior antes del Resumen Ejecutivo.
 
 ---
 
 ## Cuándo Activar
 
-- Automáticamente, en cada `session_start` (Paso 5.5) — nunca bloquea el resto del protocolo
+- Automáticamente, en cada `session_start` (Paso 3.5) — nunca bloquea el resto del protocolo
   si falla, no existe `.aura/` (proyecto sin observability habilitada), o no hay datos
   nuevos.
 - Bajo demanda, si el usuario pide explícitamente inspeccionar métricas de sesiones pasadas
@@ -47,7 +47,7 @@ Appendea el resultado a .agent/memory/observability/sessions.jsonl (idempotente 
 reprocesa un session_id ya presente)
 ```
 
-`protocols/session_start.md` Paso 5.5 lee la **última línea** de `sessions.jsonl` tras correr
+`protocols/session_start.md` Paso 3.5 lee la **última línea** de `sessions.jsonl` tras correr
 el script y muestra un bloque compacto ("Sesión Anterior") antes del Resumen Ejecutivo:
 tokens de salida, `tool_uses` por categoría, duración, y la línea de `delegation_rate` con el
 formato exacto que especifica `.aura/rules/subagent-dispatch.md` (`b/a (rate)` si `a > 0`,

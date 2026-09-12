@@ -113,5 +113,6 @@ en su momento; este ADR documenta el cambio posterior.
 - `protocols/session_end.md` — Paso 5 reescrito (sin rama/PR)
 - `protocols/session_start.md` — Paso 5, fallback de lectura nuevo
 - `AGENTS.md` — tabla "Qué se Versiona", sección "Memoria"
-- `agents/github.md` — nueva sub-sección "Bookkeeping sin PR real abierta"
+- `agents/github.md` — nueva sub-sección "Bookkeeping de `project-log.md`" (Issue #262:
+  dejó de ser condicional/fallback, es el único flujo)
 - `docs/aura/adr/ADR-000-registro.md` — registro de este ADR

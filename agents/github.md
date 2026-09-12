@@ -55,7 +55,7 @@ spec `docs/aura/specs/2026-09-05-issue-200-worktree-aura-autoinit.md`).
 
 - Worktrees quedan reservados para paralelismo real (2+ issues simultáneos) o continuidad ante
   corte de sesión/PC — no para el caso común de "un issue, una sesión".
-- `protocols/session_start.md` Paso 3 detecta (`git worktree list`) si hay más de una entrada
+- `protocols/session_start.md` Paso 2 detecta (`git worktree list`) si hay más de una entrada
   además del checkout activo y **propone** su eliminación (`git worktree remove <path>`) —
   siempre con confirmación previa del usuario (regla universal "nunca ejecutar sin aprobación"),
   nunca borrado automático silencioso, porque un worktree con cambios sin commitear se pierde
@@ -180,7 +180,7 @@ skills/repo-integrity/scripts/audit-repo-topics.sh
 
 ## Salud del Repositorio
 
-Verificar al inicio de sesión (Paso 3 de `protocols/session_start.md`).
+Verificar al inicio de sesión (Paso 2 de `protocols/session_start.md`; branch protection queda fuera del gathering de rutina, solo bajo demanda o semanal).
 
 ### Checklist
 
@@ -406,7 +406,7 @@ momento del merge, dentro del mismo turno en que se confirma el merge.
 
 4. **Limpiar la rama local (bajo confirmación del usuario).** Hasta ahora ningún paso del
    harness borraba la rama local tras confirmar el merge — quedaba viva hasta que
-   `session_start.md` (Paso 3, salud de ramas) la detectara pasivamente en una sesión
+   `session_start.md` (Paso 2, salud de ramas) la detectara pasivamente en una sesión
    posterior. Este paso lo hace en el momento correcto (justo tras el merge), pero **nunca
    sin preguntar** — borrar una rama sigue siendo una acción que el usuario debe aprobar
    (regla general del harness: nunca ejecutar acciones destructivas sin aprobación).

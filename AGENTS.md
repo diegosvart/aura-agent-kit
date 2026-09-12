@@ -101,7 +101,7 @@
   ADR-006
 - **Puntero local (no versionado):** `.agent/memory/current-session.json` — gitignored, solo
   lectura de emergencia si Engram no está disponible al iniciar sesión (ver
-  `protocols/session_start.md` Paso 5); nunca se commitea ni genera rama/PR
+  `protocols/session_start.md` Paso 0); nunca se commitea ni genera rama/PR
 - **Ledger de planes:** `.agent/memory/plans/` — un archivo por plan aprobado, nunca se pisa
 - **Bitácora de proyecto:** `.agent/memory/project-log.md` — qué se agregó, actualizada en
   cada merge a develop (no depende del cierre de sesión)

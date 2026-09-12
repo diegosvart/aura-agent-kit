@@ -4,6 +4,32 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-12 — PR #260 — feat(session-start): Paso 0 bloqueante + gathering extendido (16 items)
+
+**Plan:** `docs/aura/specs/2026-09-10-session-lifecycle-script-consolidation-design.md` (rev 3).
+**Qué se agregó:** `protocols/session_start.md` reestructurado — la recuperación de contexto
+de la sesión anterior (Engram) pasa a ser el primer paso, obligatorio y bloqueante, para que
+"qué quedó pendiente" nunca se pierda al abrir la siguiente sesión. El Resumen Ejecutivo se
+reagrupó en 3 preguntas simples (¿dónde lo dejé? / ¿en qué estado está todo? / ¿qué sigue?) sin
+perder ningún dato. El hook de inicio de sesión (`session-start.ps1`) ahora también reporta
+visibilidad del repo, PRs abiertas y los 4 chequeos de integridad del repo en una sola pasada.
+**Por qué importa:** Issues #257 y #258 compartían el mismo diseño de destino — se
+implementaron juntos en un solo PR en vez de dos secuenciales para evitar un estado
+intermedio inconsistente.
+**Archivos clave:** `protocols/session_start.md`, `.claude/hooks/session-start.ps1`,
+`.claude/settings.json`.
+
+## 2026-09-10 — PR #256 — docs(github): formato de PR body obligatorio + sin atribución de IA
+
+**Plan:** no hubo plan formal (chore directo, surgido de conversación de sesión).
+**Qué se agregó:** `agents/github.md` documenta el template obligatorio de PR body (Qué se
+hizo/Por qué/Tests/Proceso) + regla explícita de "sin atribución de IA" en commits/PRs de este
+repo (decisión, no omisión).
+**Por qué importa:** cierra el gap de que el footer de atribución dependía de una inyección de
+sesión de la plataforma (nunca vivió en archivo versionado); fija una convención propia y
+explica por qué no se reproduce.
+**Archivos clave:** `agents/github.md`, `.agent/memory/project-log.md`.
+
 ## 2026-09-09 — PR #255 — feat(agentic-dev-loop): reemplaza isolation de worktree por lock de checkout
 
 **Plan:** no hubo plan formal (ver Issue #217, ya `ready` con DoD actualizado).

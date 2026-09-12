@@ -453,10 +453,15 @@ mem_save(
 )
 ```
 
-`topic_key` hace upsert — cada merge sin volcar actualiza la misma observación en vez de
-crear una fila nueva, así que puede acumular más de un bloque pendiente a la vez. Se vuelca
-a `project-log.md` real (append normal, arriba de todo, orden cronológico inverso) recién en
-la **próxima PR de código real que se abra**, como un archivo más de ese diff.
+`topic_key` hace upsert — **reemplaza** el contenido de la observación existente, no lo
+mezcla. Si ya hay un bloque pendiente sin volcar (merge anterior sin PR de código posterior
+todavía) y aparece un merge nuevo, primero leer la observación existente
+(`mem_get_observation`) y guardar el `content` con **ambos** bloques concatenados (el nuevo
+arriba, orden cronológico inverso) — nunca llamar `mem_save` con `content` de un solo bloque
+si ya había uno pendiente, porque el upsert lo pisaría en silencio. Se vuelca a
+`project-log.md` real (append normal, arriba de todo) recién en la **próxima PR de código
+real que se abra**, como un archivo más de ese diff — y ahí se vacía la observación de Engram
+o se actualiza para reflejar que ya no hay pendientes.
 
 **Nunca abrir una rama/PR dedicada solo para este append** — es un PR de un solo archivo,
 sin código, sin revisión real posible, que solo agrega pasos (rama, commit, push, PR,

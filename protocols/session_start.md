@@ -5,44 +5,39 @@
 
 ---
 
-## Hook Fast-Path (leer primero)
+## Paso 0 — Recuperar Contexto de la Sesión Anterior (obligatorio, bloqueante)
 
-Si el contexto ya contiene el JSON del hook `session-start.ps1` (campos `branch`, `issues_ready`, `last_session`, `harness_update_available`, `harness_latest_version` presentes):
+> **Por qué existe este paso primero:** la información de cierre de sesión (qué se hizo, qué
+> quedó pendiente, sugerencias del agente) se guarda en cada cierre pero históricamente nunca
+> llegaba de forma confiable al siguiente inicio — vivía solo en Engram (contenido rico de
+> `mem_session_summary`), nunca en `current-session.json` (reducido a 3 campos desde ADR-006).
+> Este paso corre **siempre**, incluso cuando el hook nativo del plugin de Engram ya inyectó
+> contexto al inicio del turno — defensa en profundidad barata (una llamada MCP adicional):
+> nunca se asume que la inyección de otra pieza de software funcionó esta vez. Ver
+> `docs/aura/specs/2026-09-10-session-lifecycle-script-consolidation-design.md` para el
+> rationale completo, incluyendo por qué no se reconstruye acá el mecanismo nativo del plugin
+> de Engram (`scripts/session-start.sh`, matchers `startup|resume|clear|fork`) en vez de
+> reemplazarlo.
 
-- **Saltear pasos 2, 3 y 4** — los datos ya están disponibles en el hook output
-- **Excepción:** correr igual `gh repo view --json visibility -q .visibility` y aplicar el
-  **Gate de datos sensibles** (ver Paso 3 → "Salud del Repositorio") — es una sola llamada
-  barata y protege contra el escenario que motivó esa regla; no se salta ni con hook output
-  presente
-- **Excepción:** correr igual `gh pr list --state open` (ver Paso 4 → "PRs Abiertas") — el
-  hook no trae este dato y una PR abierta es la señal más directa de trabajo a un paso de
-  cerrarse; no se salta ni con hook output presente (ver Issue #109 — el gap real que
-  motivó este paso: una PR abierta quedó invisible en el resumen porque nada en el fast-path
-  ni en el hook la consultaba)
-- **Excepción:** correr igual `bash skills/repo-integrity/scripts/check-base-branch.sh` (ver
-  Paso 3 → "PRs contra la Rama Base Incorrecta") — el hook no trae este dato; no se salta ni
-  con hook output presente. Llamada adicional barata (un `gh pr list` propio, no reusa el de
-  la excepción anterior). Sin esta excepción, el chequeo que debía detectar el próximo caso
-  como PR #159 no correría nunca en el camino común (fast-path activo) — gap real encontrado
-  en code review de PR #166.
-- **Excepción:** correr igual `bash skills/repo-integrity/scripts/check-orphaned-worktrees.sh`
-  (ver Paso 3 → "Worktrees Huérfanos") — chequeo 100% local (sin `gh`, sin red), no se salta
-  ni con hook output presente. Sin esta excepción, worktrees huérfanos de sesiones ya
-  cerradas se acumulan indefinidamente sin que nada del harness lo note (caso real: sesión
-  2026-09-02, 3 worktrees acumulados descubiertos solo porque el usuario notó que no
-  desaparecían de la pantalla de sesiones de Claude Code).
-- **Ejecutar directamente paso 5** (mem_context) y luego paso 6 (resumen)
-- **Repo health** (branch protection de main/develop) → omitir; solo ejecutar bajo demanda o
-  una vez por semana
-- Esto reduce las tool calls de ~10 a **5** (visibilidad + PRs abiertas + PRs base-branch +
-  worktrees huérfanos + mem_context)
-- **Nota:** El hook también inyecta `harness_update_available` (boolean) y `harness_latest_version` (string); ver Paso 6 para cómo mostrar la línea de aviso
-
-Si el hook output NO está presente → ejecutar el protocolo completo desde el Paso 2.
+1. `mem_context(project)` → identificar el `session_summary` más reciente.
+2. `mem_get_observation(id)` sobre **ese mismo** — nunca conformarse con el preview de 300
+   caracteres de `mem_context`. Extraer `Accomplished` (✅/🔲) y cualquier sugerencia/next-step
+   explícito del agente en esa sesión. Afirmar "no hay next_step" sin haber hecho esta llamada
+   es una violación de la regla de `.aura/rules/harness-core.md` de no afirmar estado sin
+   verificar.
+3. Si `mem_context` falla (error de MCP) o no devuelve resultados → fallback a
+   `.agent/memory/current-session.json` (si existe), usando sus 3 campos (`last_updated`,
+   `branch`, `next_step`), con advertencia explícita:
+   ```
+   ⚠ Engram no disponible — mostrando puntero local de current-session.json (posiblemente desactualizado)
+   ```
+   Si tampoco existe `current-session.json`, continuar sin esa sección.
+4. **Gate:** no se avanza al Paso 4 (Resumen Ejecutivo) sin haber completado este paso — con
+   éxito o con el fallback declarado. Nunca en silencio.
 
 ---
 
-## Paso 1 — Leer Contexto (obligatorio)
+## Paso 1 — Leer Contexto Local (obligatorio)
 
 Leer en paralelo:
 - `AGENTS.md` (este archivo, si no se cargó antes)
@@ -66,21 +61,50 @@ falla en silencio y la identidad del agente nunca carga. Verificar:
 test -f AGENTS.local.md || test -f .aura/AGENTS.local.md && echo "ADVERTENCIA: AGENTS.local.md está en .aura/, no en la raíz — moverlo con: mv .aura/AGENTS.local.md AGENTS.local.md"
 ```
 
-Si se detecta esta condición, incluirla en la sección "Advertencias" del resumen ejecutivo
-(Paso 6) antes de continuar.
+Si se detecta esta condición, incluirla en la sección "Advertencias" del Resumen Ejecutivo
+(Paso 4) antes de continuar.
 
 ---
 
-## Paso 2 — Estado del Entorno
+## Paso 2 — Gathering Determinístico (`session-start.ps1` extendido)
 
-Ejecutar (según sistema operativo):
+> **Nota de alcance:** este paso es sobre gathering de **git/gh/filesystem**, no sobre memoria
+> Engram (eso ya se resolvió en el Paso 0, con un mecanismo distinto).
+
+El hook `.claude/hooks/session-start.ps1` corre en los matchers `startup`/`resume`/`clear` y
+emite un único JSON cubriendo estos 16 ítems:
+
+| # | Tarea | Mecanismo interno |
+|---|-------|---------|
+| 1 | Rama y estado de git | `git branch --show-current`, `git status --short`, `git diff --stat`, `git log --oneline -1/-3` |
+| 2 | Config de hooks nativos | detecta `.githooks/`, setea `core.hooksPath` si falta |
+| 3 | Init de submódulo `.aura` si quedó vacío | `git submodule status/update --init .aura` |
+| 4 | Autenticación de GitHub | `gh auth status` |
+| 5 | Nombre y topics del repo | `gh repo view --json name,repositoryTopics` |
+| 6 | Visibilidad del repo | `gh repo view --json visibility` — alimenta el gate de datos sensibles (Paso 3) |
+| 7 | Stash pendiente | `git stash list` |
+| 8 | Salud de ramas | `git branch --merged develop`, `git branch -vv \| grep gone` |
+| 9 | PRs abiertas | `gh pr list --state open --json number,title,headRefName,baseRefName,mergeable` |
+| 10 | Issues `ready` | `gh issue list --label ready --state open --json number,title` |
+| 11 | Detección de stack | busca `pyproject.toml`/`package.json`/`Cargo.toml`/`go.mod`; si no hay ninguno, `detected_stack: null` explícito (no un salteo silencioso) |
+| 12 | `session-stack.json` existente | lee si ya fue confirmado antes |
+| 13 | 4 scripts de repo-integrity | `check-release-drift.sh`, `check-repo-manifest.sh`, `check-base-branch.sh`, `check-orphaned-worktrees.sh` — stdout capturado, solo aparece si imprimieron algo (fail-silent) |
+| 14 | Candidatos a trabajo stranded | ramas ahead de `develop` con commits `Closes/Fixes/Resolves #N` |
+| 15 | Ideas en backlog | cuenta `## [` en `ideas.md` |
+| 16 | Update del harness disponible | compara tag local de `.aura` vs. remoto (caché 30 min) o versión de plugin instalada vs. marketplace |
+
+**Si el JSON del hook ya está disponible en el contexto** (campos como `branch`,
+`issues_ready`, `open_prs`, `repo_visibility`, `repo_integrity`, `last_session`,
+`harness_update_available` presentes): usar esos datos directamente para el Paso 3 y el Paso 4
+— no repetir ninguna de las llamadas de la tabla de arriba.
+
+**Si el hook no disparó** (sesión sin hooks configurados, o el JSON no llegó): ejecutar
+manualmente los comandos equivalentes:
 
 ```bash
-# Rama actual
+# Rama, estado, commits
 git branch --show-current
 git status --short
-
-# Últimos commits
 git log --oneline -5
 
 # GitHub CLI
@@ -89,175 +113,70 @@ gh auth status --hostname github.com 2>&1 || echo "gh: no autenticado"
 # Stash
 git stash list
 
-# Engram (si está disponible)
-where engram 2>nul || echo "engram: no disponible"
-```
+# Visibilidad del repo (si gh autenticado)
+gh repo view --json visibility -q .visibility
 
----
+# PRs abiertas (si gh autenticado)
+gh pr list --state open --json number,title,headRefName,baseRefName,mergeable --limit 20
 
-## Paso 3 — Salud de Ramas (obligatorio)
+# Issues ready (si gh autenticado)
+gh issue list --label ready --state open --json number,title,labels --limit 20
 
-Detectar ramas que requieren limpieza:
-
-```bash
-# Actualizar la referencia de develop antes de los chequeos de merge (Issue #214) -
-# sin esto, un develop local desactualizado produce falsos negativos: una rama ya
-# mergeada en origin/develop puede no detectarse como mergeada.
+# Salud de ramas (actualizar develop primero — Issue #214)
 git fetch origin develop --quiet
-
-# Ramas locales ya mergeadas en develop
 git branch --merged develop | grep -v "^\*\|main\|develop"
-
-# Ramas remotas ya mergeadas en origin/develop
 git branch -r --merged origin/develop | grep -v "origin/HEAD\|origin/main\|origin/develop"
-
-# Ramas locales sin remote (gone)
 git branch -vv | grep ": gone]"
-
-# Verificar referencias obsoletas
 git remote prune origin --dry-run
+
+# 4 scripts de repo-integrity (fail-silent si no imprimen nada)
+bash skills/repo-integrity/scripts/check-release-drift.sh
+bash skills/repo-integrity/scripts/check-repo-manifest.sh
+bash skills/repo-integrity/scripts/check-base-branch.sh
+bash skills/repo-integrity/scripts/check-orphaned-worktrees.sh
 ```
 
-Incluir en el resumen si hay ramas que requieren limpieza.
-
-### Worktrees Adicionales (Issue #200 — regla anti-worktree)
+### Worktrees Adicionales (Issue #200 — regla anti-worktree, no cubierto por el hook)
 
 ```bash
 git worktree list
 ```
 
 Si devuelve más de una entrada (el checkout activo cuenta como una): reportar cada worktree
-adicional en el resumen ejecutivo (sección Advertencias) y **proponer** su eliminación
-(`git worktree remove <path>`), con confirmación del usuario antes de ejecutar — ver
-`agents/github.md` → "Regla anti-worktree" para el criterio completo (worktrees son un recurso
-de excepción, no el flujo por defecto de este harness; ver también Issue #200 para el motivo:
-un worktree nuevo no inicializa `.aura` y puede degradar la sesión a "sin protocolo" sin aviso).
-No aplica al worktree que la sesión de background actual esté usando para su propio
-aislamiento (mecanismo de la plataforma, no del harness) — solo a worktrees adicionales/huérfanos
-detectados junto al checkout activo.
+adicional en el Resumen Ejecutivo (sección Advertencias del Paso 4) y **proponer** su
+eliminación (`git worktree remove <path>`), con confirmación del usuario antes de ejecutar —
+ver `agents/github.md` → "Regla anti-worktree" para el criterio completo. No aplica al
+worktree que la sesión de background actual esté usando para su propio aislamiento (mecanismo
+de la plataforma, no del harness) — solo a worktrees adicionales/huérfanos detectados junto al
+checkout activo.
 
-### Integridad Repo-Remote (si gh autenticado)
+### Repo Health (branch protection)
 
-Ejecutar solo si `gh auth status` pasó en Paso 2.
+Chequeo de protección de `main`/`develop` (`gh api repos/{{OWNER}}/{{REPO}}/branches/.../protection`)
+→ **omitir por defecto**; solo ejecutar bajo demanda o una vez por semana. No forma parte del
+gathering de rutina de este paso.
 
-Invocar `skills/repo-integrity/SKILL.md` con la lista de ramas candidatas (las que tienen commits ahead de develop). El skill clasifica cada rama vía `skills/repo-integrity/scripts/classify-branch.sh <owner>/<repo> <rama>` (no reconstruir el algoritmo en prosa).
+---
 
-Si se detecta trabajo stranded → **DETENER aquí**. No continuar al Paso 4 hasta que el usuario resuelva.
+## Paso 3 — Gates (usa datos del Paso 2)
 
-### Salud del Repositorio (si gh autenticado)
+### Gate de Trabajo Stranded (si `gh` autenticado)
 
-Ejecutar solo si `gh auth status` pasó en Paso 2:
+Usar los candidatos del ítem 14 de la tabla del Paso 2 (ramas ahead de `develop` con commits
+`Closes/Fixes/Resolves #N`). Invocar `skills/repo-integrity/SKILL.md`, que clasifica cada rama
+vía `skills/repo-integrity/scripts/classify-branch.sh <owner>/<repo> <rama>` (no reconstruir el
+algoritmo en prosa).
 
-```bash
-# Visibilidad del repo
-gh repo view --json visibility -q .visibility
+Si se detecta trabajo stranded → **DETENER aquí**. No mostrar el Resumen Ejecutivo (Paso 4) ni
+el Capability Menu (Paso 6) hasta que el usuario resuelva. Ver `.aura/rules/repo-integrity.md`
+para el criterio completo.
 
-# Protección de main
-gh api repos/{{OWNER}}/{{REPO}}/branches/main/protection \
-  --jq '{force_push: .allow_force_pushes.enabled, deletions: .allow_deletions.enabled, require_pr: (.required_pull_request_reviews != null)}' \
-  2>/dev/null || echo "main: sin protección"
-
-# Protección de develop
-gh api repos/{{OWNER}}/{{REPO}}/branches/develop/protection \
-  --jq '{force_push: .allow_force_pushes.enabled, deletions: .allow_deletions.enabled, require_pr: (.required_pull_request_reviews != null)}' \
-  2>/dev/null || echo "develop: sin protección"
-```
-
-Incluir en el resumen ejecutivo (Paso 6) con este formato:
-
-```
-## Salud del Repositorio
-| Check             | Estado                                |
-|-------------------|----------------------------------------|
-| Visibilidad       | private ✓  / public ⚠ (requiere confirmación) |
-| main protegida    | ✓ require PR, no force push           |
-| develop protegida | ✓ require PR, no force push           |
-```
-
-Si algún check falla → sugerir el comando exacto para corregirlo (ver `agents/github.md`).
-
-### Drift de Release (main vs. develop)
-
-Chequeo local, no requiere `gh` — corre siempre que existan ambas ramas:
-
-```bash
-bash skills/repo-integrity/scripts/check-release-drift.sh
-```
-
-Si imprime una línea `DRIFT: ...` → incluirla tal cual en la sección "Advertencias" del
-Resumen Ejecutivo (Paso 6), con la acción sugerida: aplicar el sync-back de
-`agents/github.md` → "Proceso de Release" antes de continuar. Si no imprime nada, no
-mostrar ninguna línea (chequeo silencioso, igual que "PRs Abiertas" cuando la lista viene
-vacía no se omite el paso, pero acá sí se omite la línea si no hay hallazgo — es una
-advertencia condicional, no un estado a reportar siempre).
-
-Ver Issue #120 y PR #119 (aura-agent-kit) para el caso real que motivó este chequeo: un
-consumidor externo actualizó `.aura` a `develop` en vez de a un tag exacto y recibió una
-versión reportada incorrecta porque el tag había quedado fuera de la ancestría de `develop`.
-
-### Integridad del Manifest (archivos del harness faltantes o fuera de lugar)
-
-Chequeo local, no requiere `gh` — corre siempre, sin dependencias de red:
-
-```bash
-bash skills/repo-integrity/scripts/check-repo-manifest.sh
-```
-
-Si imprime una o más líneas `MISSING: ...` / `MISPLACED: ...` → incluirlas tal cual en la
-sección "Advertencias" del Resumen Ejecutivo (Paso 6). Si no imprime nada, no mostrar
-ninguna línea (advertencia condicional, mismo patrón que "Drift de Release" arriba).
-
-Ver ADR-007 (`docs/aura/adr/ADR-007-repo-integrity-manifest.md`) para el contrato completo
-y `skills/repo-integrity/manifest.txt` para la lista de referencia.
-
-### PRs contra la Rama Base Incorrecta (si `gh` autenticado)
-
-Ejecutar solo si `gh auth status` pasó en Paso 2:
-
-```bash
-bash skills/repo-integrity/scripts/check-base-branch.sh
-```
-
-Si imprime una o más líneas `BASE-BRANCH: ...` → incluirlas tal cual en la sección
-"Advertencias" del Resumen Ejecutivo (Paso 6). Si no imprime nada, no mostrar ninguna línea
-(advertencia condicional, mismo patrón que "Drift de Release" y "Integridad del Manifest").
-
-Detecta PRs abiertas con rama `feature/*`/`fix/*`/`chore/*`/etc. que apuntan contra `main` en
-vez de `develop` (excluyendo el PR legítimo de `promote` de `cut-release.sh`, que sí tiene
-`base=main`/`head=develop`). Caso real que motivó este chequeo: PR #159 se ramificó y mergeó
-directo contra `main`, saltándose `develop` por completo, sin que ningún chequeo existente lo
-detectara antes del merge — causa raíz probable: `worktree.baseRef:"fresh"` de Claude Code
-crea worktrees/ramas nuevas desde el default branch del repo, no desde `develop`. Ver
-`docs/aura/specs/2026-08-29-claude-code-worktree-conflict-and-agent-browser.md`.
-
-### Worktrees Huérfanos (local, no requiere `gh`)
-
-Chequeo local, no requiere red — corre siempre, sin dependencias de `gh`:
-
-```bash
-bash skills/repo-integrity/scripts/check-orphaned-worktrees.sh
-```
-
-Si imprime una o más líneas `ORPHANED-WORKTREE: ...` → incluirlas tal cual en la sección
-"Advertencias" del Resumen Ejecutivo (Paso 6), con la acción sugerida ya embebida en cada
-línea. Si no imprime nada, no mostrar ninguna línea (advertencia condicional, mismo patrón
-que "Drift de Release" e "Integridad del Manifest").
-
-Detecta dos casos, sin borrar nada — solo informa: (1) un worktree con lock cuyo PID dueño
-ya no existe (la sesión terminó sin pasar por el flujo normal de `ExitWorktree`); (2) un
-worktree sin lock cuya rama ya está mergeada a `develop` o con remoto `gone`. Nunca marca
-un worktree cuyo PID de lock sigue vivo — eso es una sesión activa real, no huérfana. Caso
-real que motivó este chequeo: sesión 2026-09-02, 3 worktrees acumulados de sesiones ya
-cerradas (ninguno limpiado automáticamente pese a que la herramienta documenta que "el
-worktree puede eliminarse junto con la sesión") — descubiertos solo porque el usuario notó
-que no desaparecían de la pantalla de sesiones de Claude Code.
-
-#### Gate de datos sensibles (si `visibility == public`)
+### Gate de Datos Sensibles (si `visibility == public`, del ítem 6 del Paso 2)
 
 Si la visibilidad es **pública** y el proyecto maneja datos de un cliente real
 (heurística: existe `output/` gitignored, o config local-only en `config/*.json`
 gitignored, o el objetivo del proyecto es reverse-engineering de una BD real) →
-**DETENER aquí, antes del Paso 6.** No presentar el resumen ejecutivo ni el Paso 6 hasta
+**DETENER aquí, antes del Paso 4.** No presentar el resumen ejecutivo ni el Paso 6 hasta
 que el usuario responda.
 
 Preguntar textualmente:
@@ -267,82 +186,29 @@ Preguntar textualmente:
 
 Ver `.claude/rules/sensitive-data-safety.md` para el catálogo completo de qué cuenta
 como sensible. Registrar la respuesta del usuario en la sección "Advertencias" del
-resumen ejecutivo.
+Resumen Ejecutivo (Paso 4).
+
+### Advertencias Condicionales (del ítem 13 del Paso 2 — repo-integrity)
+
+Cada uno de los 4 scripts solo produce una línea si encuentra algo — silencioso si no imprime
+nada (mismo patrón para los cuatro, no mostrar bloque vacío):
+
+- **Drift de Release** (`check-release-drift.sh`): línea `DRIFT: ...` → incluirla tal cual en
+  "Advertencias", con la acción sugerida: aplicar el sync-back de `agents/github.md` →
+  "Proceso de Release". Ver Issue #120 y PR #119 para el caso real que lo motivó.
+- **Integridad del Manifest** (`check-repo-manifest.sh`): líneas `MISSING: ...` /
+  `MISPLACED: ...` → incluirlas tal cual. Ver ADR-007 y `skills/repo-integrity/manifest.txt`.
+- **PRs contra la Rama Base Incorrecta** (`check-base-branch.sh`): líneas `BASE-BRANCH: ...` →
+  incluirlas tal cual. Detecta PRs `feature/*`/`fix/*`/`chore/*` que apuntan contra `main` en
+  vez de `develop` (excluyendo el PR legítimo de `promote` de `cut-release.sh`). Caso real: PR
+  #159.
+- **Worktrees Huérfanos** (`check-orphaned-worktrees.sh`): líneas `ORPHANED-WORKTREE: ...` →
+  incluirlas tal cual, con la acción sugerida ya embebida en cada línea. No borra nada, solo
+  informa. Caso real: sesión 2026-09-02, 3 worktrees acumulados sin limpiar.
 
 ---
 
-## Paso 4 — Issues Listos (si aplica)
-
-```bash
-gh issue list \
-  --repo {{OWNER}}/{{REPO}} \
-  --label ready --state open \
-  --json number,title,labels \
-  --limit 20
-```
-
-### PRs Abiertas (obligatorio, si `gh` autenticado)
-
-Ejecutar siempre, con o sin hook fast-path (ver excepción en "Hook Fast-Path" arriba). Una
-PR abierta es la señal más directa de trabajo pendiente — más cercana a cerrarse que un
-issue `ready` sin código todavía — y ningún otro paso del protocolo la detecta: Paso 3 solo
-mira ramas ya mergeadas/huérfanas o *stranded* (issue cerrado sin PR), nunca PRs con issue
-todavía abierto (el caso normal).
-
-```bash
-gh pr list \
-  --repo {{OWNER}}/{{REPO}} \
-  --state open \
-  --json number,title,headRefName,baseRefName,mergeable \
-  --limit 20
-```
-
-Incluir el resultado en el resumen ejecutivo (Paso 6), sección "PRs Abiertas". Si la lista
-viene vacía, mostrar "✓ Sin PRs abiertas" en esa sección — no omitirla, para que quede claro
-que se verificó y no que se saltó el chequeo.
-
----
-
-## Paso 5 — Memoria Engram (si MCP disponible)
-
-```bash
-mem_context(
-  limit=10,
-  project="{{PROJECT_NAME}}"
-)
-```
-
-### Contenido completo del último session_summary (obligatorio, no solo el preview)
-
-`mem_context` devuelve un preview truncado a ~300 caracteres por observación — insuficiente
-para extraer "Pendiente"/"Próximo paso" de un `session_summary`, que suele quedar después de
-`Goal`/`Instructions`/`Discoveries` en el texto completo. **Antes de declarar el campo
-"Pendiente"/"Próximo paso" del Resumen Ejecutivo (Paso 6), llamar `mem_get_observation` sobre
-el `session_summary` más reciente devuelto por `mem_context`** y leer sus secciones
-`Accomplished`/`🔲` completas — nunca conformarse con el preview truncado para esta sección
-específica. Afirmar "no hay next_step" sin haber hecho esta llamada es una violación de la
-regla de `.aura/rules/harness-core.md` de no afirmar estado sin verificar (caso real,
-2026-09-02: el preview truncado no mostraba el `🔲 Pendiente` de la observación `#564`, que sí
-estaba completo tanto en Engram como en `current-session.json`; el agente declaró
-incorrectamente que no había next_step en memoria).
-
-### Fallback — Engram no disponible o sin resultados
-
-> **Desde ADR-006:** `current-session.json` existe únicamente para este caso — es un puntero
-> local no versionado (gitignored), nunca la fuente primaria.
-
-Si `mem_context` falla (error de MCP) o devuelve vacío: leer `.agent/memory/current-session.json`
-(si existe) y usar sus 3 campos (`last_updated`, `branch`, `next_step`) para poblar la sección
-"Última Sesión" del Resumen Ejecutivo (Paso 6), en vez de dejarla vacía. Incluir en
-"Advertencias":
-```
-⚠ Engram no disponible — mostrando puntero local de current-session.json (posiblemente desactualizado)
-```
-Si tampoco existe `current-session.json`, continuar sin esa sección (comportamiento actual).
-
----
-
-## Paso 5.5 — Reporte de Observability de la Sesión Anterior (fail-open)
+## Paso 3.5 — Reporte de Observability de la Sesión Anterior (fail-open)
 
 Procesa entradas pendientes del índice de sesiones y muestra un resumen compacto de la
 sesión anterior, antes del Resumen Ejecutivo. Es **fail-open**: si el script falla, no
@@ -380,124 +246,112 @@ completo (no mostrar un bloque vacío ni un mensaje de error).
 
 ---
 
-## Paso 6 — Resumen Ejecutivo (formato obligatorio)
+## Paso 4 — Resumen Ejecutivo (3 preguntas raíz, formato obligatorio)
+
+> Las 8 secciones del formato anterior (Estado del Entorno, Repositorio, Salud de Ramas,
+> Última Sesión, Issues Listos, PRs Abiertas, Ideas en Backlog, Advertencias) no se eliminan
+> ni se resumen — se **reagrupan** bajo 3 preguntas raíz. Ningún dato se pierde, solo cambia
+> el agrupamiento visual.
+
+**Mapeo sección anterior → pregunta raíz:**
+
+| Pregunta raíz | Secciones que responde | Fuente |
+|---|---|---|
+| 1. Continuidad — ¿dónde lo dejé? | "Última Sesión" (Pendiente, Próximo paso) | Paso 0 (Engram, bloqueante) |
+| 2. Estado real — ¿en qué condición está todo, mío y ajeno? | "Estado del Entorno", "Repositorio", "Salud de Ramas", "Issues Listos", "PRs Abiertas", "Advertencias" (gates + drift + manifest + worktrees huérfanos) | Paso 2 (script) + Paso 3 (gates) |
+| 3. Próximo movimiento — ¿qué es lo más razonable hacer ahora? | "Ideas en Backlog", "Próxima Acción Recomendada", Stack de sesión, Capability Menu | Paso 2 (script) + Paso 5/6 |
+
+**Formato de salida:**
 
 ```
-## Estado del Entorno
-| Herramienta | Estado | Nota |
-|-------------|--------|------|
-| git         | ✓/✗   | versión |
-| gh          | ✓/✗   | autenticado o error |
-| engram      | ✓/✗   | disponible o no |
+## 1. Continuidad — ¿dónde lo dejé?
+| Campo | Valor |
+|---|---|
+| Pendiente (última sesión) | <de session_summary #ID, texto completo, no preview> |
+| Próximo paso sugerido | <next_step> |
+| Fuente | Engram (#ID) / fallback current-session.json |
 
-## Repositorio
-- **Nombre:** <repo_name> (del hook, `gh repo view --json name`)
-- **Topics:** <lista separada por comas, o "sin topics" si viene vacío — ver
-  `agents/github.md` → "Convención de Topics de GitHub" para qué significa cada uno>
-- **Branch:** <nombre>
-- **Sin rastrear:** N archivos
-- **Cambios sin commit:** N
-- **Último commit:** <hash> "<mensaje>"
+## 2. Estado real — mío
+| Check | Estado |
+|---|---|
+| git / gh / engram | ✓/✗ (detallar cuál si alguno falla) |
+| Repo | <repo_name> — topics: <lista o "sin topics"> |
+| Branch | <nombre> |
+| Sin rastrear | N archivos |
+| Cambios sin commit | N |
+| Último commit | <hash> "<mensaje>" |
 
-## Salud de Ramas
-> Si hay ramas sucias: mostrar tabla con acción sugerida
-> Si todo limpio: "✓ Ramas limpias"
+## 2. Estado real — ajeno / repo
+| Check | Estado |
+|---|---|
+| Ramas para limpiar | N (detalle si aplica) |
+| Worktrees adicionales | N |
+| Issues ready | N (tabla #/título si N>0) |
+| PRs abiertas | N (tabla #/título/rama/base si N>0) |
+| Gates (datos sensibles / stranded / drift / manifest / base-branch) | ✓ limpio / ⚠ detalle |
 
-## Última Sesión
-- **Pendiente:** <tareas — de Engram (Paso 5); si Engram no disponible, del puntero local current-session.json>
-- **Próximo paso:** <next_step>
-
-## Issues Listos (label: ready)
-| # | Título | Bloque |
-|---|--------|--------|
-| ... | ... | ... |
-
-## PRs Abiertas
-> Si hay PRs abiertas: tabla `# | Título | Rama | Base | Mergeable`
-> Si no hay: "✓ Sin PRs abiertas"
-
-## Ideas en Backlog
-> N ideas — revisar con `/idea` o abrir `.agent/memory/ideas.md`
-> (Si ideas_count == 0: omitir esta sección)
-
-## Próxima Acción Recomendada
-**Issue #N** — [título]
-Rama sugerida: `{{TIPO}}/{{CODIGO}}-{{descripcion}}`
-
-## Advertencias
-> ⚠ [Si hay problemas claros]
-> ⚠ Si `harness_update_available: true` (del hook), incluir una sola línea:
->   `⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — /harness-update para detalle`
->   (sustituyendo X.Y.Z por `harness_latest_version` y A.B.C por la versión local actual del harness)
-> ⚠ Si `harness_update_check_error` viene presente en el JSON del hook, incluir una sola línea:
->   `⚠ Chequeo de actualización del harness no pudo ejecutarse: <harness_update_check_error>`
->   (distingue "se chequeó, no hay update" de "el chequeo nunca corrió" — Issue #111)
-> ⚠ Si `aura_submodule_initialized: true` (del hook), incluir una sola línea (Issue #200):
->   `⚠ .aura estaba sin inicializar — se corrió 'git submodule update --init .aura' automáticamente`
-> ⚠ Si `git worktree list` devuelve más de una entrada (Paso 3, ver "Salud de Ramas" abajo),
->   incluir una línea por worktree adicional detectado y la propuesta de limpieza — ver
->   `agents/github.md` → "Regla anti-worktree"
+## 3. Próximo movimiento
+| Opción | Detalle |
+|---|---|
+| Recomendada | <issue/acción concreta> |
+| Ideas en backlog | N (omitir fila si 0) |
+| Stack activo | <perfil> |
 ```
 
-### Nota sobre la línea de aviso de actualización del harness
+Cierre del resumen, línea nueva (capa de visibilidad, no de enforcement):
+```
+✓ Contexto previo recuperado (Paso 0) · N chequeos obtenidos por script (Paso 2) · 0 gathering manual
+```
 
-Si el hook `session-start.ps1` inyecta `harness_update_available: true`, incluir en la
-sección "Advertencias" del Resumen Ejecutivo una sola línea, cuyo formato depende del canal
-de instalación detectado (`harness_update_channel`, también inyectado por el hook):
+### Advertencias — casos especiales a incluir cuando aplican
 
-- **`harness_update_channel` ausente o `"submodule"`** (modelo legacy, `.aura/` como
-  submódulo git):
-  ```
-  ⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — /harness-update para detalle
-  ```
-  - Sustituir `X.Y.Z` con `harness_latest_version` (del hook)
-  - Sustituir `A.B.C` con la versión local actual del harness (de `version.txt` o similar)
-
-- **`harness_update_channel == "plugin"`** (consumidor instalado vía plugin/marketplace de
-  Claude Code, sin `.aura/` — ver Issue #181):
-  ```
-  ⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — actualizar con: claude plugin update {{plugin_id}}
-  ```
-  - Sustituir `X.Y.Z` con `harness_latest_version`
-  - Sustituir `A.B.C` con la versión instalada reportada por `claude plugin list --json`
-  - Sustituir `{{plugin_id}}` con `harness_update_plugin_id` (del hook, ej. `aura@aura-agent-kit`)
-
-**Importante (ambos canales):**
-- Esta línea va **siempre en la sección "Advertencias"**, no como bloque separado
-- El detalle completo del CHANGELOG **NO se vuelca** en el resumen ejecutivo — solo aparece
-  al correr `/harness-update` (canal submodule) o `claude plugin update` (canal plugin)
-  explícitamente
-- Esto evita repetir el mismo bloque de texto sesión tras sesión mientras el usuario no actualiza
-- Ambos canales son mutuamente excluyentes por construcción en el hook (ver
-  `.claude/hooks/session-start.ps1`): la detección plugin solo corre cuando `.aura/` no existe
-  en absoluto, así que nunca se disparan los dos en la misma sesión
+- Si `harness_update_available: true` (del hook), incluir una sola línea en "Gates" o como
+  fila de la tabla "Estado real — ajeno / repo":
+  - **Canal `submodule`** (ausente o `"submodule"`):
+    `⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — /harness-update para detalle`
+    (`X.Y.Z` = `harness_latest_version`, `A.B.C` = versión local actual del harness)
+  - **Canal `plugin`** (`harness_update_channel == "plugin"`):
+    `⚠ Harness vX.Y.Z disponible (actual: vA.B.C) — actualizar con: claude plugin update {{plugin_id}}`
+    (`{{plugin_id}}` = `harness_update_plugin_id`)
+  - El detalle completo del CHANGELOG **no se vuelca** en el resumen — solo aparece al correr
+    `/harness-update` o `claude plugin update` explícitamente. Ambos canales son mutuamente
+    excluyentes por construcción en el hook.
+- Si `harness_update_check_error` viene presente en el JSON del hook, incluir:
+  `⚠ Chequeo de actualización del harness no pudo ejecutarse: <harness_update_check_error>`
+  (distingue "se chequeó, no hay update" de "el chequeo nunca corrió" — Issue #111)
+- Si `aura_submodule_initialized: true` (del hook):
+  `⚠ .aura estaba sin inicializar — se corrió 'git submodule update --init .aura' automáticamente`
+- Si `git worktree list` devuelve más de una entrada (Paso 2): una línea por worktree
+  adicional detectado y la propuesta de limpieza — ver `agents/github.md` → "Regla
+  anti-worktree"
 
 ---
 
-## Paso 7 — Stack de Sesión
+## Paso 5 — Stack de Sesión
 
 Determinar el stack tecnológico antes de presentar el menú:
 
-**7a — Detección automática:**
+**5a — Detección automática:** usar `detected_stack` del Paso 2 (ítem 11) si el hook disparó;
+si no, buscar en la raíz del proyecto:
 ```
-Buscar en la raíz del proyecto:
-  pyproject.toml / setup.py  → Python
-  package.json               → Node.js / TypeScript
-  Cargo.toml                 → Rust
-  go.mod                     → Go
+pyproject.toml / setup.py  → Python
+package.json               → Node.js / TypeScript
+Cargo.toml                 → Rust
+go.mod                     → Go
 ```
 
 Si se detecta → mostrar: `Stack detectado: [lenguaje/framework]. ¿Correcto? [S/n]`
 
-**7b — Sin detección:** Invocar `skills/stack-selection/SKILL.md` (lista de 24 perfiles).
+**5b — Sin detección:** Invocar `skills/stack-selection/SKILL.md` (lista de 24 perfiles).
 
-**7c — Ya existe `.agent/memory/session-stack.json`:** Leer y confirmar con el usuario que sigue siendo válido.
+**5c — Ya existe `.agent/memory/session-stack.json`:** Leer (`session_stack` del Paso 2, ítem
+12, si el hook disparó) y confirmar con el usuario que sigue siendo válido.
 
 Una vez confirmado, el stack queda disponible para todos los pasos siguientes.
 
 ---
 
-## Paso 8 — Capability Menu
+## Paso 6 — Capability Menu
 
 Presentar el menú contextual. Incluir solo las secciones que aplican:
 
@@ -561,6 +415,6 @@ Presentar el menú contextual. Incluir solo las secciones que aplican:
 | Error | Solución |
 |-------|----------|
 | gh no autenticado | Sugerir `gh auth login` |
-| Engram no disponible | Continuar sin Engram |
+| Engram no disponible | Continuar sin Engram (fallback declarado en Paso 0) |
 | current-session.json no existe | Crear estructura básica |
 | Rama sucia | Preguntar si quieres limpiar |

@@ -58,12 +58,24 @@ function Get-GitBashPath {
     # Resolver bash de Git for Windows explícitamente -- mismo patrón que session-start.ps1
     # (Get-Command bash puede resolver al relay de System32\bash.exe de WSL en vez de Git
     # Bash, que falla sin distro configurada aunque "haya bash en PATH").
+    #
+    # git.exe puede resolverse desde dos profundidades distintas segun el PATH del entorno:
+    #   Git\cmd\git.exe          (layout "clasico")            -> bash.exe en Git\bin
+    #   Git\mingw64\bin\git.exe  (layout via mingw64, este repo) -> bash.exe tambien en Git\bin,
+    #                                                                un nivel MAS arriba que con
+    #                                                                el layout clasico
+    # Probar ambas profundidades (2 y 3 niveles) evita que la deteccion dependa de cual de los
+    # dos git.exe encontro el PATH -- un candidato inexistente simplemente se descarta.
     try {
         $gitCmd = (Get-Command git -ErrorAction SilentlyContinue).Source
         if ($gitCmd) {
-            $gitRoot = Split-Path (Split-Path $gitCmd -Parent) -Parent
-            $candidate = Join-Path $gitRoot "bin\bash.exe"
-            if (Test-Path $candidate) { return $candidate }
+            $binDir = Split-Path $gitCmd -Parent
+            $depth2Root = Split-Path $binDir -Parent
+            $depth3Root = Split-Path $depth2Root -Parent
+            foreach ($root in @($depth2Root, $depth3Root)) {
+                $candidate = Join-Path $root "bin\bash.exe"
+                if (Test-Path $candidate) { return $candidate }
+            }
         }
     } catch { }
     return $null

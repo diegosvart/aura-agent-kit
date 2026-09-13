@@ -54,6 +54,21 @@ function Get-StackInfo {
     }
 }
 
+function Get-GitBashPath {
+    # Resolver bash de Git for Windows explícitamente -- mismo patrón que session-start.ps1
+    # (Get-Command bash puede resolver al relay de System32\bash.exe de WSL en vez de Git
+    # Bash, que falla sin distro configurada aunque "haya bash en PATH").
+    try {
+        $gitCmd = (Get-Command git -ErrorAction SilentlyContinue).Source
+        if ($gitCmd) {
+            $gitRoot = Split-Path (Split-Path $gitCmd -Parent) -Parent
+            $candidate = Join-Path $gitRoot "bin\bash.exe"
+            if (Test-Path $candidate) { return $candidate }
+        }
+    } catch { }
+    return $null
+}
+
 function Invoke-CheckCommand {
     param(
         [string]$Command,
@@ -64,11 +79,25 @@ function Invoke-CheckCommand {
         return @{ ran = $false; command = $null; exit_code = $null; output_tail = $null }
     }
 
+    # Los comandos de lint/test de session-stack.json usan sintaxis bash (`command -v`,
+    # `>/dev/null`, `&&`/`||` con semántica POSIX) -- correrlos vía cmd.exe los rompe
+    # silenciosamente: el `&&` de la izquierda falla por sintaxis ajena a la herramienta real,
+    # y el `||` de la derecha ejecuta el fallback, produciendo exit_code=0 sin haber corrido
+    # nada ("lint fantasma"). Git Bash es la vía por la que corre casi todo el harness.
+    $bash = Get-GitBashPath
+
     Push-Location $ProjectRoot
     try {
-        $comspec = if ($env:ComSpec) { $env:ComSpec } else { "cmd.exe" }
-        $output = & $comspec /c $Command 2>&1
-        $exitCode = $LASTEXITCODE
+        if ($bash) {
+            $output = & $bash -c $Command 2>&1
+            $exitCode = $LASTEXITCODE
+        } else {
+            # Fallback si no se pudo resolver Git Bash en este entorno -- mejor degradar a
+            # cmd.exe que fallar duro, aunque sintaxis bash del comando no vaya a funcionar ahí.
+            $comspec = if ($env:ComSpec) { $env:ComSpec } else { "cmd.exe" }
+            $output = & $comspec /c $Command 2>&1
+            $exitCode = $LASTEXITCODE
+        }
     } catch {
         $output = @($_.Exception.Message)
         $exitCode = 1

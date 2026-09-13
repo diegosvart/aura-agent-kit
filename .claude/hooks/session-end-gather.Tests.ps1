@@ -122,12 +122,36 @@ Describe 'Invoke-CheckCommand - ejecución de linter/test' {
 
     It 'trunca output_tail a las ultimas ~20 lineas' {
         $lines = 1..30 | ForEach-Object { "echo line$_" }
-        $chained = $lines -join ' & '
+        # ';' es el separador secuencial en bash (el comando corre vía Git Bash desde
+        # Issue #259/reviewer fix) -- '&' en bash es backgrounding, no encadenado como en cmd.
+        $chained = $lines -join '; '
         $result = Invoke-CheckCommand -Command $chained -ProjectRoot (Get-Location).Path
         $tailLines = $result.output_tail -split "`n"
         $tailLines.Count | Should BeLessThan 21
         $result.output_tail | Should Match 'line30'
         $result.output_tail | Should Not Match 'line1`n'
+    }
+
+    It 'ejecuta sintaxis bash real (command -v / >/dev/null / &&-||) sin fallback fantasma' {
+        # Reproduce el [CRÍTICO] reportado por el reviewer: bajo cmd.exe, `command -v` y
+        # `>/dev/null` no existen -- el && de la izquierda falla por sintaxis ajena a si la
+        # herramienta existe, y el || de la derecha ejecuta el echo de fallback, dando
+        # exit_code=0 sin haber evaluado nada real. Este comando usa una herramienta que NO
+        # existe (definitivamente-no-existe-esta-herramienta) para forzar la rama del `||`,
+        # y otra síntesis que SÍ existe (echo, disponible en cualquier bash) para forzar la
+        # rama del `&&` -- ambas deben resolverse por la lógica real del comando, no por un
+        # error de shell no reconocido.
+        $missingToolCommand = "command -v definitivamente-no-existe-esta-herramienta >/dev/null 2>&1 && echo 'deberia-no-mostrarse' || echo 'no-disponible-en-este-path'"
+        $result = Invoke-CheckCommand -Command $missingToolCommand -ProjectRoot (Get-Location).Path
+        $result.exit_code | Should Be 0
+        $result.output_tail | Should Match 'no-disponible-en-este-path'
+        $result.output_tail | Should Not Match 'deberia-no-mostrarse'
+
+        $presentToolCommand = "command -v echo >/dev/null 2>&1 && echo 'herramienta-encontrada' || echo 'no-disponible-en-este-path'"
+        $result2 = Invoke-CheckCommand -Command $presentToolCommand -ProjectRoot (Get-Location).Path
+        $result2.exit_code | Should Be 0
+        $result2.output_tail | Should Match 'herramienta-encontrada'
+        $result2.output_tail | Should Not Match 'no-disponible-en-este-path'
     }
 }
 

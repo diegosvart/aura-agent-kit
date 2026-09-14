@@ -70,6 +70,17 @@ trabajo del usuario).
    > una PR chore dedicada cuando sí había código en curso. Caso real de esa puerta usada: PR
    > #261, abierta solo para volcar bookkeeping de PR #256+#260, quedó cerrada sin mergear. La
    > condición se eliminó: la ruta de Engram es ahora el único flujo, siempre, sin excepción.
+   >
+   > **Enmienda (Issue #213, 2026-09-14):** en sesiones de background (sesiones aisladas en
+   > worktree por la plataforma), `protocols/session_end.md` Paso 5 no puede escribir a
+   > `.agent/memory/current-session.json` — el aislamiento de worktree rechaza cualquier
+   > escritura al checkout compartido fuera de su propio contexto, incluso para archivos
+   > gitignored, y esa restricción no cambia tras `ExitWorktree`. Consecuencia: el puntero de
+   > emergencia no se actualiza en esas sesiones, quedando permanentemente stale. Dado que
+   > Engram sigue siendo la memoria primaria (punto 4 de esta decisión), la continuidad ante
+   > caída de Engram **no está garantizada en sesiones background** — limitación estructural no
+   > contemplada en el trade-off original de este ADR. Ver `protocols/session_end.md` Paso 5 para
+   > la detección y el aviso explícito agregado en esas sesiones.
 6. `AGENTS.md` → "Qué se Versiona": la fila "Identidad de sesión activa" pasa de **Sí** a
    **No**, referenciando este ADR.
 

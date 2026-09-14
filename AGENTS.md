@@ -136,7 +136,7 @@
 | Categoría | Ejemplo | ¿Versionar? | Razón |
 |---|---|---|---|
 | Estructura del harness | `.aura/`, `AGENTS.md`, `protocols/`, `skills/`, `agents/`, `.claude/rules/` | Sí | Es el harness en sí |
-| Identidad de sesión activa | `.agent/memory/current-session.json` | No (desde ADR-006) | Puntero local de continuidad, solo fallback si Engram no está disponible — Engram es la memoria primaria real; versionarlo generaba una PR chore por cada cierre de sesión y exponía la forma de trabajar del usuario en un repo público (Issue #121) |
+| Identidad de sesión activa | `.agent/memory/current-session.json` | No (desde ADR-006) | Puntero local de continuidad, solo fallback si Engram no está disponible — Engram es la memoria primaria real; versionarlo generaba una PR chore por cada cierre de sesión y exponía la forma de trabajar del usuario en un repo público (Issue #121); en sesiones background, el puntero no se actualiza por restricción de aislamiento de worktree (enmienda ADR-006 / Issue #213) |
 | Bitácora de proyecto | `.agent/memory/project-log.md`, `objectives.md` | Sí | P5; sujeta al barrido de `.claude/rules/sensitive-data-safety.md` |
 | Ledger de planes aprobados | `.agent/memory/plans/*.md` | Sí, con barrido obligatorio | Trazabilidad de decisiones — categoría de mayor riesgo de fuga real; anonimizar dato de negocio (placeholders) antes de commitear |
 | Backups automáticos | `.agent/memory/backups/*.json` | No | Estado transitorio regenerable |

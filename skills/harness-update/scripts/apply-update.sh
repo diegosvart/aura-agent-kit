@@ -267,7 +267,7 @@ fi
 # progreso con el valor devuelto cuando se llama desde $(...).
 sync_pretooluse_hook() {
   local hook_name="$1"
-  HOOK_SYNC_RESULT=""
+  HOOK_SYNC_RESULT="unverified"
   if [ ! -f ".claude/settings.json" ] || [ ! -f ".claude/hooks/$hook_name" ]; then
     if [ -f ".claude/hooks/$hook_name" ]; then
       echo "  (.claude/settings.json no existe — no se puede verificar el registro de $hook_name)"
@@ -364,12 +364,16 @@ if [ "$settings_patterns_replaced" -gt 0 ] 2>/dev/null; then
 else
   echo "Permisos settings.json: sin cambios"
 fi
-if [ -n "$git_guard_added" ]; then
+if [ "$git_guard_added" = "unverified" ]; then
+  echo "git-guard.ps1 en PreToolUse: NO SE PUDO VERIFICAR (.claude/settings.json o el hook no existen)"
+elif [ -n "$git_guard_added" ]; then
   echo "git-guard.ps1 en PreToolUse: registrado ($git_guard_added) — antes NO estaba enforced"
 else
   echo "git-guard.ps1 en PreToolUse: ya estaba registrado"
 fi
-if [ -n "$sensitive_guard_added" ]; then
+if [ "$sensitive_guard_added" = "unverified" ]; then
+  echo "sensitive-data-guard.ps1 en PreToolUse: NO SE PUDO VERIFICAR (.claude/settings.json o el hook no existen)"
+elif [ -n "$sensitive_guard_added" ]; then
   echo "sensitive-data-guard.ps1 en PreToolUse: registrado ($sensitive_guard_added) — antes NO estaba enforced"
 else
   echo "sensitive-data-guard.ps1 en PreToolUse: ya estaba registrado"

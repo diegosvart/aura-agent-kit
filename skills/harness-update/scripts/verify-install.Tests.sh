@@ -252,27 +252,34 @@ Sugerencia para corregir: git add .claude/hooks/hook2.ps1" \
     1
 
 # Test 6: submodule no inicializado
+# Crea un submodule real (repo local, sin red) y lo deinicializa — reproduce el estado
+# real que `git submodule status` reporta con prefijo "-" (no "-" simulado a mano), porque
+# ese prefijo es generado por git, no un string que podamos fabricar de forma confiable.
 fixture_submodule_not_init() {
     local fixture_dir=$1
-    mkdir -p "$fixture_dir/.aura"
-    # Simular submodule no inicializado creando un archivo .git instead of directorio
-    echo "gitdir: ../.git/modules/.aura" > "$fixture_dir/.aura/.git"
+    local sub_source
+    sub_source=$(mktemp -d)
+    (
+        cd "$sub_source"
+        git init -q
+        git config user.email "test@example.com"
+        git config user.name "Test User"
+        echo x > f
+        git add f
+        git commit -q -m init > /dev/null 2>&1
+    )
 
-    mkdir -p "$fixture_dir/.git/modules/.aura"
+    git -c protocol.file.allow=always submodule add -q "$sub_source" .aura > /dev/null 2>&1
+    git commit -q -m "Add submodule" > /dev/null 2>&1 || true
+    git submodule deinit -f .aura > /dev/null 2>&1
 
-    # Crear .gitmodules
-    cat > "$fixture_dir/.gitmodules" << 'EOF'
-[submodule ".aura"]
-	path = .aura
-	url = https://github.com/diegosvart/aura-agent-kit.git
-EOF
-
-    git add ".gitmodules"
-    git commit -m "Add submodule config" > /dev/null 2>&1 || true
+    rm -rf "$sub_source"
 }
 
-# Este test va a fallar inicialmente porque git submodule status requiere un estado especifico.
-# Ajustaremos el test si es necesario después de implementar.
+run_test "uninitialized submodule should report SUBMODULE_DRIFT" \
+    "fixture_submodule_not_init" \
+    "SUBMODULE_DRIFT: .aura no inicializado — correr git submodule update --init .aura" \
+    1
 
 # Test 7: submodule inicializado y OK
 fixture_submodule_ok() {

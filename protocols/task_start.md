@@ -62,7 +62,7 @@ Pendiente: {{pending}}
 
 ### Paso 1: Plan
 
-El agente presenta el plan con análisis de seguridad y puntos de vista:
+El agente presenta el plan con análisis de seguridad, puntos de vista y despacho:
 
 ```
 ## Plan para Issue #N: {{título}}
@@ -71,14 +71,33 @@ El agente presenta el plan con análisis de seguridad y puntos de vista:
 - Qué: {{descripción}}
 - Archivos: {{archivos afectados}}
 - Seguridad: {{punto de vista}}
+- Despacho: DELEGAR (fork|subagente — motivo) | INLINE (motivo)
 
 ### Paso 2: {{acción 2}}
 - Qué: {{descripción}}
 - Archivos: {{archivos afectados}}
 - Seguridad: {{punto de vista}}
+- Despacho: DELEGAR (fork|subagente — motivo) | INLINE (motivo)
 
 ...
 ```
+
+**Campo Despacho (Issue #268 — mecanismo operativo de `.aura/rules/subagent-dispatch.md`):**
+obligatorio en cada `### Paso N`, nunca se omite aunque la decisión sea obvia — un paso
+trivial se declara igual `INLINE (trivial, ver criterio de subagent-dispatch.md)`. Aplica el
+mismo criterio de dos condiciones que ya define `subagent-dispatch.md` (trigger aplicable +
+independencia del contexto vivo de la conversación), pero como declaración escrita y auditable
+en el momento de armar el plan — antes de gastar contexto, no después vía `delegation_rate`.
+Preferir `fork` sobre agente fresco cuando el paso es investigación/exploración que no necesita
+analizarse una segunda vez.
+
+**Manejo de falla/reintento de un paso `DELEGAR`:** si la delegación falla (el subagente se
+equivoca de scope, entrega algo que no responde lo pedido, o falla la invocación), reintentar
+ese paso **una sola vez** con un prompt más específico (mismo criterio de "prompts contienen
+file paths y líneas concretas" que ya exige toda delegación bien hecha). Si el reintento
+también falla, ejecutar el paso inline y dejarlo registrado como tal:
+`INLINE (fallback tras 1 reintento fallido de DELEGAR)`. Nunca reintentar más de una vez en
+silencio — ni indefinidamente (ciclo costoso) ni abandonar la subtarea sin completarla.
 
 ### Paso 2: Aprobación
 

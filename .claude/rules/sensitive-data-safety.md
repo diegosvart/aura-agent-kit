@@ -94,3 +94,19 @@ real de base de datos versionado por semanas en documentación. Cada incidente s
 Ninguna para contenido versionado. `output/<BD>/*`, `config/*.json` local-only y `.env`
 son el canal correcto para el dato real (ya gitignored) — nunca versionar por esa vía
 tampoco.
+
+## Plantillas `.env.*` sin secretos (editables y versionables)
+
+`.env.example`, `.env.sample` y variantes `.env.*.example` (ej.
+`.env.production.example`) **no** son datos sensibles — son la plantilla pública que el
+propio harness recomienda para declarar qué variables de entorno necesita un proyecto
+(ver `AGENTS.md` → tabla "Qué se Versiona": `.env` es el canal del dato real, gitignored;
+su plantilla es el canal versionado y público). Son intencionalmente editables por el
+agente y no deben contener secretos ni valores reales — solo nombres de variable y, como
+mucho, valores dummy.
+
+La protección real de `permissions.deny` recae exclusivamente sobre las variantes reales
+enumeradas en `.claude/settings.json` / `integrations/claude-code/settings.json`
+(`.env`, `.env.local`, `.env.production`, `.env.staging`, `.env.*.local`), no sobre el
+patrón `.env.*` como wildcard genérico — ese wildcard bloqueaba también las plantillas
+legítimas de arriba (Issue #155) y fue reemplazado por la lista explícita.

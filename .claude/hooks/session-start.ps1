@@ -171,9 +171,22 @@ try {
     $gitCmdForScripts = (Get-Command git -ErrorAction SilentlyContinue).Source
     $gitBashForScripts = $null
     if ($gitCmdForScripts) {
-        $gitRootForScripts = Split-Path (Split-Path $gitCmdForScripts -Parent) -Parent
-        $candidateBash = Join-Path $gitRootForScripts "bin\bash.exe"
-        if (Test-Path $candidateBash) { $gitBashForScripts = $candidateBash }
+        # git.exe puede resolverse desde dos profundidades distintas segun el layout de Git for
+        # Windows -- Git\cmd\git.exe (clasico, bash.exe a 2 niveles) o Git\mingw64\bin\git.exe
+        # (via mingw64, bash.exe a 3 niveles). Mismo fix que Get-GitBashPath en
+        # session-end-gather.ps1 (Issue #267 / PR #266).
+        $binDirForScripts = Split-Path $gitCmdForScripts -Parent
+        $depth2RootForScripts = Split-Path $binDirForScripts -Parent
+        $depth3RootForScripts = Split-Path $depth2RootForScripts -Parent
+        foreach ($rootForScripts in @($depth2RootForScripts, $depth3RootForScripts)) {
+            $candidateBash = Join-Path $rootForScripts "bin\bash.exe"
+            if (Test-Path $candidateBash) { $gitBashForScripts = $candidateBash; break }
+        }
+    }
+    if (-not $gitBashForScripts) {
+        # Señal diagnosticable cuando bash no se resuelve en ningún layout -- mismo patrón que
+        # harness_update_check_error mas abajo en este archivo (Issue #111).
+        $output.repo_integrity_error = "gitBash no resuelto (Git for Windows no encontrado en 2 ni 3 niveles bajo git.exe)"
     }
 
     if ($gitBashForScripts) {

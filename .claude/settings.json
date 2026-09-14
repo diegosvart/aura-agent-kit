@@ -50,7 +50,10 @@
       "Bash(git clean -f:*)",
       "PowerShell(Remove-Item -Recurse *)",
       "Edit(.env)",
-      "Edit(.env.*)",
+      "Edit(.env.local)",
+      "Edit(.env.production)",
+      "Edit(.env.staging)",
+      "Edit(.env.*.local)",
       "Edit(*.pem)",
       "Edit(*.key)",
       "Edit(*.secret)"

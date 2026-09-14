@@ -316,13 +316,28 @@ _(sin iterar)_
 ---
 
 ## [022] Visibilidad del harness — dashboard/diagrama de arquitectura completo
-**Estado:** raw  
-**Capturado:** 2026-09-05  
-**Prioridad:** Planificar — impacto alto, esfuerzo medio  
+**Estado:** planificada — spec validada (Challenger GO), issues creados
+**Capturado:** 2026-09-05
+**Prioridad:** Planificar — impacto alto, esfuerzo medio
 **Contexto:** Tras muchos PRs y funcionalidades acumuladas (protocolos, skills, agentes, hooks, reglas), no hay una vista completa y general del harness que permita evaluarlo de un vistazo — ni para el usuario ni para el propio agente. El usuario propone seguir/inspirarse en `https://github.com/tt-a1i/archify` ("Agent skill for beautiful, verifiable architecture, workflow, sequence, data-flow, and lifecycle diagrams — self-contained HTML with motion and crisp export") para armar un flujo/diagrama visible del harness completo: qué protocolos existen, cómo se conectan (router.md), qué skills/agentes hay y cuándo se activan, y el estado real vs. lo documentado. Candidato de implementación: un artifact HTML autocontenido (o adoptar archify como skill) generado a partir de `AGENTS.md`/`router.md`/`skills/*/SKILL.md`, actualizable cada vez que se agrega una capability nueva — no un documento estático que se desactualice como pasó con `docs/aura/specs/2026-05-09-harness-pillars.md` (Issue #147, referenciado pero inexistente en disco).
 
 ### Iteraciones
-_(sin iterar)_
+- [2026-09-14] Usuario retomó la idea explícitamente vía `/brainstorm`, pidiendo una vista tipo
+  "cerebro" (harness al centro, capacidades como ramas). Brainstorm completo + validación
+  Challenger (veredicto **GO**) en `docs/aura/specs/2026-09-14-harness-graph-cerebro-design.md`
+  (gitignored, local). Alcance acotado explícitamente a **visualización derivada de solo
+  lectura** (grafo tipo `architecture`, 7 categorías: Memoria, Protocolos, Skills, Agentes,
+  Reglas, Herramientas/MCP, Flujos) generado por un parser determinístico
+  (`generate-harness-graph.mjs`, `node:test`) desde los `.md` fuente — **no** se migra la
+  lógica de ejecución del harness al grafo. Issues creados: `aura-agent-kit` #280 (contrato de
+  formato en `router.md` + paso de release), `aura-harness-diagrams` #11 (parser) y #12 (4º
+  diagrama, "Operación GitHub").
+- **Iteración futura, explícitamente NO incluida en el alcance de 2026-09-14:** evaluar si el
+  grafo puede evolucionar de "vista derivada" a "fuente de verdad ejecutable" que el agente
+  consulte en runtime para rutear (reemplazando o complementando `protocols/router.md` como
+  mecanismo de lectura). Es una re-arquitectura del harness completo, no una funcionalidad de
+  visualización — requiere su propio proceso P4/brainstorm/Challenger si se retoma, no se
+  deriva automáticamente de esta iteración.
 
 
 ## [023] Review obligatorio (gate duro) + agente en loop hasta objetivo medible

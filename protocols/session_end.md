@@ -200,6 +200,42 @@ mem_session_summary(
 > algo está mal (posible reversión accidental del `.gitignore`) — no commitearlo, corregir el
 > `.gitignore` primero.
 
+### Detección de Sesión Background (Issue #213)
+
+Antes de proceder con el `Write`: detectar si la sesión activa es una sesión de **background**
+(sesión aislada en un worktree por la plataforma). En sesiones background, cualquier escritura al
+checkout compartido fuera del propio worktree está bloqueada estructuralmente, incluso tras
+`ExitWorktree`.
+
+**Cómo detectar:** verificar si `.git` es un archivo (worktree aislado) vs. un directorio
+(checkout principal):
+
+```bash
+if [ -f .git ]; then
+    # Sesión background en worktree aislado
+    IS_BACKGROUND=true
+else
+    # Checkout principal
+    IS_BACKGROUND=false
+fi
+```
+
+**Si `IS_BACKGROUND == true`:** no invocar `Write`. Emitir en su lugar el siguiente aviso
+textual único (una sola vez, no repetido):
+
+```
+⚠ Sesión background: current-session.json no se actualiza (aislamiento de worktree lo
+bloquea estructuralmente). Continuidad ante caída de Engram no garantizada para esta
+sesión — ver ADR-006.
+```
+
+Continuar con el Paso 6.
+
+**Si `IS_BACKGROUND == false`:** proceder normalmente con el `Write` de los 3 campos descritos
+abajo.
+
+---
+
 Archivo: `.agent/memory/current-session.json`
 
 ```json

@@ -344,12 +344,29 @@ skills/agentic-dev-loop/scripts/cut-release.sh tag <owner>/<repo> vX.Y.Z <releas
 # 4. Sync-back obligatorio (mismo turno, antes de cualquier otro commit de bookkeeping):
 skills/agentic-dev-loop/scripts/cut-release.sh sync-back <owner>/<repo> vX.Y.Z
 # -> abre el PR de sync-back main -> develop, imprime su número. Mergear antes de seguir.
+
+# 5. Regenerar el grafo "cerebro" (idea [022]) — solo si hay acceso local al checkout de
+#    aura-harness-diagrams:
+#    - Bumpear el submodule `.aura` de aura-harness-diagrams al tag recién publicado.
+#    - Correr generate-harness-graph.mjs para regenerar el grafo "cerebro" y el diagrama de
+#      Operación GitHub contra la versión nueva.
+#    Si no hay acceso local a ese checkout en esta sesión, no omitir el paso en silencio:
+#    dejar explícito en el registro de release (`project-log.md` / Engram del release)
+#    `TODO: regenerar grafo cerebro contra vX.Y.Z` (fail-clear).
 ```
 
 **Por qué existe el paso de sync-back:** sin él, `develop` queda sin el tag como ancestro y
 cualquier detección basada en `git describe` (incluyendo
 `skills/harness-update/scripts/check-update.sh` en consumidores) reporta versiones
 incorrectas — es tan obligatorio como el resto del checklist de release.
+
+**Por qué existe el paso 5 (regeneración del grafo):** `protocols/router.md` (y el resto de la
+arquitectura del harness) cambia con cada release, y el grafo "cerebro" de
+`aura-harness-diagrams` (idea [022]) se desactualiza en silencio si nadie lo regenera — el
+mismo patrón de drift ya visto con `CHANGELOG.md`/tags (Issue #120), aplicado a un artefacto
+derivado en otro repo. Es un paso mejor-esfuerzo (depende de acceso local a ese checkout, no
+siempre disponible en la sesión que corta el release), pero el fallback `TODO:` explícito
+evita que el gap quede invisible.
 
 **Verificar al final:** `git describe --tags <develop HEAD>` debe resolver contra el tag recién
 creado, no contra uno anterior.

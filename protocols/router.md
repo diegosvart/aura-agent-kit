@@ -7,6 +7,7 @@
 
 ## Tabla de Routing
 
+<!-- PARSEADO POR generate-harness-graph.mjs — no cambiar la estructura de la tabla sin actualizar el script -->
 | Situación | Archivos a cargar | Trigger |
 |-----------|------------------|---------|
 | **Inicio de sesión** | `protocols/session_start.md` | Primera interacción del día o contexto frío |

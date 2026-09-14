@@ -22,7 +22,7 @@
 
 ## Los 7 Pilares
 
-> Fuente de verdad completa: `docs/aura/specs/2026-05-09-harness-pillars.md`
+> Fuente de verdad completa: `docs/aura/adr/ADR-011-los-7-pilares-del-harness.md`
 
 | # | Pilar | Regla en una línea |
 |---|-------|--------------------|

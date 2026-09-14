@@ -16,6 +16,7 @@
 | [008](ADR-008-plugin-nativo-claude-code.md) | Registrar aura-agent-kit como plugin nativo de Claude Code | 2026-09-01 | accepted | harness |
 | [009](ADR-009-canal-unificado-actualizacion-harness.md) | Unificar aplicación de actualización del harness entre canal submodule y plugin | 2026-09-02 | accepted | harness |
 | [010](ADR-010-agent-browser-e2e-testing.md) | Incorporar agent-browser como capability de testing E2E/headless | 2026-09-02 | accepted | harness |
+| [011](ADR-011-los-7-pilares-del-harness.md) | Los 7 Pilares del harness como registro permanente | 2026-09-14 | accepted | harness |
 
 ## Estados posibles
 

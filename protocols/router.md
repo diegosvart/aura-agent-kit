@@ -25,7 +25,7 @@
 | **Solicitar code review** | `skills/requesting-code-review/SKILL.md` via `/request-review` | PR abierta lista para revisión |
 | **Cambios en documentación** | `agents/doc-guardian.md` via `/doc-check` | Se creó o modificó un archivo .md |
 | **Gestionar objetivos / ideas** | `skills/idea-management/SKILL.md` via `/idea` | Usuario escribe `/idea`, registra idea, o quiere explorar/promover un objetivo |
-| **Mejorar el harness** | `skills/auto-research/SKILL.md` + `docs/aura/specs/2026-05-09-harness-pillars.md` | Fricción detectada, patrón repetitivo |
+| **Mejorar el harness** | `skills/auto-research/SKILL.md` + `docs/aura/adr/ADR-011-los-7-pilares-del-harness.md` | Fricción detectada, patrón repetitivo |
 | **Evaluar sesiones pasadas** | `agents/evaluator.md` via `/evaluate-sessions` | Auditar si una sesión (o rango) respetó el flujo declarado del harness contra el diagrama de referencia de `aura-harness-diagrams` |
 | **Seleccionar / cambiar stack** | `skills/stack-selection/SKILL.md` via `/stack` | Sin session-stack.json, inicio de proyecto nuevo, o usuario quiere cambiar stack |
 | **Reporte de plan estratégico** | `skills/plan-reporting/SKILL.md` via `/plan-report` (ejecutado por `plan-reporter`) | Usuario pide reporte de gestión, tareas accionables, análisis de riesgo de un plan |
@@ -43,7 +43,7 @@
 
 1. **Cargar solo lo necesario** — no precargar todos los archivos al inicio
 2. **Una situación puede requerir múltiples archivos** — ej: nueva tarea de código carga `task_start.md` + `language.md`
-3. **Los archivos de pilares** (`docs/aura/specs/2026-05-09-harness-pillars.md`) solo se cargan cuando se invoca challenger o auto-research
+3. **Los archivos de pilares** (`docs/aura/adr/ADR-011-los-7-pilares-del-harness.md`) solo se cargan cuando se invoca challenger o auto-research
 4. **AGENTS.md (spine) siempre está cargado** — no necesita estar en esta tabla
 5. **En caso de duda** sobre qué cargar → leer este router primero, luego decidir
 

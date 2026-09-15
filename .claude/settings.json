@@ -121,7 +121,17 @@
             "timeout": 5
           }
         ]
-      }
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File .claude/hooks/agent-frontmatter-guard.ps1",
+            "timeout": 10
+          }
+        ]
+      }      
     ],
     "SessionStart": [
       {

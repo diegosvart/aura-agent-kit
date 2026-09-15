@@ -35,6 +35,7 @@
 | **Loop de desarrollo + verificación de issues** | `skills/agentic-dev-loop/SKILL.md` via `/run-dev-loop` | Usuario pide correr/automatizar el desarrollo de issues `ready`, o avisa que cerró/mergeó un issue y hay que revisarlo |
 | **Lanzar agentes ad-hoc fuera del loop** | `agents/complexity-tiering.md` | Orquestación manual de un bloque de 3+ tareas repetitivas delegadas a agentes, sin pasar por `agentic-dev-loop` |
 | **Manejo de datos sensibles / repo público** | `.claude/rules/sensitive-data-safety.md` | Repo público con datos de cliente, antes de commit/push, o session_start detecta `visibility=public` |
+| **Registrar error de proceso propio detectado/corregido** | `.aura/rules/process-error-log.md` | El agente detecta y corrige un error de proceso propio (rama desde HEAD equivocado, orden de merge incorrecto, no reintentar tras un rechazo) |
 | **Ver / controlar el navegador** | `agents/browser-control.md` | No hay CLI/MCP que alcance la tarea, o el usuario pide que se le muestre/guíe algo en pantalla |
 | **Testing E2E/headless de una app web** | `agents/browser-testing.md` (+ `skills/e2e-testing/SKILL.md` si es multi-paso) | Validar programáticamente un flujo sin supervisión humana — smoke test post-issue, regresión visual, o dentro de `/run-dev-loop` |
 | **Decidir delegar a subagente vs. ejecutar inline** | `.aura/rules/subagent-dispatch.md` | Antes de actuar sobre cualquier situación de este router — define si corresponde despachar vía `Agent` tool o leer el archivo inline |

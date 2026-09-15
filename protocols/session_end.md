@@ -337,6 +337,10 @@ Antes de cerrar, dedicar 30 segundos a observar:
 - ¿Hubo algún paso que se repitió manualmente más de una vez esta sesión?
 - ¿Algún protocolo o skill no aplicó bien al contexto?
 - ¿El usuario tuvo que corregir al agente en algo recurrente?
+- ¿Se registró algún error de proceso esta sesión? (rama desde HEAD equivocado, orden de
+  merge incorrecto, no reintentar una acción tras un rechazo — ver
+  `.aura/rules/process-error-log.md`). Si sí y no se autodeclaró en el momento con
+  `log-process-error.sh`, registrarlo ahora antes de cerrar.
 
 **Si sí** → proponer `/auto-research` antes de cerrar:
 > "Observé [fricción concreta]. ¿Querés que lo registremos como experimento de mejora del harness?"

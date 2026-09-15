@@ -253,6 +253,26 @@ completo (no mostrar un bloque vacío ni un mensaje de error).
 
 ---
 
+## Paso 3.6 — Patrones de Errores de Proceso (fail-open)
+
+Mismo patrón fail-open que el Paso 3.5. Cuenta `.agent/memory/observability/process-errors.jsonl`
+(idea [021], Issue #206 — ver `.aura/rules/process-error-log.md`) agrupado por `tipo` dentro de
+las últimas 10 sesiones distintas:
+
+```bash
+bash skills/observability/scripts/check-process-errors.sh 2>/dev/null || true
+```
+
+Si el script imprime una o más líneas `PROCESS-ERROR-PATTERN: <tipo> apareció <n> veces en las
+últimas 10 sesiones — considerar /auto-research`, incluirlas tal cual en la sección
+"Advertencias" del Resumen Ejecutivo (Paso 4) — mismo umbral cualitativo (3+) que ya usa el
+Paso 10 de `protocols/session_end.md`, sin inventar un segundo criterio.
+
+Si el archivo no existe, está vacío, o ningún `tipo` llega a 3+ ocurrencias → omitir esta
+sección por completo (no mostrar un bloque vacío ni un mensaje de error).
+
+---
+
 ## Paso 4 — Resumen Ejecutivo (3 preguntas raíz, formato obligatorio)
 
 > Las 8 secciones del formato anterior (Estado del Entorno, Repositorio, Salud de Ramas,

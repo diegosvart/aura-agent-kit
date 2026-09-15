@@ -390,41 +390,8 @@ fi
 echo ""
 if [ -f "$SOURCE_PATH/CHANGELOG.md" ]; then
   echo "=== CHANGELOG ==="
-  # Extraer solo las entradas del tag que se acaba de aplicar
-  # Formato esperado: ## [tag] - YYYY-MM-DD
-  python3 - "$VERSION_TAG" "$SOURCE_PATH/CHANGELOG.md" << 'PYTHON_CHANGELOG'
-import re
-import sys
-
-try:
-    tag = sys.argv[1]
-    changelog_path = sys.argv[2]
-
-    with open(changelog_path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-
-    # Buscar la sección del tag
-    in_section = False
-    section_lines = []
-    for line in lines:
-        if re.match(rf'^## \[?{re.escape(tag)}', line):
-            in_section = True
-        elif in_section and re.match(r'^## \[', line):
-            # Encontramos la siguiente sección, detenerse
-            break
-        elif in_section:
-            section_lines.append(line.rstrip())
-
-    if section_lines:
-        # Imprimir solo primeras 10 líneas (con prefijo)
-        for line in section_lines[:10]:
-            if line.strip():
-                print(f"  {line}")
-    else:
-        print(f"  (No hay entradas para {tag} en CHANGELOG.md)")
-except Exception as e:
-    raise ValueError(f"No se pudo leer CHANGELOG.md: {e}") from e
-PYTHON_CHANGELOG
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  "$SCRIPT_DIR/extract-changelog-section.sh" "$VERSION_TAG" "$SOURCE_PATH/CHANGELOG.md"
   if [ $? -ne 0 ]; then
     echo "ERROR: Lectura de CHANGELOG.md falló" >&2
     exit 1

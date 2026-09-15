@@ -40,14 +40,16 @@ merge_base=$(git merge-base develop "$branch") || {
   echo "No se pudo calcular el merge-base entre 'develop' y '$branch'." >&2
   exit 1
 }
-changed_files=$(git diff --name-only "$merge_base" "$branch")
+mapfile -t changed_files < <(git diff --name-only "$merge_base" "$branch")
 
 # Ancestría real (merge normal) O contenido idéntico en los archivos que la rama tocó (cubre
 # squash-merge, donde el commit local nunca queda como ancestro de develop pero el contenido
 # final ya está incorporado). Ver docs/aura/experiments/2026-09-05-cleanup-branch-squash-merge-gap.md.
-if git branch --merged develop | grep -qx "  $branch"; then
+# El prefijo de `git branch --merged` es "  " para una rama no-activa y "* " si es la rama
+# actualmente checkouteada — se recorta con sed antes de comparar (Issue #285, bug #3).
+if git branch --merged develop | sed 's/^[* ] //' | grep -qx "$branch"; then
   :
-elif [ -z "$changed_files" ] || git diff --quiet develop "$branch" -- $changed_files; then
+elif [ ${#changed_files[@]} -eq 0 ] || git diff --quiet develop "$branch" -- "${changed_files[@]}"; then
   :
 else
   echo "La rama local '$branch' existe pero NO aparece como mergeada en develop (ni por ancestría ni por contenido) — ¿falta git fetch/pull, o el merge no está completo?" >&2

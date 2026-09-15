@@ -45,9 +45,9 @@ check_file "hook expone repo_name/repo_topics" \
     ".claude/hooks/session-start.ps1" \
     "output.repo_topics"
 
-check_file "session_start.md Paso 6 reporta nombre + topics" \
+check_file "session_start.md reporta nombre + topics" \
     "protocols/session_start.md" \
-    "**Topics:**"
+    "topics: <lista o \"sin topics\">"
 
 # D3 — script de auditoría
 check_exists "script de auditoría de topics" \

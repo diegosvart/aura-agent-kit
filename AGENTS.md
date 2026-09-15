@@ -157,6 +157,6 @@ El harness tiene tres roles funcionales:
 |-----|-----------|----------------------------------|
 | **Objetivos** | Este archivo (AGENTS.md) | Solo con nueva spec aprobada |
 | **Operacional** | `skills/`, `protocols/`, `agents/` | Sí, con hipótesis documentada (P4) |
-| **Evaluación** | `agents/challenger.md`, `docs/aura/specs/harness-pillars.md` | No — son la vara de medición |
+| **Evaluación** | `agents/challenger.md`, `docs/aura/adr/ADR-011-los-7-pilares-del-harness.md` | No — son la vara de medición |
 
 Para proyectos complejos con contextos imprevisibles, considerar reemplazar la tabla de routing estática por un **router subagente** (`protocols/router.md` explica cuándo).

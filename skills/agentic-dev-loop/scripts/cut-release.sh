@@ -15,6 +15,9 @@
 # lo genera este script -- solo valida que exista antes de continuar.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/parse-pr-number.sh"
+
 usage() {
   echo "Uso: cut-release.sh <changelog-pr|promote|tag|sync-back> <owner>/<repo> <version> [args]" >&2
   exit 1
@@ -57,7 +60,7 @@ case "$SUBCOMMAND" in
     # consumidor lee este mismo campo.
     if [ -f ".claude-plugin/plugin.json" ]; then
       plugin_version="${VERSION#v}"
-      python3 - "$plugin_version" << 'PYTHON_PLUGIN_BUMP'
+      python3 - "$plugin_version" << 'PYTHON_PLUGIN_BUMP' || {
 import json
 import sys
 
@@ -73,10 +76,9 @@ try:
 except Exception as e:
     raise ValueError(f"No se pudo bumpear .claude-plugin/plugin.json: {e}") from e
 PYTHON_PLUGIN_BUMP
-      if [ $? -ne 0 ]; then
         echo "ERROR: Bump de .claude-plugin/plugin.json fallo" >&2
         exit 1
-      fi
+      }
       git add .claude-plugin/plugin.json
     fi
 
@@ -90,7 +92,7 @@ PYTHON_PLUGIN_BUMP
       echo "$pr_output" >&2
       exit 1
     }
-    pr_number=$(echo "$pr_output" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' | tail -1)
+    pr_number=$(echo "$pr_output" | parse_pr_number)
     if [ -z "$pr_number" ]; then
       echo "gh pr create no devolvio un numero de PR reconocible. Output: $pr_output" >&2
       exit 1
@@ -119,7 +121,7 @@ PYTHON_PLUGIN_BUMP
       echo "$pr_output" >&2
       exit 1
     }
-    pr_number=$(echo "$pr_output" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' | tail -1)
+    pr_number=$(echo "$pr_output" | parse_pr_number)
     if [ -z "$pr_number" ]; then
       echo "gh pr create no devolvio un numero de PR reconocible. Output: $pr_output" >&2
       exit 1
@@ -180,7 +182,7 @@ PYTHON_PLUGIN_BUMP
       echo "$pr_output" >&2
       exit 1
     }
-    pr_number=$(echo "$pr_output" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' | tail -1)
+    pr_number=$(echo "$pr_output" | parse_pr_number)
     if [ -z "$pr_number" ]; then
       echo "gh pr create no devolvio un numero de PR reconocible. Output: $pr_output" >&2
       exit 1

@@ -88,7 +88,7 @@ emite un único JSON cubriendo estos 16 ítems:
 | 10 | Issues `ready` | `gh issue list --label ready --state open --json number,title` |
 | 11 | Detección de stack | busca `pyproject.toml`/`package.json`/`Cargo.toml`/`go.mod`; si no hay ninguno, `detected_stack: null` explícito (no un salteo silencioso) |
 | 12 | `session-stack.json` existente | lee si ya fue confirmado antes |
-| 13 | 4 scripts de repo-integrity | `check-release-drift.sh`, `check-repo-manifest.sh`, `check-base-branch.sh`, `check-orphaned-worktrees.sh` — stdout capturado, solo aparece si imprimieron algo (fail-silent) |
+| 13 | 5 scripts de repo-integrity | `check-release-drift.sh`, `check-repo-manifest.sh`, `check-base-branch.sh`, `check-orphaned-worktrees.sh`, `check-agent-frontmatter.sh` — stdout capturado, solo aparece si imprimieron algo (fail-silent) |
 | 14 | Candidatos a trabajo stranded | ramas ahead de `develop` con commits `Closes/Fixes/Resolves #N` |
 | 15 | Ideas en backlog | cuenta `## [` en `ideas.md` |
 | 16 | Update del harness disponible | compara tag local de `.aura` vs. remoto (caché 30 min) o versión de plugin instalada vs. marketplace |
@@ -129,11 +129,12 @@ git branch -r --merged origin/develop | grep -v "origin/HEAD\|origin/main\|origi
 git branch -vv | grep ": gone]"
 git remote prune origin --dry-run
 
-# 4 scripts de repo-integrity (fail-silent si no imprimen nada)
+# 5 scripts de repo-integrity (fail-silent si no imprimen nada)
 bash skills/repo-integrity/scripts/check-release-drift.sh
 bash skills/repo-integrity/scripts/check-repo-manifest.sh
 bash skills/repo-integrity/scripts/check-base-branch.sh
 bash skills/repo-integrity/scripts/check-orphaned-worktrees.sh
+bash skills/repo-integrity/scripts/check-agent-frontmatter.sh agents/*.md | grep -v "^OK:" || true
 ```
 
 ### Worktrees Adicionales (Issue #200 — regla anti-worktree, no cubierto por el hook)
@@ -205,6 +206,12 @@ nada (mismo patrón para los cuatro, no mostrar bloque vacío):
 - **Worktrees Huérfanos** (`check-orphaned-worktrees.sh`): líneas `ORPHANED-WORKTREE: ...` →
   incluirlas tal cual, con la acción sugerida ya embebida en cada línea. No borra nada, solo
   informa. Caso real: sesión 2026-09-02, 3 worktrees acumulados sin limpiar.
+- **Frontmatter de Agentes** (`check-agent-frontmatter.sh`): líneas `NO-FRONTMATTER: ...` /
+  `MISSING-FIELD: ...` / `BAD-DESCRIPTION-PATTERN: ...` → incluirlas tal cual, con la acción
+  sugerida "agregar/corregir frontmatter YAML (`name`/`description`/`tools`) en el archivo
+  indicado, ver `agents/github.md` como referencia de formato". Gate creado en el PR de Issue
+  #231 pero nunca wireado a ningún hook ni CI — quedó huérfano hasta Issue #285, que lo conectó
+  acá.
 
 ---
 

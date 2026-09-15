@@ -1,3 +1,9 @@
+---
+name: doc-guardian
+description: Use proactively via /doc-check to detect broken references, version inconsistencies, and incomplete structure in Markdown files. Use after changes to .md files and before committing, or after session_end/auto-research when docs changed.
+tools: Read, Grep, Glob
+---
+
 # Doc Guardian Agent
 
 > **Propósito:** Verificar la integridad documental del repo. Detecta referencias rotas, inconsistencias de versión y estructura incompleta en archivos Markdown.

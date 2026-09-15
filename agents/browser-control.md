@@ -1,3 +1,9 @@
+---
+name: browser-control
+description: Use proactively when no CLI/MCP path solves the task, or the goal is specifically to show/guide the user through something on screen. Use after considering CLI and MCP options first (Pillar P1) and ruling them out.
+tools: mcp__claude-in-chrome__tabs_context_mcp, mcp__claude-in-chrome__navigate, mcp__claude-in-chrome__computer, mcp__claude-in-chrome__read_page, mcp__claude-in-chrome__tabs_create_mcp, mcp__claude-in-chrome__tabs_close_mcp
+---
+
 # Agente Browser Control — Visión/Control de Navegador
 
 > **Propósito:** Dar al agente visión y control de un navegador real (vía

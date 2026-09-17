@@ -555,3 +555,30 @@ falla silenciosamente" (bug de la plataforma o del script de detección) — son
 _(sin iterar)_
 
 ---
+
+## [030] Formato definido para reviews de PR, coherente con el formato de la descripción
+**Estado:** raw
+**Capturado:** 2026-09-17
+**Prioridad:** Hacer — impacto medio, esfuerzo bajo
+**Contexto:** Disparador directo: el PR #300 (Issue #298) se publicó con una descripción que
+no seguía el "Formato de PR body (obligatorio)" ya definido en `agents/github.md` (faltaban
+`## Por qué de este modo` y `## Proceso`, sin `Closes #N` literal, con footer de atribución de
+IA prohibido) — corregido en la misma sesión (ver Issue #301, que investiga por qué se salteó).
+Al revisar ese incidente, el usuario notó que existe una regla clara para el **body del PR**
+(`agents/github.md` → "Formato de PR body") pero ninguna regla equivalente para el **review**
+que se deja sobre ese PR (agente `reviewer`, o revisión humana) — el review terminó siendo un
+comentario de texto libre sin estructura acordada, sin garantía de que cubra las mismas
+dimensiones que el body promete (qué se hizo / por qué / tests / proceso).
+
+Objetivo: definir un formato de review de PR que sea **coherente** con el formato de la
+descripción — que un reviewer (agente o humano) pueda verificar explícitamente cada sección del
+body (¿el "por qué" se sostiene?, ¿los tests declarados corren y prueban lo que dicen?, ¿el
+"proceso" declarado es el que realmente se siguió?) en vez de una evaluación de calidad genérica
+desconectada de lo que el propio PR afirma. Relacionado con Issue #301 (agente especialista de
+GitHub) — si ese agente termina siendo el punto único de operaciones de GitHub, este formato de
+review sería una responsabilidad natural suya.
+
+### Iteraciones
+_(sin iterar)_
+
+---

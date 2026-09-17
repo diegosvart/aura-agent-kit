@@ -59,4 +59,15 @@ for path in "${paths[@]}"; do
   echo "MISSING: $path"
 done
 
+# Chequeo de regresion (Issue #298): ningun CLAUDE.md fuera de la raiz del repo. Excluye
+# ./.aura/* a proposito -- cuando este repo actua como Rol B (submodule dentro de un
+# consumidor), ese directorio es el arbol fuente completo de aura-agent-kit y no debe
+# auditarse a si mismo. Excluye tambien ./integrations/* -- capa de compatibilidad multi-IDE
+# (`integrations/claude-code/CLAUDE.md`), un entry point distinto y deliberado para ese canal
+# de instalacion, no un huerfano.
+while IFS= read -r stray; do
+  [ -z "$stray" ] && continue
+  echo "MISPLACED: $stray - CLAUDE.md debe vivir unicamente en la raiz del repo"
+done < <(find . -name 'CLAUDE.md' -not -path './CLAUDE.md' -not -path './.aura/*' -not -path './integrations/*' -not -path './.git/*' -type f 2>/dev/null | sed 's#^\./##')
+
 exit 0

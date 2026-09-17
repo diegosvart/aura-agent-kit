@@ -195,6 +195,9 @@ No asumir un default ni inferir por heurística — ver D1 en
 existe**, continuar sin preguntar y mostrar `repo_type` en la sección "Estado real — mío" del
 Resumen Ejecutivo (Paso 4).
 
+`repo_type` alimenta además la política de qué puede guardar `mem_save` en este repo — ver
+`.aura/rules/memory-classification.md` (Issue #303, D3, enforcement capa 1).
+
 ### Gate de Trabajo Stranded (si `gh` autenticado)
 
 Usar los candidatos del ítem 14 de la tabla del Paso 2 (ramas ahead de `develop` con commits

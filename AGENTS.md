@@ -160,6 +160,7 @@ impacta los dos roles a la vez (ver Issue #297/#298 para el hallazgo que motivó
 | Backups automáticos | `.agent/memory/backups/*.json` | No | Estado transitorio regenerable |
 | Índice de observability de sesiones | `.agent/memory/observability/sessions-index.jsonl` | No | Más sensible que `current-session.json`: expone patrón de trabajo detallado (split LLM/script/comando por sesión, horarios), no solo metadata de progreso; riesgo de fuga de comportamiento del agente |
 | Análisis/informes ad-hoc | hallazgos de debugging, reportes exploratorios | No | Efímero — `docs/aura/specs/` (gitignored) o solo Engram |
+| Clasificación de repo | `.agent/memory/repo-classification.json` (`repo_type`: `harness`/`personal`/`cliente`) | Sí | Declaración explícita sin datos sensibles — habilita la política de memoria segura por repo (Issue #303) y el enforcement de `.claude/hooks/sensitive-data-guard.ps1` sobre `mem_save`; su ausencia o corrupción bloquea `mem_save` incondicionalmente (fail-closed) |
 
 Esta tabla es la fuente de verdad única: todo proyecto que inicializa el harness la
 hereda igual, sin reinventarla por repo.

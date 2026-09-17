@@ -618,9 +618,9 @@ _(sin iterar)_
 ---
 
 ## [032] Aura Control Panel — panel de control visual + documental del harness
-**Estado:** raw
+**Estado:** explorado
 **Capturado:** 2026-09-17
-**Prioridad:** sin evaluar aún (pendiente de brainstorm)
+**Prioridad:** sin evaluar aún (brainstorm inicial hecho, falta decisión del usuario)
 **Contexto:** Disparador: usuario propone, en paralelo al trabajo del Issue #303, evolucionar
 la infraestructura física ya existente (VPS, dominio, MFA, Docker, Traefik, Claude Code, Aura
 Agent Kit) hacia un panel de control ("Aura Control Panel") que permita lanzar loops con varios
@@ -632,6 +632,19 @@ la información va a mejorar más adelante (dependencia futura, no bloqueante pa
 Sin spec ni diseño previo — candidato directo a `/brainstorm` antes de `/plan-work`, siguiendo
 `.aura/rules/design-flow.md` (involucra arquitectura nueva + integración con infraestructura
 externa, más de 2 archivos/componentes nuevos esperables).
+
+### Iteraciones
+
+**2026-09-17 — Brainstorm inicial (fork, sin usuario interactivo en vivo):** design doc en
+`docs/aura/specs/2026-09-17-aura-control-panel-brainstorm.md` (gitignored). 3 enfoques
+evaluados — A) dashboard estático sobre `sessions.jsonl`/Engram/`ideas.md`; B) servicio propio
+en el VPS detrás de Traefik+MFA con lanzador de loops; C) extender `skills/observability/`
+con un modo "resumen de loop" versionable, sin servicio nuevo. Sugerencia de secuencia
+C → A → B, no vinculante. Riesgos de seguridad identificados: repo público + incidente previo
+de datos de cliente filtrados, dependencia del enforcement de Issue #303 (clasificación de
+repos) antes de agregar sesiones de repos `cliente`, herencia del MFA existente en vez de auth
+nueva, credenciales de VPS/Traefik/Docker nunca versionadas. 6 preguntas abiertas quedaron
+pendientes de que el usuario responda (ver design doc) — no se creó ningún issue todavía.
 
 ### Iteraciones
 _(sin iterar)_

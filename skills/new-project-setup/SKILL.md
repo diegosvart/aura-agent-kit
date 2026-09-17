@@ -161,7 +161,7 @@ Si el usuario ya tiene un primer alcance funcional definido, ofrecer seguir con 
    (el import `@../AGENTS.local.md` de `.aura/CLAUDE.md` falla en silencio si está mal ubicado).
 4. **No escribir `.claude/settings.json` de memoria** — leerlo del `.aura/` recién agregado en
    el tag pinneado, para no quedar desactualizado respecto a hooks nuevos.
-5. **No ejecutar nada sin que el usuario haya confirmado las 7 decisiones del Paso 0.**
+5. **No ejecutar nada sin que el usuario haya confirmado las 6 decisiones del Paso 0.**
 
 ---
 

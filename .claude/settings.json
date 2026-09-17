@@ -131,7 +131,17 @@
             "timeout": 10
           }
         ]
-      }      
+      },
+      {
+        "matcher": "mcp__plugin_engram_engram__(mem_save|mem_save_prompt|mem_capture_passive|mem_update|mem_session_summary)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File .claude/hooks/sensitive-data-guard.ps1",
+            "timeout": 5
+          }
+        ]
+      }
     ],
     "SessionStart": [
       {

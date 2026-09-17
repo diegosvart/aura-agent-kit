@@ -72,6 +72,26 @@ sigue dependiendo de que el barrido de esta regla se aplique conscientemente ant
 commitear. Al identificar un término sensible nuevo, agregarlo a
 `.claude/sensitive-terms.local.txt` en el mismo momento.
 
+### Caso `mem_save` (Issue #303 — memoria de Engram)
+
+El mismo hook `sensitive-data-guard.ps1` intercepta también la tool MCP
+`mcp__plugin_engram_engram__mem_save` (matcher `mcp__plugin_engram_engram__mem_.*` en
+`.claude/settings.json`), leyendo `.agent/memory/repo-classification.json` para decidir:
+
+- `repo_type: "cliente"` → el contenido a guardar se evalúa contra la misma denylist +
+  patrones genéricos de arriba; si matchea, se bloquea el `mem_save`.
+- `repo_type: "harness"` o `"personal"` → se permite sin evaluar contenido (memoria de
+  proceso/trabajo propio, no datos de negocio de un tercero).
+- **Clasificación ausente o corrupta → fail-closed:** bloquea incondicionalmente. Un
+  repo sin `repo-classification.json` (o con `repo_type` vacío/inválido) se trata como el
+  caso de mayor riesgo, no como el de menor — mismo criterio que ya aplica el resto de
+  esta regla ("Aplicación": el barrido corre antes de proponerse como acción, nunca
+  después).
+
+Ver `.agent/memory/repo-classification.json` (tabla "Qué se Versiona" de `AGENTS.md`) para
+el esquema de clasificación y `.claude/hooks/sensitive-data-guard.Tests.ps1` para los casos
+cubiertos.
+
 **Por qué existe el hook y no solo esta regla:** esta misma regla ya existía en texto
 cuando ocurrió un incidente idéntico en otro proyecto (`crawler-mcp-diagram`,
 2026-07-15, ver `docs/aura/adr/ADR-003-politica-versionado-artefactos.md`), y volvió a

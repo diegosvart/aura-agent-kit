@@ -616,3 +616,50 @@ supuesto (`post-merge.sh`, `classify-branch.sh`).
 _(sin iterar)_
 
 ---
+
+## [032] Aura Control Panel — panel de control visual + documental del harness
+**Estado:** en progreso (Issue #304)
+**Capturado:** 2026-09-17
+**Prioridad:** Planificar — impacto alto, esfuerzo medio (Enfoque C, primer peldaño de C → A → B)
+**Contexto:** Disparador: usuario propone, en paralelo al trabajo del Issue #303, evolucionar
+la infraestructura física ya existente (VPS, dominio, MFA, Docker, Traefik, Claude Code, Aura
+Agent Kit) hacia un panel de control ("Aura Control Panel") que permita lanzar loops con varios
+subagentes y luego revisar esas sesiones tanto de forma visual como documental — usuario y Aura
+viéndolas juntos. Menciona explícitamente crear un "objeto sesión" que cubra tanto a Aura como
+al controller del harness, y arrancar con una lista básica porque la cobertura de seguridad de
+la información va a mejorar más adelante (dependencia futura, no bloqueante para arrancar).
+
+Sin spec ni diseño previo — candidato directo a `/brainstorm` antes de `/plan-work`, siguiendo
+`.aura/rules/design-flow.md` (involucra arquitectura nueva + integración con infraestructura
+externa, más de 2 archivos/componentes nuevos esperables).
+
+### Iteraciones
+
+**2026-09-17 — Brainstorm inicial (fork, sin usuario interactivo en vivo):** design doc en
+`docs/aura/specs/2026-09-17-aura-control-panel-brainstorm.md` (gitignored). 3 enfoques
+evaluados — A) dashboard estático sobre `sessions.jsonl`/Engram/`ideas.md`; B) servicio propio
+en el VPS detrás de Traefik+MFA con lanzador de loops; C) extender `skills/observability/`
+con un modo "resumen de loop" versionable, sin servicio nuevo. Sugerencia de secuencia
+C → A → B, no vinculante. Riesgos de seguridad identificados: repo público + incidente previo
+de datos de cliente filtrados, dependencia del enforcement de Issue #303 (clasificación de
+repos) antes de agregar sesiones de repos `cliente`, herencia del MFA existente en vez de auth
+nueva, credenciales de VPS/Traefik/Docker nunca versionadas. 6 preguntas abiertas quedaron
+pendientes de que el usuario responda (ver design doc) — no se creó ningún issue todavía.
+
+**2026-09-17 — Usuario responde las 4 preguntas clave del brainstorm:** (1) Enfoque inicial:
+**C** (extender `skills/observability/`, sin servicio nuevo). (2) Objeto sesión: **agregación**
+de lo que ya existe (`sessions.jsonl` + Engram + `ideas.md`/`plans/`), no un esquema nuevo
+paralelo. (3) Alcance vs. Issue #303: arranca **ya, restringido a repos `harness`/`personal`**
+— ningún repo `cliente` hasta que el enforcement (Pasos 3-4 de esa spec) exista. (4) Auth
+futura (cuando se llegue al Enfoque B): **reusar el MFA/Traefik existente**, sin capa nueva.
+Con esto, la idea tiene dirección suficiente para pasar a `/plan-work` cuando el usuario lo
+pida — siguiente paso natural: issue(s) para el Enfoque C (modo "resumen de loop" en
+`skills/observability/`).
+
+**2026-09-17 — Issue #304 creado:** "Modo 'resumen de loop' en skills/observability/ (Aura
+Control Panel, Enfoque C)", label `ready,enhancement`. Primer issue accionable de la idea.
+
+### Iteraciones
+_(sin iterar)_
+
+---

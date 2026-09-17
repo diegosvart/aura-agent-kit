@@ -616,3 +616,24 @@ supuesto (`post-merge.sh`, `classify-branch.sh`).
 _(sin iterar)_
 
 ---
+
+## [032] Aura Control Panel — panel de control visual + documental del harness
+**Estado:** raw
+**Capturado:** 2026-09-17
+**Prioridad:** sin evaluar aún (pendiente de brainstorm)
+**Contexto:** Disparador: usuario propone, en paralelo al trabajo del Issue #303, evolucionar
+la infraestructura física ya existente (VPS, dominio, MFA, Docker, Traefik, Claude Code, Aura
+Agent Kit) hacia un panel de control ("Aura Control Panel") que permita lanzar loops con varios
+subagentes y luego revisar esas sesiones tanto de forma visual como documental — usuario y Aura
+viéndolas juntos. Menciona explícitamente crear un "objeto sesión" que cubra tanto a Aura como
+al controller del harness, y arrancar con una lista básica porque la cobertura de seguridad de
+la información va a mejorar más adelante (dependencia futura, no bloqueante para arrancar).
+
+Sin spec ni diseño previo — candidato directo a `/brainstorm` antes de `/plan-work`, siguiendo
+`.aura/rules/design-flow.md` (involucra arquitectura nueva + integración con infraestructura
+externa, más de 2 archivos/componentes nuevos esperables).
+
+### Iteraciones
+_(sin iterar)_
+
+---

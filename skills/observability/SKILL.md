@@ -1,6 +1,6 @@
 ---
 name: observability
-description: Dos modos. (1) Automático por sesión — process-session.sh calcula output_tokens, tool_uses por categoría, duration_ms y delegation_rate (Issue #179) y appendea a sessions.jsonl; invocado desde el Paso 3.5 de protocols/session_start.md. (2) Bajo demanda agregado — session-report.sh (Issue #265) lee sessions.jsonl completo o un rango filtrado y produce un informe con delegation_rate acumulado, tendencias de tokens/duración y distribución de tool_uses; nunca automático.
+description: Tres modos. (1) Automático por sesión — process-session.sh calcula output_tokens, tool_uses por categoría, duration_ms y delegation_rate (Issue #179) y appendea a sessions.jsonl; invocado desde el Paso 3.5 de protocols/session_start.md. (2) Bajo demanda agregado — session-report.sh (Issue #265) lee sessions.jsonl completo o un rango filtrado y produce un informe con delegation_rate acumulado, tendencias de tokens/duración y distribución de tool_uses; nunca automático. (3) Resumen de loop — loop-summary.sh (Issue #304) agrega un batch específico de sesiones (por lista de session_id o rango) tras correr varios subagentes/forks en paralelo; nunca automático.
 ---
 
 # Skill — Observability
@@ -10,11 +10,13 @@ description: Dos modos. (1) Automático por sesión — process-session.sh calcu
 > - `skills/observability/scripts/session-report.sh` — informe **agregado** sobre el histórico
 >   de `sessions.jsonl` (Issue #265). Ver
 >   `docs/aura/specs/2026-09-13-session-behavior-report-design.md`.
+> - `skills/observability/scripts/loop-summary.sh` — resumen de un **loop puntual** (batch de
+>   subagentes/forks), por lista de `session_id` o rango de tiempo (Issue #304).
 >
 > **Invocado por:** `protocols/session_start.md` Paso 3.5 corre `process-session.sh`
 > automáticamente (fail-open, silencioso si no hay datos), como reporte de la sesión anterior
-> antes del Resumen Ejecutivo. `session-report.sh` **no** se invoca desde ahí — ver "Cuándo
-> Activar" abajo.
+> antes del Resumen Ejecutivo. `session-report.sh` y `loop-summary.sh` **no** se invocan desde
+> ahí — ver "Cuándo Activar" abajo.
 
 ---
 
@@ -47,6 +49,31 @@ Hay **dos modos**, con triggers distintos — no confundir el de uno con el del 
 - **Responsabilidad de quien invoca** (no del script — Engram es un tool MCP, no invocable
   desde bash): guardar la sección "Conclusiones" del informe en Engram con `mem_save`,
   `topic_key: harness/session-behavior-report`.
+
+### Modo 3 — resumen de loop (`loop-summary.sh`, Issue #304)
+
+- **Únicamente bajo demanda**, justo después de correr un batch de subagentes/forks en
+  paralelo (ej. varios issues del backlog vía `/run-dev-loop`, o varios forks lanzados
+  manualmente como en la sesión que originó este modo) — para ver de un vistazo qué sesiones
+  entraron en ese loop y cuánto costó en conjunto, sin tener que revisar cada una por
+  separado. **Nunca automático** dentro de `session_start.md` — mismo criterio de cautela que
+  Modo 2.
+- Origen: idea [032] "Aura Control Panel", Enfoque C (extender `skills/observability/` antes
+  de construir un dashboard o servicio nuevo — ver
+  `docs/aura/specs/2026-09-17-aura-control-panel-brainstorm.md`).
+- Uso: `skills/observability/scripts/loop-summary.sh [--session-ids <id1,id2,...> | --since
+  <ISO date>]` (flags mutuamente excluyentes; sin ninguno, procesa todo `sessions.jsonl`).
+  Salida: resumen en texto a **stdout**, nunca se escribe a archivo.
+- Agrega, sobre las sesiones seleccionadas: tokens totales, `tool_uses` por categoría,
+  duración total, `delegation_rate` agregado, y un listado por sesión (`session_id`,
+  `ended_at`, tokens, duración).
+- **Limitación conocida:** `sessions.jsonl` no registra qué issue/PR quedó asociado a cada
+  sesión — el listado por sesión lo señala explícitamente ("resultado: no disponible en
+  sessions.jsonl") en vez de inventar o inferir un valor. Resolverlo (si se necesita) es
+  trabajo de un issue separado, no de este paso.
+- Si se quiere conservar el resumen más allá de la sesión actual: publicarlo como Artifact
+  (privado por defecto) o guardar los puntos relevantes en Engram — nunca commitearlo (mismo
+  motivo que Modo 2).
 
 ---
 
@@ -111,9 +138,9 @@ topic_key: harness/session-behavior-report) — el script no lo hace
    (evita duplicar filas de la misma sesión en corridas sucesivas).
 3. **No versionar la salida** — `.agent/memory/observability/` está gitignored (telemetría de
    comportamiento de sesión, ver `AGENTS.md` → "Qué se Versiona"); `process-session.sh` nunca
-   debe escribir fuera de ese directorio. `session-report.sh` no escribe a ningún archivo en
-   absoluto — imprime a stdout únicamente (el informe cae en la fila "Análisis/informes
-   ad-hoc" de esa misma tabla: NO se versiona).
+   debe escribir fuera de ese directorio. `session-report.sh` y `loop-summary.sh` no escriben
+   a ningún archivo en absoluto — imprimen a stdout únicamente (el informe cae en la fila
+   "Análisis/informes ad-hoc" de esa misma tabla: NO se versiona).
 4. **`delegation_rate.a` conservador** — un trigger ambiguo (menos de 2 keywords específicos
    co-ocurriendo) se excluye del conteo en vez de inferirse; un denominador subestimado es
    preferible a uno inflado por heurística débil (mismo criterio que

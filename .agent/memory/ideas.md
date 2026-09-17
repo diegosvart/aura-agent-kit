@@ -618,7 +618,7 @@ _(sin iterar)_
 ---
 
 ## [032] Aura Control Panel — panel de control visual + documental del harness
-**Estado:** direccionada
+**Estado:** en progreso (Issue #304)
 **Capturado:** 2026-09-17
 **Prioridad:** Planificar — impacto alto, esfuerzo medio (Enfoque C, primer peldaño de C → A → B)
 **Contexto:** Disparador: usuario propone, en paralelo al trabajo del Issue #303, evolucionar
@@ -655,6 +655,9 @@ futura (cuando se llegue al Enfoque B): **reusar el MFA/Traefik existente**, sin
 Con esto, la idea tiene dirección suficiente para pasar a `/plan-work` cuando el usuario lo
 pida — siguiente paso natural: issue(s) para el Enfoque C (modo "resumen de loop" en
 `skills/observability/`).
+
+**2026-09-17 — Issue #304 creado:** "Modo 'resumen de loop' en skills/observability/ (Aura
+Control Panel, Enfoque C)", label `ready,enhancement`. Primer issue accionable de la idea.
 
 ### Iteraciones
 _(sin iterar)_

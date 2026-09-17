@@ -74,7 +74,12 @@ Si se detecta esta condición, incluirla en la sección "Advertencias" del Resum
 > Engram (eso ya se resolvió en el Paso 0, con un mecanismo distinto).
 
 El hook `.claude/hooks/session-start.ps1` corre en los matchers `startup`/`resume`/`clear` y
-emite un único JSON cubriendo estos 17 ítems:
+emite un único JSON cubriendo los ítems 1-16 de la tabla siguiente. El ítem 17
+(clasificación de repo) **todavía no está wireado al hook** — pese a documentarse acá como
+parte del gathering automático, `session-start.ps1` no lo emite (confirmado por `git diff`:
+el hook no tiene ninguna referencia a `repo-classification.json`, hallazgo del code-review de
+PR #307). Hasta que se implemente, este ítem se resuelve **siempre** con el comando manual de
+más abajo — no asumir que llega en el JSON del hook:
 
 | # | Tarea | Mecanismo interno |
 |---|-------|---------|
@@ -94,7 +99,7 @@ emite un único JSON cubriendo estos 17 ítems:
 | 14 | Candidatos a trabajo stranded | ramas ahead de `develop` con commits `Closes/Fixes/Resolves #N` |
 | 15 | Ideas en backlog | cuenta `## [` en `ideas.md` |
 | 16 | Update del harness disponible | compara tag local de `.aura` vs. remoto (caché 30 min) o versión de plugin instalada vs. marketplace |
-| 17 | Clasificación de repo (Issue #303, D1) | lee `.agent/memory/repo-classification.json` si existe (`repo_type`); si no existe, `repo_classification: null` explícito — alimenta el Gate de Clasificación de Repo (Paso 3) |
+| 17 | Clasificación de repo (Issue #303, D1) — **NO implementado en el hook, ver nota arriba** | comando manual (`cat .agent/memory/repo-classification.json`, más abajo); alimenta el Gate de Clasificación de Repo (Paso 3) |
 
 **Si el JSON del hook ya está disponible en el contexto** (campos como `branch`,
 `issues_ready`, `open_prs`, `repo_visibility`, `repo_integrity`, `last_session`,

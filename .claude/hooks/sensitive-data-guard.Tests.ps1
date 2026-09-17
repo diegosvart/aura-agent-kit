@@ -77,11 +77,13 @@ Describe 'Test-SensitiveDataGuard - git commit (comportamiento existente, sin re
     }
 }
 
-Describe 'Test-MemorySaveGuard - mem_save (Issue #303 Paso 4, nuevo)' {
+Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4 + code-review PR #307)' {
 
-    It 'no aplica a otras tools MCP (solo intercepta mem_save)' {
+    It 'no aplica a tools de LECTURA de Engram (mem_search, mem_context)' {
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_search' -ToolInput @{ query = 'password=hunter2' }
         $result | Should Be $null
+        $result2 = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_context' -ToolInput @{ project = 'x' }
+        $result2 | Should Be $null
     }
 
     It 'repo_type cliente + contenido sensible (RUT) -> bloqueado' {
@@ -126,6 +128,69 @@ Describe 'Test-MemorySaveGuard - mem_save (Issue #303 Paso 4, nuevo)' {
         Mock Get-RepoRoot { $null }
         Mock Get-RepoClassification { [pscustomobject]@{ repo_type = '' } }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; content = 'contenido limpio' }
+        $result.decision | Should Be 'block'
+    }
+
+    It 'repo_type con typo/valor no reconocido -> fail-closed, bloqueado igual que clasificacion ausente (hallazgo code-review PR #307)' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'clientee' } }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; content = 'contenido totalmente limpio' }
+        $result.decision | Should Be 'block'
+    }
+
+    It 'intercepta mem_save_prompt en repo cliente con contenido sensible (hallazgo code-review PR #307)' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-DenylistPath { $null }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save_prompt' -ToolInput @{ content = 'el RUT del cliente es 12.345.678-9' }
+        $result.decision | Should Be 'block'
+    }
+
+    It 'intercepta mem_capture_passive en repo cliente con contenido sensible (hallazgo code-review PR #307)' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-DenylistPath { $null }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_capture_passive' -ToolInput @{ content = 'password=hunter2' }
+        $result.decision | Should Be 'block'
+    }
+
+    It 'intercepta mem_update en repo cliente con contenido sensible (hallazgo code-review PR #307)' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-DenylistPath { $null }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_update' -ToolInput @{ id = 42; content = '192.168.1.10' }
+        $result.decision | Should Be 'block'
+    }
+
+    It 'intercepta mem_session_summary en repo cliente con contenido sensible (mismo criterio: escribe contenido libre a Engram)' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-DenylistPath { $null }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_session_summary' -ToolInput @{ content = 'password=hunter2' }
+        $result.decision | Should Be 'block'
+    }
+
+    It 'escanea el campo observation (alias retrocompatible de content, hallazgo code-review PR #307)' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-DenylistPath { $null }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; observation = 'RUT del cliente: 12.345.678-9' }
+        $result.decision | Should Be 'block'
+    }
+
+    It 'escanea el campo topic_key (hallazgo code-review PR #307)' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-DenylistPath { $null }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; content = 'limpio'; topic_key = 'cliente/ACME-project-192.168.1.10' }
+        $result.decision | Should Be 'block'
+    }
+
+    It 'escanea el campo session_id (hallazgo code-review PR #307)' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-DenylistPath { $null }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; content = 'limpio'; session_id = 'password=hunter2' }
         $result.decision | Should Be 'block'
     }
 }

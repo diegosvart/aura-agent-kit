@@ -133,7 +133,7 @@
         ]
       },
       {
-        "matcher": "mcp__plugin_engram_engram__mem_.*",
+        "matcher": "mcp__plugin_engram_engram__(mem_save|mem_save_prompt|mem_capture_passive|mem_update|mem_session_summary)$",
         "hooks": [
           {
             "type": "command",

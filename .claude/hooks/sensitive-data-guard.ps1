@@ -4,11 +4,14 @@
 # 1. Comandos Bash y PowerShell antes de ejecutarse — bloquea `git commit` si el contenido a
 #    commitear matchea una denylist local o un patron generico de dato sensible (RUT chileno,
 #    IP privada, credenciales).
-# 2. La tool MCP `mem_save` de Engram (Issue #303 Paso 4, D4 "Enforcement hibrido" de
-#    docs/aura/specs/2026-09-17-memoria-clasificacion-repos-design.md) — bloquea el guardado en
-#    un repo clasificado `cliente` (.agent/memory/repo-classification.json) si el contenido a
-#    guardar matchea la misma denylist/patrones. Fail-closed: si la clasificacion no existe o
-#    no se puede parsear, se bloquea igual (no se asume "harness"/"personal" por defecto).
+# 2. Las tools MCP de Engram que ESCRIBEN contenido persistente — mem_save, mem_save_prompt,
+#    mem_capture_passive, mem_update, mem_session_summary (Issue #303 Paso 4, D4 "Enforcement
+#    hibrido" de docs/aura/specs/2026-09-17-memoria-clasificacion-repos-design.md; lista
+#    ampliada en el code-review de PR #307, que encontro que solo mem_save estaba cubierta) —
+#    bloquea el guardado en un repo clasificado `cliente` (.agent/memory/repo-classification.json)
+#    si CUALQUIER campo del tool_input (serializado completo, no una lista fija) matchea la
+#    denylist/patrones. Fail-closed: clasificacion ausente, corrupta, o repo_type con un valor
+#    no reconocido (typo, etc.) se bloquea igual — nunca se asume "harness"/"personal".
 #
 # Por que existe: `.claude/rules/sensitive-data-safety.md` documentaba el barrido como juicio
 # 100% del agente — incidentes reales (crawler-mcp-diagram, gestion-documental) mostraron que
@@ -127,41 +130,62 @@ function Test-SensitiveDataGuard {
     return Test-ContentAgainstSensitivePatterns -Content $content -DenylistPath $denylistPath
 }
 
-# Issue #303 Paso 4 (D4, capa hook duro): intercepta mem_save cuando repo_type == "cliente".
-# Fail-closed (Edge Cases de la spec): si repo-classification.json no existe o no parsea, se
-# bloquea igual — nunca se asume "harness"/"personal" por defecto ante la duda.
+# Tools MCP de Engram que ESCRIBEN contenido libre de forma persistente (no las de lectura
+# como mem_search/mem_context/mem_get_observation) — todas caen bajo el mismo enforcement,
+# no solo mem_save (hallazgo code-review PR #307: mem_save_prompt/mem_capture_passive/
+# mem_update quedaban sin cubrir pese a persistir el mismo tipo de dato).
+$script:EngramWriteTools = @(
+    'mem_save',
+    'mem_save_prompt',
+    'mem_capture_passive',
+    'mem_update',
+    'mem_session_summary'
+)
+
+# Issue #303 Paso 4 (D4, capa hook duro): intercepta las tools de escritura de Engram de arriba
+# cuando repo_type == "cliente". Fail-closed (Edge Cases de la spec): si repo-classification.json
+# no existe, no parsea, o repo_type no es exactamente "harness"/"personal", se bloquea igual —
+# nunca se asume "harness"/"personal" por defecto ante la duda, tampoco ante un valor invalido
+# tipo typo (hallazgo code-review PR #307: "clientee" caia antes en el path permisivo).
 function Test-MemorySaveGuard {
     param(
         [string]$ToolName,
         [object]$ToolInput
     )
 
-    if ($ToolName -notmatch '^mcp__plugin_engram_engram__mem_save$') { return $null }
+    $shortName = $ToolName -replace '^mcp__plugin_engram_engram__', ''
+    if ($script:EngramWriteTools -notcontains $shortName) { return $null }
 
     $repoRoot = Get-RepoRoot
     $classification = Get-RepoClassification -RepoRoot $repoRoot
-
-    if (-not $classification -or -not $classification.repo_type) {
-        return @{
-            decision = "block"
-            reason   = "sensitive-data-guard: mem_save bloqueado — no se pudo determinar repo_type (.agent/memory/repo-classification.json ausente o corrupto). Fail-closed por seguridad (Issue #303 D4). Clasificar el repo (Gate de Clasificacion de Repo en protocols/session_start.md) antes de guardar en Engram."
-        }
-    }
-
-    $repoType = $classification.repo_type
+    $repoType = $null
+    if ($classification) { $repoType = $classification.repo_type }
 
     if ($repoType -eq "harness" -or $repoType -eq "personal") {
         return $null
     }
 
-    # repo_type "cliente" (o cualquier valor no reconocido — tratado igual por seguridad,
-    # ver el caso sin clasificacion valida arriba): evaluar el contenido a guardar contra la
-    # misma denylist/patrones que ya usa `git commit`.
-    $parts = @()
-    foreach ($field in @('title', 'content', 'type', 'project', 'scope')) {
-        if ($ToolInput.$field) { $parts += [string]$ToolInput.$field }
+    if ($repoType -ne "cliente") {
+        # Ausente, corrupto, o cualquier valor no reconocido (typo como "clientee", etc.) se
+        # trata igual: fail-closed, bloqueado incondicionalmente sin evaluar contenido —
+        # nunca se asume el path permisivo de "cliente" ante un valor invalido (hallazgo
+        # code-review PR #307: un typo caia antes en el path que SI evalua contenido).
+        return @{
+            decision = "block"
+            reason   = "sensitive-data-guard: $shortName bloqueado — no se pudo determinar repo_type valido (.agent/memory/repo-classification.json ausente, corrupto, o con un valor no reconocido). Fail-closed por seguridad (Issue #303 D4). Clasificar el repo (Gate de Clasificacion de Repo en protocols/session_start.md) antes de guardar en Engram."
+        }
     }
-    $content = $parts -join "`n"
+
+    # repo_type "cliente": evaluar el contenido a guardar contra la misma denylist/patrones
+    # que ya usa `git commit`. Se serializa TODO el ToolInput (no una lista fija de campos)
+    # para no dejar afuera campos como observation/topic_key/session_id (hallazgo code-review
+    # PR #307) ni ningun campo futuro que el schema de Engram agregue.
+    $content = ""
+    try {
+        $content = ($ToolInput | ConvertTo-Json -Depth 10 -Compress)
+    } catch {
+        $content = [string]$ToolInput
+    }
 
     $denylistPath = Get-DenylistPath -RepoRoot $repoRoot
     return Test-ContentAgainstSensitivePatterns -Content $content -DenylistPath $denylistPath
@@ -182,8 +206,9 @@ if ($MyInvocation.InvocationName -ne '.') {
     if ($input_json.tool_name) { $toolName = $input_json.tool_name }
 
     $result = $null
+    $shortToolName = $toolName -replace '^mcp__plugin_engram_engram__', ''
 
-    if ($toolName -match '^mcp__plugin_engram_engram__mem_save$') {
+    if ($script:EngramWriteTools -contains $shortToolName) {
         $result = Test-MemorySaveGuard -ToolName $toolName -ToolInput $input_json.tool_input
     } elseif ($input_json.tool_input.command) {
         $result = Test-SensitiveDataGuard -Command $input_json.tool_input.command

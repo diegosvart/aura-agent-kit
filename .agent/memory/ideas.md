@@ -618,9 +618,9 @@ _(sin iterar)_
 ---
 
 ## [032] Aura Control Panel — panel de control visual + documental del harness
-**Estado:** explorado
+**Estado:** direccionada
 **Capturado:** 2026-09-17
-**Prioridad:** sin evaluar aún (brainstorm inicial hecho, falta decisión del usuario)
+**Prioridad:** Planificar — impacto alto, esfuerzo medio (Enfoque C, primer peldaño de C → A → B)
 **Contexto:** Disparador: usuario propone, en paralelo al trabajo del Issue #303, evolucionar
 la infraestructura física ya existente (VPS, dominio, MFA, Docker, Traefik, Claude Code, Aura
 Agent Kit) hacia un panel de control ("Aura Control Panel") que permita lanzar loops con varios
@@ -645,6 +645,16 @@ de datos de cliente filtrados, dependencia del enforcement de Issue #303 (clasif
 repos) antes de agregar sesiones de repos `cliente`, herencia del MFA existente en vez de auth
 nueva, credenciales de VPS/Traefik/Docker nunca versionadas. 6 preguntas abiertas quedaron
 pendientes de que el usuario responda (ver design doc) — no se creó ningún issue todavía.
+
+**2026-09-17 — Usuario responde las 4 preguntas clave del brainstorm:** (1) Enfoque inicial:
+**C** (extender `skills/observability/`, sin servicio nuevo). (2) Objeto sesión: **agregación**
+de lo que ya existe (`sessions.jsonl` + Engram + `ideas.md`/`plans/`), no un esquema nuevo
+paralelo. (3) Alcance vs. Issue #303: arranca **ya, restringido a repos `harness`/`personal`**
+— ningún repo `cliente` hasta que el enforcement (Pasos 3-4 de esa spec) exista. (4) Auth
+futura (cuando se llegue al Enfoque B): **reusar el MFA/Traefik existente**, sin capa nueva.
+Con esto, la idea tiene dirección suficiente para pasar a `/plan-work` cuando el usuario lo
+pida — siguiente paso natural: issue(s) para el Enfoque C (modo "resumen de loop" en
+`skills/observability/`).
 
 ### Iteraciones
 _(sin iterar)_

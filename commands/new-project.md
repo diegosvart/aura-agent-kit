@@ -8,8 +8,7 @@
 ## Qué Hace
 
 1. Recolecta las decisiones del Paso 0 de la skill (repo remoto, directorio local, canal de
-   instalación, stack, identidad, rama default, reglas opt-in) — una por una si el usuario no
-   las dio todas.
+   instalación, stack, identidad, rama default) — una por una si el usuario no las dio todas.
 2. Verifica prerrequisitos (repo remoto existe/vacío, directorio local libre).
 3. Clona el repo y scaffoldea el harness (submodule pinneado a un tag, o plugin sin vendorizar).
 4. Escribe `AGENTS.local.md`, `.gitignore`, `.claude/settings.json` con hooks, y
@@ -47,7 +46,7 @@ Con o sin URL del repo — si no se da, se pregunta en el Paso 0 de la skill.
 ```
 Usuario pide proyecto nuevo (con o sin URL)
     ↓
-Agente recolecta las 7 decisiones del Paso 0 (una por una)
+Agente recolecta las 6 decisiones del Paso 0 (una por una)
     ↓
 Verificación de prerrequisitos (repo remoto, directorio local)
     ↓

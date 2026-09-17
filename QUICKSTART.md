@@ -148,20 +148,7 @@ Este archivo es gitignoreado — es tuyo, no del repositorio.
 
 ---
 
-## Paso 6 — Reglas opt-in
-
-`.aura/CLAUDE.md` carga solo `harness-core.md` por defecto. Para activar reglas adicionales, editar `.aura/CLAUDE.md` en tu proyecto y descomentar las que quieras:
-
-```markdown
-@.aura/rules/design-flow.md      # Brainstorm antes de planificar
-@.aura/rules/repo-integrity.md   # Detectar trabajo stranded
-@.aura/rules/routing-menu.md     # Menú post-tarea
-@.aura/rules/coding.md           # Convenciones de código
-```
-
----
-
-## Paso 7 — Primera sesión
+## Paso 6 — Primera sesión
 
 ```bash
 claude .

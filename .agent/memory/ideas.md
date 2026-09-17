@@ -555,3 +555,64 @@ falla silenciosamente" (bug de la plataforma o del script de detección) — son
 _(sin iterar)_
 
 ---
+
+## [030] Formato definido para reviews de PR, coherente con el formato de la descripción
+**Estado:** raw
+**Capturado:** 2026-09-17
+**Prioridad:** Hacer — impacto medio, esfuerzo bajo
+**Contexto:** Disparador directo: el PR #300 (Issue #298) se publicó con una descripción que
+no seguía el "Formato de PR body (obligatorio)" ya definido en `agents/github.md` (faltaban
+`## Por qué de este modo` y `## Proceso`, sin `Closes #N` literal, con footer de atribución de
+IA prohibido) — corregido en la misma sesión (ver Issue #301, que investiga por qué se salteó).
+Al revisar ese incidente, el usuario notó que existe una regla clara para el **body del PR**
+(`agents/github.md` → "Formato de PR body") pero ninguna regla equivalente para el **review**
+que se deja sobre ese PR (agente `reviewer`, o revisión humana) — el review terminó siendo un
+comentario de texto libre sin estructura acordada, sin garantía de que cubra las mismas
+dimensiones que el body promete (qué se hizo / por qué / tests / proceso).
+
+Objetivo: definir un formato de review de PR que sea **coherente** con el formato de la
+descripción — que un reviewer (agente o humano) pueda verificar explícitamente cada sección del
+body (¿el "por qué" se sostiene?, ¿los tests declarados corren y prueban lo que dicen?, ¿el
+"proceso" declarado es el que realmente se siguió?) en vez de una evaluación de calidad genérica
+desconectada de lo que el propio PR afirma. Relacionado con Issue #301 (agente especialista de
+GitHub) — si ese agente termina siendo el punto único de operaciones de GitHub, este formato de
+review sería una responsabilidad natural suya.
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [031] `cleanup-merged-branch.sh` da falso negativo en sesiones de worktree
+**Estado:** raw
+**Capturado:** 2026-09-17
+**Prioridad:** Quick win — impacto medio, esfuerzo bajo
+**Contexto:** Disparador: al cerrar el Issue #298 (PR #300 ya mergeado y verificado contra
+`origin/develop`), `skills/agentic-dev-loop/scripts/cleanup-merged-branch.sh` reportó "La rama
+local 'fix/issue-298-unificar-claude-md' existe pero NO aparece como mergeada en develop" —
+falso negativo. Causa: el script calcula `git merge-base develop "$branch"` y
+`git branch --merged develop` contra la rama **local** `develop`, no `origin/develop`. En una
+sesión aislada en worktree, la rama local `develop` está checked out en otro worktree (el
+checkout principal) y no se puede actualizar desde acá (`git checkout develop` falla:
+"already used by worktree"), así que queda desactualizada indefinidamente mientras dure la
+sesión — cualquier merge nuevo a `origin/develop` no se refleja en el juicio del script hasta
+que alguien actualice la rama local `develop` desde el checkout principal.
+
+Se resolvió en el momento verificando manualmente (`git merge-base --is-ancestor <rama>
+origin/develop` + `git diff origin/develop <rama>` vacío) antes de borrar la rama local con
+confirmación del usuario — pero el script en sí sigue dando el falso negativo para cualquier
+sesión futura en worktree. Mismo patrón de fondo que el `Learned` de `cut-release.sh` documentado
+en el bookkeeping de PR #193-195 (v2.6.0): scripts de `agentic-dev-loop`/`repo-integrity` que
+asumen un checkout único y no contemplan que la sesión activa puede estar en un worktree
+distinto del que tiene `develop`/`main` checked out.
+
+**Fix probable (no evaluado aún):** cambiar `git merge-base develop "$branch"` y
+`git branch --merged develop` por sus equivalentes contra `origin/develop` (mismo `git fetch
+origin develop --quiet` que el script ya hace, pero comparando contra la ref remota en vez de
+la local). Evaluar si aplica el mismo fix a otros scripts hermanos que puedan tener el mismo
+supuesto (`post-merge.sh`, `classify-branch.sh`).
+
+### Iteraciones
+_(sin iterar)_
+
+---

@@ -582,3 +582,37 @@ review sería una responsabilidad natural suya.
 _(sin iterar)_
 
 ---
+
+## [031] `cleanup-merged-branch.sh` da falso negativo en sesiones de worktree
+**Estado:** raw
+**Capturado:** 2026-09-17
+**Prioridad:** Quick win — impacto medio, esfuerzo bajo
+**Contexto:** Disparador: al cerrar el Issue #298 (PR #300 ya mergeado y verificado contra
+`origin/develop`), `skills/agentic-dev-loop/scripts/cleanup-merged-branch.sh` reportó "La rama
+local 'fix/issue-298-unificar-claude-md' existe pero NO aparece como mergeada en develop" —
+falso negativo. Causa: el script calcula `git merge-base develop "$branch"` y
+`git branch --merged develop` contra la rama **local** `develop`, no `origin/develop`. En una
+sesión aislada en worktree, la rama local `develop` está checked out en otro worktree (el
+checkout principal) y no se puede actualizar desde acá (`git checkout develop` falla:
+"already used by worktree"), así que queda desactualizada indefinidamente mientras dure la
+sesión — cualquier merge nuevo a `origin/develop` no se refleja en el juicio del script hasta
+que alguien actualice la rama local `develop` desde el checkout principal.
+
+Se resolvió en el momento verificando manualmente (`git merge-base --is-ancestor <rama>
+origin/develop` + `git diff origin/develop <rama>` vacío) antes de borrar la rama local con
+confirmación del usuario — pero el script en sí sigue dando el falso negativo para cualquier
+sesión futura en worktree. Mismo patrón de fondo que el `Learned` de `cut-release.sh` documentado
+en el bookkeeping de PR #193-195 (v2.6.0): scripts de `agentic-dev-loop`/`repo-integrity` que
+asumen un checkout único y no contemplan que la sesión activa puede estar en un worktree
+distinto del que tiene `develop`/`main` checked out.
+
+**Fix probable (no evaluado aún):** cambiar `git merge-base develop "$branch"` y
+`git branch --merged develop` por sus equivalentes contra `origin/develop` (mismo `git fetch
+origin develop --quiet` que el script ya hace, pero comparando contra la ref remota en vez de
+la local). Evaluar si aplica el mismo fix a otros scripts hermanos que puedan tener el mismo
+supuesto (`post-merge.sh`, `classify-branch.sh`).
+
+### Iteraciones
+_(sin iterar)_
+
+---

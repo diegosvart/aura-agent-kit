@@ -22,7 +22,7 @@ description: Tres modos. (1) Automático por sesión — process-session.sh calc
 
 ## Cuándo Activar
 
-Hay **dos modos**, con triggers distintos — no confundir el de uno con el del otro:
+Hay **tres modos**, con triggers distintos — no confundir el de uno con el otro:
 
 ### Modo 1 — automático por sesión (`process-session.sh`)
 

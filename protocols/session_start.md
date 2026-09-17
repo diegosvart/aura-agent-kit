@@ -43,6 +43,8 @@ Leer en paralelo:
 - `AGENTS.md` (este archivo, si no se cargó antes)
 - `{{PROJECT_CONTEXT}}` (archivo de contexto del proyecto)
 - `{{MATRIZ_PLANIFICACION}}` (si existe)
+- `.agent/memory/repo-classification.json` (si existe) — `repo_type`: `harness` / `personal` /
+  `cliente`. Si no existe, ver Gate de Clasificación de Repo en el Paso 3 — no asumir un default.
 - `.agent/memory/current-session.json` (si existe)
 - `.agent/memory/project-log.md` (si existe) — qué se agregó al proyecto en los últimos
   merges, independiente de si las sesiones anteriores cerraron formalmente
@@ -72,7 +74,7 @@ Si se detecta esta condición, incluirla en la sección "Advertencias" del Resum
 > Engram (eso ya se resolvió en el Paso 0, con un mecanismo distinto).
 
 El hook `.claude/hooks/session-start.ps1` corre en los matchers `startup`/`resume`/`clear` y
-emite un único JSON cubriendo estos 16 ítems:
+emite un único JSON cubriendo estos 17 ítems:
 
 | # | Tarea | Mecanismo interno |
 |---|-------|---------|
@@ -92,6 +94,7 @@ emite un único JSON cubriendo estos 16 ítems:
 | 14 | Candidatos a trabajo stranded | ramas ahead de `develop` con commits `Closes/Fixes/Resolves #N` |
 | 15 | Ideas en backlog | cuenta `## [` en `ideas.md` |
 | 16 | Update del harness disponible | compara tag local de `.aura` vs. remoto (caché 30 min) o versión de plugin instalada vs. marketplace |
+| 17 | Clasificación de repo (Issue #303, D1) | lee `.agent/memory/repo-classification.json` si existe (`repo_type`); si no existe, `repo_classification: null` explícito — alimenta el Gate de Clasificación de Repo (Paso 3) |
 
 **Si el JSON del hook ya está disponible en el contexto** (campos como `branch`,
 `issues_ready`, `open_prs`, `repo_visibility`, `repo_integrity`, `last_session`,
@@ -135,6 +138,9 @@ bash skills/repo-integrity/scripts/check-repo-manifest.sh
 bash skills/repo-integrity/scripts/check-base-branch.sh
 bash skills/repo-integrity/scripts/check-orphaned-worktrees.sh
 bash skills/repo-integrity/scripts/check-agent-frontmatter.sh agents/*.md | grep -v "^OK:" || true
+
+# Clasificación de repo (Issue #303, D1)
+cat .agent/memory/repo-classification.json 2>/dev/null || echo "repo_classification: null"
 ```
 
 ### Worktrees Adicionales (Issue #200 — regla anti-worktree, no cubierto por el hook)
@@ -160,6 +166,34 @@ gathering de rutina de este paso.
 ---
 
 ## Paso 3 — Gates (usa datos del Paso 2)
+
+### Gate de Clasificación de Repo (Issue #303, D1)
+
+Usar el dato del ítem 17 del Paso 2 (`.agent/memory/repo-classification.json`).
+
+Si el archivo **no existe** (`repo_classification: null`) → **DETENER aquí**. No mostrar el
+Resumen Ejecutivo (Paso 4) ni el Capability Menu (Paso 6) hasta que el usuario responda.
+Preguntar textualmente:
+
+> "Este repo todavía no tiene clasificación de memoria
+> (`.agent/memory/repo-classification.json`). ¿Es `harness` (el harness mismo o un fork
+> directo), `personal` (proyecto propio, sin terceros con acceso) o `cliente` (un tercero
+> tiene o puede tener acceso)?"
+
+Con la respuesta, crear el archivo:
+
+```json
+{
+  "repo_type": "<harness|personal|cliente>",
+  "classified_at": "<timestamp UTC actual>",
+  "classified_by": "manual"
+}
+```
+
+No asumir un default ni inferir por heurística — ver D1 en
+`docs/aura/specs/2026-09-17-memoria-clasificacion-repos-design.md`. Si el archivo **sí
+existe**, continuar sin preguntar y mostrar `repo_type` en la sección "Estado real — mío" del
+Resumen Ejecutivo (Paso 4).
 
 ### Gate de Trabajo Stranded (si `gh` autenticado)
 
@@ -303,6 +337,7 @@ sección por completo (no mostrar un bloque vacío ni un mensaje de error).
 |---|---|
 | git / gh / engram | ✓/✗ (detallar cuál si alguno falla) |
 | Repo | <repo_name> — topics: <lista o "sin topics"> |
+| Clasificación (Issue #303) | <repo_type: harness/personal/cliente> |
 | Branch | <nombre> |
 | Sin rastrear | N archivos |
 | Cambios sin commit | N |

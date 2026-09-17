@@ -51,6 +51,11 @@ No asumir ninguna de estas — son decisiones reales con trade-offs, no detalles
    (`AGENTS.local.example.md`) para que lo edite después — nunca inventarlo.
 6. **Rama default:** `main` o `develop` — un repo vacío no tiene rama default hasta el primer
    push; fijarlo ahora evita rehacer el flujo git del harness después.
+7. **Clasificación de repo (Issue #303, D1):** `harness` (fork/dogfooding directo del harness),
+   `personal` (proyecto propio, sin terceros con acceso) o `cliente` (un tercero tiene o puede
+   tener acceso). No asumir un default — ver
+   `docs/aura/specs/2026-09-17-memoria-clasificacion-repos-design.md`. Determina qué puede
+   guardar `mem_save` en este proyecto (D3) desde la primera sesión.
 
 ### Paso 1 — Verificar prerrequisitos (read-only)
 
@@ -123,6 +128,20 @@ Replicar como mínimo las entradas del harness fuente que protegen memoria/ident
 Invocar `skills/stack-selection/SKILL.md` (o registrar directamente el perfil ya acordado en
 el Paso 0.4) para escribir `.agent/memory/session-stack.json`.
 
+### Paso 6.5 — Clasificación de repo (Issue #303, D1)
+
+Escribir `.agent/memory/repo-classification.json` con la decisión recolectada en el Paso 0.7 —
+nunca dejar este paso para que lo dispare la pregunta bloqueante de
+`protocols/session_start.md` en la primera sesión del proyecto nuevo:
+
+```json
+{
+  "repo_type": "<harness|personal|cliente>",
+  "classified_at": "<timestamp UTC actual>",
+  "classified_by": "manual"
+}
+```
+
 ### Paso 7 — Primer commit y push
 
 ```bash
@@ -141,6 +160,7 @@ ramas del harness (`main`/`develop`).
 - [ ] `claude plugin list --json` incluye `aura@aura-agent-kit` con `installPath` apuntando a `./.aura`
 - [ ] El commit de scaffold aparece en `origin` (`git log --oneline -1` tras el push)
 - [ ] `AGENTS.local.md` existe en la raíz del proyecto nuevo, no dentro de `.aura/`
+- [ ] `.agent/memory/repo-classification.json` existe con el `repo_type` acordado en el Paso 0.7
 
 ### Paso 9 — Handoff
 

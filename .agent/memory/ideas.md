@@ -530,3 +530,28 @@ que se usó para resolver el bloqueo de esta sesión en el momento en que se cap
 _(sin iterar)_
 
 ---
+
+## [029] Entender por qué los worktrees no se eliminan al terminar una sesión/tarea
+**Estado:** raw
+**Capturado:** 2026-09-17
+**Prioridad:** Explorar — impacto medio, esfuerzo bajo (es investigación, no fix todavía)
+**Contexto:** Disparador concreto de esta sesión (Paso 2 de `session_start.md`,
+`check-orphaned-worktrees.sh`): al iniciar se detectaron 2 worktrees huérfanos —
+`daily-issue-sweep` (rama ya mergeada/gone, nadie corrió `git worktree remove` tras cerrar
+esa sesión) y, más llamativo, el worktree de **esta misma sesión de background**
+(`auto-research-session-start-gaps`), marcado huérfano porque el script no encontró un
+proceso vivo dueño del lock (pid 40036) — pese a que la sesión seguía activa. A diferencia de
+[027] (que ya propone la solución: un gate de cierre que bloquee `session_end` con worktrees
+pendientes) y de [026] (causa raíz de por qué los hooks/submódulo se rompen *dentro* de un
+worktree), esta idea es más angosta: entender **el mecanismo real de limpieza** — ¿el
+`ExitWorktree`/ciclo de vida de sesión de background de la plataforma está fallando en
+detectar su propio proceso dueño, o el chequeo de `check-orphaned-worktrees.sh` tiene un falso
+positivo estructural con sesiones background (PID reportado no es el PID real del proceso que
+sostiene el lock)? Antes de implementar el gate de [027], vale la pena confirmar si el problema
+es "nadie llama a la limpieza" (higiene de proceso, lo que [027] ya resuelve) o "se llama pero
+falla silenciosamente" (bug de la plataforma o del script de detección) — son fixes distintos.
+
+### Iteraciones
+_(sin iterar)_
+
+---

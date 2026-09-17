@@ -51,9 +51,6 @@ No asumir ninguna de estas — son decisiones reales con trade-offs, no detalles
    (`AGENTS.local.example.md`) para que lo edite después — nunca inventarlo.
 6. **Rama default:** `main` o `develop` — un repo vacío no tiene rama default hasta el primer
    push; fijarlo ahora evita rehacer el flujo git del harness después.
-7. **Reglas opt-in de `.aura/CLAUDE.md`:** por defecto solo carga `harness-core.md`. Preguntar
-   si activar además `design-flow.md`, `repo-integrity.md`, `routing-menu.md`, `coding.md`
-   (recomendado activarlas todas salvo que el usuario prefiera un harness minimal).
 
 ### Paso 1 — Verificar prerrequisitos (read-only)
 
@@ -103,14 +100,16 @@ ciegas, puede estar desactualizado respecto a hooks nuevos (caso real: `sensitiv
 y `pr-base-guard.ps1` no aparecían documentados en `QUICKSTART.md` al momento de escribir esta
 skill, pero sí estaban activos en `settings.json`).
 
-### Paso 4 — Identidad y reglas opt-in
+### Paso 4 — Identidad
 
 ```bash
 # AGENTS.local.md en la RAÍZ (nunca dentro de .aura/ — ver Issue #200)
 ```
 
-Escribir `AGENTS.local.md` con la identidad recolectada en el Paso 0.5. Editar
-`.aura/CLAUDE.md` para descomentar las reglas opt-in elegidas en el Paso 0.7.
+Escribir `AGENTS.local.md` con la identidad recolectada en el Paso 0.5. Las 6 reglas del
+harness (`harness-core`, `design-flow`, `repo-integrity`, `routing-menu`, `coding`,
+`subagent-dispatch`) vienen fijas y activas para todo consumidor vía el `CLAUDE.md` raíz de
+`aura-agent-kit` — no hay personalización de rule-set, nada que descomentar acá.
 
 ### Paso 5 — `.gitignore`
 

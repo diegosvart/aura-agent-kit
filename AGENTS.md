@@ -20,6 +20,23 @@
 
 ---
 
+## Doble Rol de `CLAUDE.md` (raíz)
+
+`aura-agent-kit` cumple dos roles simultáneos, y **un único `CLAUDE.md` en la raíz** sirve a
+ambos sin distinción de contenido ni lógica condicional:
+
+- **Rol A** — harness auto-evolucionando su propia fuente (este mismo repo, dogfooding).
+- **Rol B** — dependencia embebida en un consumidor real vía `git submodule add ... .aura`; el
+  import `@.aura/CLAUDE.md` que genera `skills/new-project-setup/SKILL.md` resuelve a este
+  mismo archivo raíz.
+
+Las 6 reglas del harness (`harness-core`, `design-flow`, `repo-integrity`, `routing-menu`,
+`coding`, `subagent-dispatch`) vienen fijas y activas para ambos roles — no hay
+personalización de rule-set ni mecanismo opt-in. Cualquier cambio futuro a este archivo
+impacta los dos roles a la vez (ver Issue #297/#298 para el hallazgo que motivó esta nota).
+
+---
+
 ## Los 7 Pilares
 
 > Fuente de verdad completa: `docs/aura/adr/ADR-011-los-7-pilares-del-harness.md`

@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   listo para arrancar `claude .` sin fricción. Formaliza el procedimiento manual ya ejecutado
   en dos scaffolds reales (`aura-harness-diagrams`, `ebi-insight-power-apps`).
 
+### Fixed
+- Eliminado `.aura/CLAUDE.md` (anidado): confirmado huérfano por validación empírica contra un
+  repo consumidor real — el import que genera `skills/new-project-setup/SKILL.md` resuelve al
+  `CLAUDE.md` raíz, nunca al anidado, así que este último quedaba doblemente anidado en
+  `<consumidor>/.aura/.aura/CLAUDE.md` sin ningún import que lo alcance. Corregido
+  `skills/new-project-setup/SKILL.md`: eliminado el Paso 0.7 (pregunta sobre reglas opt-in, ya
+  no existe esa decisión) y el Paso 4 ya no instruye editar un archivo inerte. Las 6 reglas del
+  harness quedan fijas y activas para todo consumidor, documentado en `AGENTS.md`. Sin cambio
+  de comportamiento observable para consumidores existentes (ya recibían las 6 reglas activas).
+  Agregado chequeo de regresión en `skills/repo-integrity/scripts/check-repo-manifest.sh`: falla
+  si aparece un `CLAUDE.md` fuera de la raíz del repo (Issue #297/#298)
+
 ## [2.7.0] - 2026-09-06
 
 ### Added

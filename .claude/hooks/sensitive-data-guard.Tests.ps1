@@ -193,6 +193,152 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; content = 'limpio'; session_id = 'password=hunter2' }
         $result.decision | Should Be 'block'
     }
+
+    It 'intercepta mem_session_end en repo cliente con contenido sensible (hallazgo reviewer post-merge PR #307, Issue #309)' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-DenylistPath { $null }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_session_end' -ToolInput @{ summary = 'el RUT del cliente es 12.345.678-9' }
+        $result.decision | Should Be 'block'
+    }
+
+    It 'permite mem_session_end en repo cliente con contenido limpio' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-DenylistPath { $null }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_session_end' -ToolInput @{ summary = 'decision tecnica sin datos sensibles' }
+        $result | Should Be $null
+    }
+
+    It 'intercepta mem_judge en repo cliente con contenido sensible en reason (hallazgo reviewer post-merge PR #307, Issue #309)' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-DenylistPath { $null }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_judge' -ToolInput @{ judgment_id = 1; reason = 'password=hunter2' }
+        $result.decision | Should Be 'block'
+    }
+
+    It 'intercepta mem_judge en repo cliente con contenido sensible en evidence' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-DenylistPath { $null }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_judge' -ToolInput @{ judgment_id = 1; evidence = '192.168.1.10' }
+        $result.decision | Should Be 'block'
+    }
+
+    It 'permite mem_judge en repo cliente con contenido limpio' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-DenylistPath { $null }
+        $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_judge' -ToolInput @{ judgment_id = 1; reason = 'related, no conflict' }
+        $result | Should Be $null
+    }
+
+    It 'mem_session_end y mem_judge respetan fail-closed ante repo-classification.json ausente' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { $null }
+        $result1 = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_session_end' -ToolInput @{ summary = 'contenido limpio' }
+        $result1.decision | Should Be 'block'
+        $result2 = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_judge' -ToolInput @{ reason = 'contenido limpio' }
+        $result2.decision | Should Be 'block'
+    }
+
+    It 'mem_session_end y mem_judge permitidos sin evaluar contenido en repo harness/personal' {
+        Mock Get-RepoRoot { $null }
+        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'harness' } }
+        $result1 = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_session_end' -ToolInput @{ summary = 'password=hunter2' }
+        $result1 | Should Be $null
+        $result2 = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_judge' -ToolInput @{ reason = 'password=hunter2' }
+        $result2 | Should Be $null
+    }
+}
+
+# Issue #309: los Describe de arriba dot-sourcean el hook y llaman las funciones internas
+# directamente — nunca ejercitan el bloque de entry-point real (lectura de stdin,
+# ConvertFrom-Json, dispatch entre EngramWriteTools/tool_input.command, exit code). Estos
+# tests invocan el script como proceso (mismo patron que git-guard.Tests.ps1) para cubrir eso.
+Describe 'sensitive-data-guard.ps1 - entry point (stdin parse + dispatch)' {
+
+    It 'input no parseable como JSON: no bloquea y queda logueado (fail-open)' {
+        $logPath = Join-Path $PSScriptRoot 'sensitive-data-guard.log'
+        if (Test-Path $logPath) { Remove-Item $logPath -Force }
+
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = 'pwsh'
+        $psi.Arguments = "-NonInteractive -File `"$hookPath`""
+        $psi.RedirectStandardInput = $true
+        $psi.UseShellExecute = $false
+
+        $proc = [System.Diagnostics.Process]::Start($psi)
+        $proc.StandardInput.Write('esto no es json')
+        $proc.StandardInput.Close()
+        $proc.WaitForExit()
+
+        $proc.ExitCode | Should Be 0
+        Test-Path $logPath | Should Be $true
+        (Get-Content $logPath -Raw) | Should Match 'FAIL-OPEN'
+    }
+
+    It 'dispatch: tool_name mem_judge en repo cliente con contenido sensible -> bloqueado (exit 2)' {
+        $tmpRepo = Join-Path $env:TEMP "sensitive-data-guard-entrypoint-test-$PID"
+        New-Item -ItemType Directory -Path $tmpRepo -Force | Out-Null
+        try {
+            Push-Location $tmpRepo
+            git init --quiet | Out-Null
+            New-Item -ItemType Directory -Path (Join-Path $tmpRepo '.agent/memory') -Force | Out-Null
+            Set-Content -Path (Join-Path $tmpRepo '.agent/memory/repo-classification.json') -Value '{"repo_type":"cliente"}'
+            Pop-Location
+
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = 'pwsh'
+            $psi.Arguments = "-NonInteractive -File `"$hookPath`""
+            $psi.RedirectStandardInput = $true
+            $psi.RedirectStandardOutput = $true
+            $psi.UseShellExecute = $false
+            $psi.WorkingDirectory = $tmpRepo
+
+            $proc = [System.Diagnostics.Process]::Start($psi)
+            $inputJson = '{"tool_name":"mcp__plugin_engram_engram__mem_judge","tool_input":{"judgment_id":1,"reason":"password=hunter2"}}'
+            $proc.StandardInput.Write($inputJson)
+            $proc.StandardInput.Close()
+            $stdout = $proc.StandardOutput.ReadToEnd()
+            $proc.WaitForExit()
+
+            $proc.ExitCode | Should Be 2
+            $stdout | Should Match 'block'
+        } finally {
+            if (Test-Path $tmpRepo) { Remove-Item $tmpRepo -Recurse -Force -ErrorAction SilentlyContinue }
+        }
+    }
+
+    It 'dispatch: tool_name de solo lectura (mem_search) no entra al path de EngramWriteTools -> exit 0' {
+        $tmpRepo = Join-Path $env:TEMP "sensitive-data-guard-entrypoint-test-ro-$PID"
+        New-Item -ItemType Directory -Path $tmpRepo -Force | Out-Null
+        try {
+            Push-Location $tmpRepo
+            git init --quiet | Out-Null
+            New-Item -ItemType Directory -Path (Join-Path $tmpRepo '.agent/memory') -Force | Out-Null
+            Set-Content -Path (Join-Path $tmpRepo '.agent/memory/repo-classification.json') -Value '{"repo_type":"cliente"}'
+            Pop-Location
+
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = 'pwsh'
+            $psi.Arguments = "-NonInteractive -File `"$hookPath`""
+            $psi.RedirectStandardInput = $true
+            $psi.UseShellExecute = $false
+            $psi.WorkingDirectory = $tmpRepo
+
+            $proc = [System.Diagnostics.Process]::Start($psi)
+            $inputJson = '{"tool_name":"mcp__plugin_engram_engram__mem_search","tool_input":{"query":"password=hunter2"}}'
+            $proc.StandardInput.Write($inputJson)
+            $proc.StandardInput.Close()
+            $proc.WaitForExit()
+
+            $proc.ExitCode | Should Be 0
+        } finally {
+            if (Test-Path $tmpRepo) { Remove-Item $tmpRepo -Recurse -Force -ErrorAction SilentlyContinue }
+        }
+    }
 }
 
 Write-Host ""

@@ -31,18 +31,18 @@ MAIN_WORKTREE=$(git worktree list --porcelain 2>/dev/null | awk '/^worktree /{pr
 
 DIAG_FILE="$TOPLEVEL/.agent/memory/observability/worktree-orphan-diagnostics.jsonl"
 
+LAST_TASKLIST_OUTPUT=""
+
 pid_alive() {
   local pid="$1"
   command -v tasklist >/dev/null 2>&1 || return 1
-  tasklist //FI "PID eq $pid" 2>/dev/null | grep -q "$pid"
+  LAST_TASKLIST_OUTPUT=$(tasklist //FI "PID eq $pid" 2>&1)
+  echo "$LAST_TASKLIST_OUTPUT" | grep -q "$pid"
 }
 
 log_orphan_diagnostic() {
   local reason="$1" pid="$2"
-  local tasklist_output=""
-  if [ -n "$pid" ] && command -v tasklist >/dev/null 2>&1; then
-    tasklist_output=$(tasklist //FI "PID eq $pid" 2>&1)
-  fi
+  local tasklist_output="$LAST_TASKLIST_OUTPUT"
   mkdir -p "$(dirname "$DIAG_FILE")" 2>/dev/null || return 0
   command -v python3 >/dev/null 2>&1 || return 0
   python3 -c '

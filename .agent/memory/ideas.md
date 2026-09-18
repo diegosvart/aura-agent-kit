@@ -663,3 +663,81 @@ Control Panel, Enfoque C)", label `ready,enhancement`. Primer issue accionable d
 _(sin iterar)_
 
 ---
+
+## [033] Objeto estándar de contexto por tarea + activación selectiva de herramientas/skills/MCPs
+**Estado:** raw
+**Capturado:** 2026-09-18
+**Prioridad:** Explorar — impacto alto, esfuerzo alto
+**Contexto:** Surge en la misma sesión que originó [028] (pipeline de agentes en paralelo) al
+discutir cómo aislar un fork-en-worktree por tarea con "contexto limitado pero relacionado a la
+naturaleza de la labor". El usuario identificó que el problema es más general que los
+subagentes: `protocols/session_start.md` Paso 1 lee siempre, sin condicionar a la tarea que va a
+seguir, un set fijo (`AGENTS.md`, contexto de proyecto, `current-session.json`,
+`project-log.md`, `objectives.md`, `docs/adr/README.md`) — carga innecesaria si la sesión no
+termina necesitando nada de eso. Mismo síntoma con skills y MCPs: hoy se listan todos
+disponibles (algunos "deferred" — MCPs de Chrome/Cron cargan bajo demanda vía `ToolSearch`, las
+skills se invocan bajo demanda vía `Skill`), pero no hay un criterio explícito de **qué debería
+activarse según la naturaleza de la tarea**, ni a nivel de sesión principal ni al delegar a un
+subagente.
+
+Dos piezas del mismo problema, explícitamente declaradas por el usuario como relevantes:
+1. **Objeto estándar de información** — qué contexto mínimo-pero-completo se le pasa a un
+   trabajo delegado (fork en worktree, subagente fresh, o la propia sesión al iniciar),
+   reemplazando el patrón actual binario "fork = hereda todo" / "fresh = no hereda nada".
+2. **Selección de herramientas a activar** — un criterio (¿basado en el tipo de tarea? ¿en
+   `protocols/router.md`?) para no cargar en una sesión "una skill de algo que no se usa", ni
+   los MCPs que no aplican a la naturaleza del trabajo.
+
+Decisión explícita del usuario: esto merece su **propia spec**, separada de la Fase 1/2 de
+worktrees (ver `docs/aura/specs/2026-09-18-worktree-lifecycle-gaps-design.md` para el paralelismo)
+— aplica a toda sesión, no solo a subagentes en worktree.
+
+### Iteraciones
+
+**2026-09-18 — Evidencia real de carga fija en session_start + propuesta de agente
+especializado de repo/git:**
+- El usuario aportó una captura de pantalla (guardada localmente, no versionada, en
+  `output/evidencia-session-start-carga-fija-ebi-insight.jpg`) de una sesión en OTRO repo
+  consumidor (`ebi-insight-power-apps`) donde `session_start` carga, antes de la primera
+  interacción útil, una cadena fija de 11 archivos (`CLAUDE.md`, `AGENTS.md`, `router.md`, las 6
+  reglas de `.aura/rules/`, `data-safety.md`, `sensitive-data-safety.md`) más varios comandos de
+  shell (gh auth, fetch, salud de ramas) — coincide exactamente con el síntoma ya descrito
+  arriba: un set fijo, no condicionado a la tarea real de esa sesión.
+- **Hallazgo aparte a verificar (no confirmado en esta sesión, repo distinto):** las rutas de la
+  captura muestran `.aura\.aura\rules\harness-core.md` (doble `.aura`) en vez de
+  `.aura\rules\harness-core.md` — podría ser una recurrencia del bug de resolución de imports ya
+  investigado en Issues #297/#298/#299 (el import se resuelve relativo al archivo que importa),
+  si ese repo consumidor sigue pinneado a una versión de `.aura` anterior al fix. Pendiente:
+  confirmar versión de `.aura` en `ebi-insight-power-apps` antes de asumir que es el mismo bug.
+- **Precisión del usuario sobre el enfoque:** no se trata de eliminar la carga, sino de
+  secuenciarla — "capturar el flujo primero y luego comenzar a cargar las herramientas que se
+  deben utilizar en [ese] contexto". Es decir, un primer paso barato que identifica qué tipo de
+  tarea es, y solo después carga selectivamente lo que esa tarea necesita (mismo principio que
+  el deferred-loading ya usado por `ToolSearch` para MCPs).
+- **Propuesta concreta nueva, primer caso de uso real:** un agente especializado y acotado
+  exclusivamente a operaciones git/GitHub — recibe una operación ya definida (ej. "crear rama
+  para issue #N", "abrir PR con este body", "mergear PR #N tras checks verdes"), él mismo
+  identifica qué flujo de `agents/github.md` corresponde y ejecuta el script/comando
+  correspondiente, sin cargar nada del resto del harness que no le compete (no necesita
+  `agents/language.md`, ni skills de browser-testing, ni la mayoría de los MCPs). Encaja como
+  primer caso concreto de [028] (pipeline de agentes por rol) combinado con el objeto de
+  contexto de esta misma idea — y, corriendo en su propio worktree/rama, evita la contención de
+  checkout que motivó originalmente el Issue #217, sin necesitar el paralelismo formal completo
+  todavía.
+
+**2026-09-18 (cont.) — Aplicado al propio `session_start.md`:** el usuario extendió la
+propuesta al caso más inmediato: el orquestador, al iniciar sesión, necesita CONOCER el estado
+del repo pero no necesita ser quien EJECUTA los ~15 chequeos de git/gh/repo-integrity (Paso 2)
+él mismo — eso hoy acumula todo el output crudo (branches, PRs, issues, scripts de integridad)
+directo en el contexto del orquestador. Delegar ese paso a un subagente de repo (mismo rol que
+el "agente git/GitHub" de la iteración anterior) que devuelva solo el resumen ya interpretado
+(OK/error + hallazgos) preserva contexto del orquestador — motivo explícito: "hoy las sesiones
+son cortas por alcance de uso de contexto". Mismo principio ya documentado como razón de ser del
+subagente tipo `fork`/`general-purpose` en el propio harness (mantener fuera del hilo principal
+el output crudo que no hace falta releer), aplicado aquí específicamente al gathering de
+`protocols/session_start.md` Paso 2 y, por extensión, a cualquier operación de repo que el
+orquestador delegue durante la sesión. Habilitaría además paralelismo real: varias operaciones
+de repo delegadas al mismo tipo de agente, cada una devolviendo solo su veredicto, sin competir
+por el presupuesto de contexto del orquestador.
+
+---

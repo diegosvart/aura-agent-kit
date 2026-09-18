@@ -4,77 +4,50 @@
 
 ---
 
-## ASAP — Backlog priorizado (2026-09-05)
+## ASAP — Backlog priorizado (actualizado 2026-09-18)
 
-Priorización acordada con el usuario tras la sesión que descubrió: (a) la regla irrompible
-de no trabajar en worktrees (el harness no funciona correctamente ahí — evidencia real:
-Issues #213/#214, contaminación de checkout entre subagentes concurrentes), y (b)
-`delegation_rate = 0/10` real (primer dato desde que existe la regla, Issue #179/#205).
+> Refresco completo: el bloque anterior (fechado 2026-09-05) tenía **14 de 16 issues
+> referenciados ya cerrados** (verificado vía `gh issue view` en esta sesión) — incluidos
+> #217/#210, que seguían listados como "P0 bloqueante estructural" pese a estar cerrados desde
+> 2026-09-09. Nota histórica importante: **#217 resolvió `agentic-dev-loop` eliminando
+> `isolation:"worktree"` (reemplazado por rama+lock)**, dirección opuesta a cualquier trabajo
+> futuro que busque paralelismo real vía worktrees — cualquier brainstorm sobre ese tema debe
+> partir de esta decisión previa, no ignorarla.
 
-**El usuario va a abrir los PRs manualmente** a partir de acá — no asumir que hay trabajo
-de implementación en curso delegado, verificar estado real de cada issue antes de actuar.
+### Único ítem abierto heredado del bloque anterior
+- **#199** — idea: fork sandbox para prototipar triaje FAST/STANDARD/DEEP + memoria con
+  evidencia (inspirado en adaptive-engineering). Sigue `OPEN`, sin label `ready`. No verificado
+  en esta sesión si sigue vigente como prioridad — confirmar con el usuario antes de retomarlo.
 
-### P0 — Bloqueante estructural
-- **#217** — `agentic-dev-loop` sin `isolation:"worktree"` (spec lista: serializar + lock de
-  checkout). Nada que use `/run-dev-loop` es seguro hasta esto. **Probar primero en el
-  sandbox** (`diegosvart/aura-agent-kit-sandbox`, creado hoy) antes de tocar el repo real.
+### Release v2.8.0 (cortado 2026-09-18) — pendientes explícitos que dejó
+- **Issue #306** (`ready`, único crítico abierto) — `AGENTS.local.md` existe en la raíz pero no
+  se carga en sesión (import `@../AGENTS.local.md` de CLAUDE.md). Priorizado por el usuario
+  para dejarlo abierto y avanzar el release primero.
+- Gap de documentación en `.agent/memory/project-log.md` (PRs #246→#310, salvo #245/#255/#299)
+  — deuda no resuelta, sin issue propio todavía.
+- `TODO: regenerar grafo cerebro contra v2.8.0` en `aura-harness-diagrams` — sin acceso local a
+  ese checkout en la sesión del release.
 
-### P1 — Bugs con evidencia real de la sesión del 2026-09-05
-- ~~**#148**~~ — Frente A (enforcement duro) resuelto vía **#230 → PR #233** (mergeado
-  2026-09-06, hook `pr-base-guard.ps1`, 14/14 tests). Frente C: ~~**#232 → PR #235**~~
-  mergeada y cerrada 2026-09-06 (`agents/evaluator.md` + manifiesto vivo) — verificado
-  2026-09-07: los 4 hallazgos preexistentes de `doc-guardian` que dejaba abiertos ya fueron
-  resueltos en PR #237. Queda pendiente el otro frente de la misma spec: **#231**
-  (frontmatter piloto + delegation_rate).
-- ~~**Backlog de limpieza de doc-guardian**~~ — resuelto en la misma rama de #232: se creó
-  `agents/plan-reporter.md` (no existía en ningún lado; la ruta real de subagentes del plugin
-  es `agents/*.md`, no `.claude/agents/*.md`), `skills/observability/SKILL.md`, y se
-  corrigieron las referencias rotas a `aura:executing-plans` (`writing-plans/SKILL.md`) y
-  `/ideas` (`session_start.md`). Verificado con segunda corrida real de doc-guardian, sin
-  hallazgos nuevos.
-- **#213** — current-session.json stale en sesiones background. Insight nuevo: el
-  workaround "Bash en vez de Write" (usado para #205/#214/este mismo archivo) probablemente
-  lo resuelve sin necesitar la P4 completa que el issue pide.
-- **#196** — apply-update.sh confunde estados. Afecta a todos los proyectos consumidores
-  del harness, no solo este repo.
+### 3 líneas de trabajo nuevas planteadas por el usuario (sesión 2026-09-18, en curso)
+Estado real relevado antes de brainstorm — ver `docs/aura/specs/` para el detalle de cada spec
+citada:
 
-### P2 — Visibilidad del harness (el gap de fondo que motivó la sesión)
-- **#206** — log de errores de proceso (idea 021). Justificado con casos reales del mismo
-  día (colisión de branch entre subagentes, worktree con fix atrapado, 2 falsos positivos
-  de `git-guard.ps1`).
-- **#207** — auto-declaración en trigger de router.md. Ya no es hipotético: `delegation_rate
-  = 0/10` (PR #215) lo confirma.
-- **#208 → #209** — `/harness-status` (idea 022 Fase A), cierra #147 automáticamente al
-  implementarse.
-- **#199** — sandbox ya creado (`diegosvart/aura-agent-kit-sandbox`). Falta completar Fase 0
-  del plan (`~/.claude/plans/genera-un-plan-para-happy-babbage.md`): el usuario corre
-  manualmente el push del mirror (bloqueado por falso positivo de `git-guard.ps1` al
-  ejecutarlo el agente, ver Engram `bug/git-guard-false-positive-cross-repo`).
-
-### P3 — Menores, bajo esfuerzo
-- #155 (deny-pattern bloquea `.env.example`)
-- #147 (se cierra solo con #209, o standalone)
-- #142 (redacción, no ejecución, de DCL para test manual)
-
-### P4 — Depende de lo anterior
-- #210 — ampliar `agentic-dev-loop` a más tipos de trabajo. Depende de #217 implementado y
-  probado (idealmente en el sandbox).
-- #156 — verificación post-instalación de hooks. Bajo impacto, puede esperar.
-
-## Housekeeping ya resuelto hoy (no repetir)
-- #197, #161 cerrados (duplicado / postmortem ya corregido en PR #166).
-- PR #215 (Issue #205) y PR #216 (Issue #214) abiertos — verificar si el usuario ya los
-  mergeó antes de asumir que siguen pendientes.
-- Sandbox `diegosvart/aura-agent-kit-sandbox` creado (repo vacío, falta el push del mirror).
-- **Repo `aura-harness-diagrams` creado y scaffolded** (2026-09-05, sesión de cierre):
-  privado, `.aura/` pinneado a `v2.6.1`, hooks + `settings.json` + `AGENTS.local.md` +
-  `CLAUDE.md` commiteados y pusheados (`main`). 3 issues `ready` creados (#1 router, #2
-  ciclo de sesión, #3 ciclo de issue). Falta el handoff real: el usuario debe correr
-  `claude .` en ese repo para que una sesión nueva resuelva los issues (ver plan
-  `.agent/memory/plans/2026-09-05-aura-harness-diagrams-archify.md`, `status: done`).
+1. **Flujo de proceso de AURA visible durante la sesión** — ya existe spec con GO de Challenger
+   (`2026-09-14-harness-graph-cerebro-design.md`, grafo "Cerebro" read-only en
+   `aura-harness-diagrams`), **sin implementar**. Resuelve la vista de auto-análisis offline,
+   no necesariamente "el agente lo conoce en runtime" tal como lo planteó el usuario — a
+   confirmar alcance real en el brainstorm.
+2. **Sesiones de mayor duración/tareas** — observability Modo 1/2 ya implementada
+   (`skills/observability/SKILL.md`); spec con GO de Challenger para atacar la causa raíz
+   (`2026-09-13-delegacion-real-orquestador-design.md`, campo `Despacho` obligatorio en el Plan
+   de `task_start.md`), **sin implementar** — el paso "crear issue de implementación" del
+   "Próximos pasos" de esa spec nunca se ejecutó.
+3. **Paralelismo real con subagentes en worktrees** — tensiona directamente con la decisión de
+   #217 (arriba). La regla anti-worktree (`agents/github.md`) ya reserva ese caso de uso como
+   excepción declarada pero nunca implementada — es aspiracional, no una capacidad real hoy.
 
 ---
 
 ## Norte (largo plazo)
 
-(sin definir aún — este archivo se creó recién en esta sesión, 2026-09-05)
+(sin definir aún)

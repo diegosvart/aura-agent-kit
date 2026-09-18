@@ -28,7 +28,7 @@ fi
 
 # Paso 1 — Submodule
 echo ""
-echo "[1/3] Verificando submodule..."
+echo "[1/4] Verificando submodule..."
 
 if [ -d "$AURA_DIR" ]; then
     echo "  .aura/ ya existe — omitiendo git submodule add."
@@ -41,7 +41,7 @@ fi
 
 # Paso 2 — CLAUDE.md
 echo ""
-echo "[2/3] Configurando CLAUDE.md..."
+echo "[2/4] Configurando CLAUDE.md..."
 
 CLAUDE_ENTRY="${MARKER_BEGIN}
 > Este repo usa el harness Aura vía submódulo \`.aura/\`. Si \`.aura/CLAUDE.md\` no resuelve
@@ -68,7 +68,7 @@ fi
 
 # Paso 3 — Hooks
 echo ""
-echo "[3/3] Copiando hooks..."
+echo "[3/4] Copiando hooks..."
 
 HOOKS_SRC="$AURA_DIR/.claude/hooks"
 HOOKS_DST=".claude/hooks"
@@ -88,6 +88,24 @@ else
             echo "  Copiado: $name"
         fi
     done
+fi
+
+# Paso 4 — Verificación post-instalación
+echo ""
+echo "[4/4] Verificando instalación..."
+
+VERIFY_SCRIPT="skills/harness-update/scripts/verify-install.sh"
+if [ -f "$VERIFY_SCRIPT" ]; then
+    bash "$VERIFY_SCRIPT"
+    verify_exit=$?
+    if [ $verify_exit -eq 0 ]; then
+        echo "  Verificación completada: OK"
+    else
+        echo "  Advertencia: Algunos archivos pueden no estar correctamente configurados."
+        echo "  Revisar la salida anterior para más detalles."
+    fi
+else
+    echo "  WARN: Script de verificación no encontrado en $VERIFY_SCRIPT"
 fi
 
 echo ""

@@ -72,6 +72,47 @@ sigue dependiendo de que el barrido de esta regla se aplique conscientemente ant
 commitear. Al identificar un término sensible nuevo, agregarlo a
 `.claude/sensitive-terms.local.txt` en el mismo momento.
 
+### Caso `mem_save` (Issue #303 — memoria de Engram)
+
+El mismo hook `sensitive-data-guard.ps1` intercepta también las tools MCP de Engram que
+escriben contenido libre de forma persistente. El matcher en `.claude/settings.json` **no**
+es un wildcard (`mem_.*`) — es una lista enumerada explícita, hoy 7 tools:
+`mcp__plugin_engram_engram__(mem_save|mem_save_prompt|mem_capture_passive|mem_update|mem_session_summary|mem_session_end|mem_judge)$`
+(`$script:EngramWriteTools` en `sensitive-data-guard.ps1`, misma lista, es la fuente de
+verdad — mantener ambas sincronizadas). Tools de solo lectura (`mem_search`, `mem_context`,
+`mem_get_observation`, `mem_current_project`) quedan fuera a propósito, no persisten dato
+nuevo. Cada tool de la lista lee `.agent/memory/repo-classification.json` para decidir:
+
+- `repo_type: "cliente"` → el contenido a guardar se evalúa contra la misma denylist +
+  patrones genéricos de arriba; si matchea, se bloquea la llamada.
+- `repo_type: "harness"` o `"personal"` → se permite sin evaluar contenido (memoria de
+  proceso/trabajo propio, no datos de negocio de un tercero).
+- **Clasificación ausente o corrupta → fail-closed:** bloquea incondicionalmente. Un
+  repo sin `repo-classification.json` (o con `repo_type` vacío/inválido) se trata como el
+  caso de mayor riesgo, no como el de menor — mismo criterio que ya aplica el resto de
+  esta regla ("Aplicación": el barrido corre antes de proponerse como acción, nunca
+  después).
+
+**Excepción explícita al fail-closed — stdin no parseable:** si el hook no puede parsear el
+JSON de entrada (`ConvertFrom-Json` falla), el punto de entrada loguea `FAIL-OPEN` y sale sin
+bloquear (`sensitive-data-guard.ps1`, bloque de entrada, `exit 0` tras el `catch`). Es la
+única excepción intencional a la política fail-closed de esta regla: un stdin malformado es
+un problema de la plataforma/hook, no una señal de dato sensible, y bloquear ahí frenaría
+*todo* Claude Code por un error de transporte — no solo la tool de Engram en cuestión.
+
+**Cada tool nueva de escritura de Engram debe agregarse a AMBOS lugares** —
+`$script:EngramWriteTools` en el hook y el matcher regex en `.claude/settings.json` — nunca
+solo a uno. `mem_save_prompt`/`mem_capture_passive`/`mem_update` quedaron afuera al agregar
+`mem_save` originalmente (corregido en code-review de PR #307); `mem_session_end`/`mem_judge`
+quedaron afuera después incluso con la lista ya explícita (hallazgo de reviewer post-merge de
+PR #307, corregido en Issue #309). Antes de dar por cerrada la cobertura, enumerar el catálogo
+completo de tools MCP de Engram (vía `ToolSearch` o el listado de tools del servidor) en vez
+de listar de memoria.
+
+Ver `.agent/memory/repo-classification.json` (tabla "Qué se Versiona" de `AGENTS.md`) para
+el esquema de clasificación y `.claude/hooks/sensitive-data-guard.Tests.ps1` para los casos
+cubiertos.
+
 **Por qué existe el hook y no solo esta regla:** esta misma regla ya existía en texto
 cuando ocurrió un incidente idéntico en otro proyecto (`crawler-mcp-diagram`,
 2026-07-15, ver `docs/aura/adr/ADR-003-politica-versionado-artefactos.md`), y volvió a
@@ -94,3 +135,19 @@ real de base de datos versionado por semanas en documentación. Cada incidente s
 Ninguna para contenido versionado. `output/<BD>/*`, `config/*.json` local-only y `.env`
 son el canal correcto para el dato real (ya gitignored) — nunca versionar por esa vía
 tampoco.
+
+## Plantillas `.env.*` sin secretos (editables y versionables)
+
+`.env.example`, `.env.sample` y variantes `.env.*.example` (ej.
+`.env.production.example`) **no** son datos sensibles — son la plantilla pública que el
+propio harness recomienda para declarar qué variables de entorno necesita un proyecto
+(ver `AGENTS.md` → tabla "Qué se Versiona": `.env` es el canal del dato real, gitignored;
+su plantilla es el canal versionado y público). Son intencionalmente editables por el
+agente y no deben contener secretos ni valores reales — solo nombres de variable y, como
+mucho, valores dummy.
+
+La protección real de `permissions.deny` recae exclusivamente sobre las variantes reales
+enumeradas en `.claude/settings.json` / `integrations/claude-code/settings.json`
+(`.env`, `.env.local`, `.env.production`, `.env.staging`, `.env.*.local`), no sobre el
+patrón `.env.*` como wildcard genérico — ese wildcard bloqueaba también las plantillas
+legítimas de arriba (Issue #155) y fue reemplazado por la lista explícita.

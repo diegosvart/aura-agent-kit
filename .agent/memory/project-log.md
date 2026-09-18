@@ -4,6 +4,81 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-18 — Issue #299 — dogfooding: validado el fix de CLAUDE.md contra repo consumidor real
+
+**Plan:** no hubo plan formal (validación operativa, AC ya definidos en el issue).
+**Qué se agregó:** Ninguna línea de código nueva en este repo — se confirmó empíricamente
+que el fix de Issue #298 (PR #300 + follow-up #302, ya en `develop`) funciona en un
+consumidor real. Se reutilizó `diegosvart/aura-hello-world-validation` y se actualizó su
+submodule `.aura` (que estaba pinneado a `v2.7.0`, anterior al fix) al HEAD actual de
+`develop`. Resultado: `<consumidor>/.aura/CLAUDE.md` resuelve al `CLAUDE.md` raíz de
+aura-agent-kit (mismo contenido, mismas 6 reglas fijas), sin archivo huérfano ni doblemente
+anidado, y `new-project-setup/SKILL.md` ya no instruye editar una sección opt-in inexistente.
+**Por qué importa:** Cierra la cadena de investigación de #297 — confirma la hipótesis (a):
+el mecanismo de import de Claude Code resuelve `@.aura/CLAUDE.md` relativo al archivo que
+importa (el `CLAUDE.md` raíz de este repo, clonado dentro de `.aura/` vía submodule), no al
+root del proyecto consumidor. El archivo `.aura/CLAUDE.md` anidado que motivó la
+investigación original nunca fue alcanzable por ningún consumidor real.
+**No se cortó tag nuevo** — `v2.7.0` sigue siendo el punto de retorno seguro; el corte de
+tag queda para un release posterior.
+**Archivos clave:** `.agent/memory/project-log.md` (esta entrada). Repo externo validado:
+`diegosvart/aura-hello-world-validation` (submodule `.aura` actualizado localmente durante
+la validación, sin push — la validación no requiere dejar cambios permanentes ahí).
+
+## 2026-09-09 — PR #255 — feat(agentic-dev-loop): reemplaza isolation de worktree por lock de checkout
+
+**Plan:** no hubo plan formal (ver Issue #217, ya `ready` con DoD actualizado).
+**Qué se agregó:** `agentic-dev-loop` deja de usar `isolation:"worktree"` para aislar el
+trabajo de un dev-runner y pasa a usar un lock explícito sobre el checkout compartido
+(`with-checkout-lock.sh` + `checkout-lock-guard.ps1`, enforcement duro vía PreToolUse).
+**Por qué importa:** el aislamiento por worktree rompía otras partes del harness (Issues
+#213/#214/#205 — `.aura` sin inicializar en worktrees nuevos, `current-session.json` stale
+en sesiones background, un fix real atrapado sin commitear). El riesgo que worktree
+prevenía nunca necesitó un directorio físico distinto, solo que nadie más tocara el
+checkout mientras un dev-runner trabajaba — eso lo resuelve un mutex.
+**Validado:** prototipado primero en el sandbox `aura-agent-kit-sandbox` (22 tests Pester +
+prueba real de concurrencia con dos procesos compitiendo por el lock) antes de portarlo
+idéntico al repo real.
+**Archivos clave:** `skills/agentic-dev-loop/scripts/with-checkout-lock.sh`,
+`.claude/hooks/checkout-lock-guard.ps1`, `skills/agentic-dev-loop/SKILL.md`.
+
+## 2026-09-06 — PR #245 — feat(skills): new-project-setup + /new-project
+
+**Qué se agregó:** Skill `skills/new-project-setup/SKILL.md` + comando `/new-project`: wizard
+end-to-end para scaffoldear un repo consumidor de Aura desde cero (repo remoto ya creado y
+vacío → directorio local, submodule `.aura` pinneado a un tag concreto, hooks, `AGENTS.local.md`,
+`.gitignore`, `session-stack.json`, primer commit+push), dejándolo listo para arrancar
+`claude .` sin fricción.
+**Por qué importa:** Formaliza un procedimiento ya ejecutado manualmente dos veces
+(`aura-harness-diagrams` 2026-09-05, `ebi-insight-power-apps` 2026-09-06) — evita rehacer el
+levantamiento de `QUICKSTART.md`/`install.sh` cada vez que se crea un proyecto nuevo.
+**Hallazgo corregido en la misma PR:** `doc-guardian` encontró que `QUICKSTART.md` y
+`README.md` documentaban solo 3 hooks en `PreToolUse`/desinstalar, pero
+`sensitive-data-guard.ps1` y `pr-base-guard.ps1` ya estaban activos en `settings.json` desde
+v2.7.0 — corregido en ambos archivos.
+**Archivos clave:** `skills/new-project-setup/SKILL.md`, `commands/new-project.md`,
+`AGENTS.md`, `protocols/router.md`, `QUICKSTART.md`, `README.md`, `CHANGELOG.md`.
+
+## 2026-09-06 — Release v2.7.0 (PRs #240/#241, tag) + fix de drift (PR #243)
+
+**Qué se agregó:** Cortado el release v2.7.0 (hook `pr-base-guard.ps1` de Issue #230,
+`agents/evaluator.md` de Issue #232, frontmatter piloto de Issue #231, `session-trace` de
+Issue #223 — ver bloques de PR #233/#235/#237/#225 más abajo para el detalle de negocio de
+cada uno). Tag `v2.7.0` publicado sobre `main`.
+**Bug real encontrado y corregido en el propio proceso de release:** el PR #242 (sync-back
+`main`→`develop`, paso 4 obligatorio de `agents/github.md`) se mergeó como **squash** en vez
+de merge commit — mismo patrón de drift que el incidente de `v2.2.0` (Issue #120):
+`git describe --tags origin/develop` seguía resolviendo `v2.6.1-N-g...`, ignorando el tag
+recién creado. Corregido con un merge commit real (`--no-ff`) del tag sobre `develop` (PR
+#243, mergeado explícitamente con "Create a merge commit"). Verificado:
+`git describe --tags origin/develop` → `v2.7.0-18-gbf6e25d`,
+`git merge-base --is-ancestor v2.7.0 origin/develop` → true.
+**Por qué importa:** `cut-release.sh sync-back` abre el PR correctamente, pero **no controla
+qué botón de merge usa GitHub** — si el repo tiene squash como default o el usuario lo elige
+sin saber la implicancia, el drift se reproduce en cada release futura. Queda como hallazgo
+para la idea #023 (gate duro) — ver iteración agregada ahí.
+**Archivos clave:** `CHANGELOG.md`, `.claude-plugin/plugin.json`, tag `v2.7.0`.
+
 ## 2026-09-06 — PR #237 — feat(agents): frontmatter YAML piloto en reviewer/challenger/github
 
 **Issue:** #231 (Frente B de `docs/aura/specs/2026-09-06-flujo-respetado-orchestrator.md`,

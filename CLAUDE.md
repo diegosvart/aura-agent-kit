@@ -66,6 +66,7 @@ Si el usuario describe trabajo nuevo sin spec existente:
 
 ## Reglas del Harness
 
+@.claude/rules/no-artifact-publishing.md
 @.aura/rules/harness-core.md
 @.aura/rules/design-flow.md
 @.aura/rules/repo-integrity.md

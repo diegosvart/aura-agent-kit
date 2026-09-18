@@ -28,7 +28,7 @@ Su objetivo es detectar problemas antes de que sean costosos de corregir.
 
 ## Qué Revisa
 
-### Contra los Pilares (`docs/aura/specs/2026-05-09-harness-pillars.md`)
+### Contra los Pilares (`docs/aura/adr/ADR-011-los-7-pilares-del-harness.md`)
 - ¿La spec propone usar MCP cuando hay CLI disponible? → viola P1
 - ¿Se va a escribir código sin spec aprobada? → viola P2
 - ¿El plan omite TDD? → viola P3
@@ -66,7 +66,7 @@ Su objetivo es detectar problemas antes de que sean costosos de corregir.
 
 ```
 1. Leer spec propuesta
-2. Leer docs/aura/specs/2026-05-09-harness-pillars.md
+2. Leer docs/aura/adr/ADR-011-los-7-pilares-del-harness.md
 3. Evaluar spec contra cada pilar
 4. Evaluar calidad y riesgos
 5. Emitir reporte estructurado

@@ -93,8 +93,16 @@ Agregar al `.claude/settings.json` de tu proyecto (mergear si ya existe):
       { "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/context-guard.ps1", "timeout": 5 }] }
     ],
     "PreToolUse": [
-      { "matcher": "Bash",       "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1", "timeout": 5 }] },
-      { "matcher": "PowerShell", "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1", "timeout": 5 }] }
+      { "matcher": "Bash",       "hooks": [
+        { "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1", "timeout": 5 },
+        { "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/sensitive-data-guard.ps1", "timeout": 5 },
+        { "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/pr-base-guard.ps1", "timeout": 5 }
+      ] },
+      { "matcher": "PowerShell", "hooks": [
+        { "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1", "timeout": 5 },
+        { "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/sensitive-data-guard.ps1", "timeout": 5 },
+        { "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/pr-base-guard.ps1", "timeout": 5 }
+      ] }
     ],
     "SessionStart": [
       { "matcher": "startup", "hooks": [{ "type": "command", "command": "pwsh -NonInteractive -File .claude/hooks/session-start.ps1", "timeout": 30 }] },
@@ -140,20 +148,7 @@ Este archivo es gitignoreado — es tuyo, no del repositorio.
 
 ---
 
-## Paso 6 — Reglas opt-in
-
-`.aura/CLAUDE.md` carga solo `harness-core.md` por defecto. Para activar reglas adicionales, editar `.aura/CLAUDE.md` en tu proyecto y descomentar las que quieras:
-
-```markdown
-@.aura/rules/design-flow.md      # Brainstorm antes de planificar
-@.aura/rules/repo-integrity.md   # Detectar trabajo stranded
-@.aura/rules/routing-menu.md     # Menú post-tarea
-@.aura/rules/coding.md           # Convenciones de código
-```
-
----
-
-## Paso 7 — Primera sesión
+## Paso 6 — Primera sesión
 
 ```bash
 claude .
@@ -198,11 +193,11 @@ git submodule deinit -f .aura
 git rm -f .aura
 rm -rf .git/modules/.aura
 # Eliminar bloque <!-- aura:begin --> ... <!-- aura:end --> de CLAUDE.md
-rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1
+rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1 .claude/hooks/sensitive-data-guard.ps1 .claude/hooks/pr-base-guard.ps1
 ```
 
 **Opción C (solo plugin):**
 ```bash
 claude plugin uninstall aura@aura-agent-kit
-rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1
+rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1 .claude/hooks/sensitive-data-guard.ps1 .claude/hooks/pr-base-guard.ps1
 ```

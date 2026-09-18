@@ -13,6 +13,9 @@
 #    Fix: el script inyecta el keyword el mismo, el agente nunca lo escribe.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/parse-pr-number.sh"
+
 REPO="${1:?Uso: open-pr.sh <owner>/<repo> <issue> <branch> <title> <body_file>}"
 ISSUE="${2:?Uso: open-pr.sh <owner>/<repo> <issue> <branch> <title> <body_file>}"
 BRANCH="${3:?Uso: open-pr.sh <owner>/<repo> <issue> <branch> <title> <body_file>}"
@@ -38,7 +41,7 @@ pr_output=$(gh pr create --repo "$REPO" --base develop --head "$BRANCH" --title 
   exit 1
 }
 
-pr_number=$(echo "$pr_output" | grep -oE '/pull/[0-9]+' | grep -oE '[0-9]+' | tail -1)
+pr_number=$(echo "$pr_output" | parse_pr_number)
 
 if [ -z "$pr_number" ]; then
   echo "gh pr create no devolvió un número de PR reconocible. Output: $pr_output" >&2

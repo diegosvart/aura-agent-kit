@@ -267,7 +267,7 @@ fi
 # progreso con el valor devuelto cuando se llama desde $(...).
 sync_pretooluse_hook() {
   local hook_name="$1"
-  HOOK_SYNC_RESULT=""
+  HOOK_SYNC_RESULT="unverified"
   if [ ! -f ".claude/settings.json" ] || [ ! -f ".claude/hooks/$hook_name" ]; then
     if [ -f ".claude/hooks/$hook_name" ]; then
       echo "  (.claude/settings.json no existe — no se puede verificar el registro de $hook_name)"
@@ -364,12 +364,16 @@ if [ "$settings_patterns_replaced" -gt 0 ] 2>/dev/null; then
 else
   echo "Permisos settings.json: sin cambios"
 fi
-if [ -n "$git_guard_added" ]; then
+if [ "$git_guard_added" = "unverified" ]; then
+  echo "git-guard.ps1 en PreToolUse: NO SE PUDO VERIFICAR (.claude/settings.json o el hook no existen)"
+elif [ -n "$git_guard_added" ]; then
   echo "git-guard.ps1 en PreToolUse: registrado ($git_guard_added) — antes NO estaba enforced"
 else
   echo "git-guard.ps1 en PreToolUse: ya estaba registrado"
 fi
-if [ -n "$sensitive_guard_added" ]; then
+if [ "$sensitive_guard_added" = "unverified" ]; then
+  echo "sensitive-data-guard.ps1 en PreToolUse: NO SE PUDO VERIFICAR (.claude/settings.json o el hook no existen)"
+elif [ -n "$sensitive_guard_added" ]; then
   echo "sensitive-data-guard.ps1 en PreToolUse: registrado ($sensitive_guard_added) — antes NO estaba enforced"
 else
   echo "sensitive-data-guard.ps1 en PreToolUse: ya estaba registrado"
@@ -386,41 +390,8 @@ fi
 echo ""
 if [ -f "$SOURCE_PATH/CHANGELOG.md" ]; then
   echo "=== CHANGELOG ==="
-  # Extraer solo las entradas del tag que se acaba de aplicar
-  # Formato esperado: ## [tag] - YYYY-MM-DD
-  python3 - "$VERSION_TAG" "$SOURCE_PATH/CHANGELOG.md" << 'PYTHON_CHANGELOG'
-import re
-import sys
-
-try:
-    tag = sys.argv[1]
-    changelog_path = sys.argv[2]
-
-    with open(changelog_path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-
-    # Buscar la sección del tag
-    in_section = False
-    section_lines = []
-    for line in lines:
-        if re.match(rf'^## \[?{re.escape(tag)}', line):
-            in_section = True
-        elif in_section and re.match(r'^## \[', line):
-            # Encontramos la siguiente sección, detenerse
-            break
-        elif in_section:
-            section_lines.append(line.rstrip())
-
-    if section_lines:
-        # Imprimir solo primeras 10 líneas (con prefijo)
-        for line in section_lines[:10]:
-            if line.strip():
-                print(f"  {line}")
-    else:
-        print(f"  (No hay entradas para {tag} en CHANGELOG.md)")
-except Exception as e:
-    raise ValueError(f"No se pudo leer CHANGELOG.md: {e}") from e
-PYTHON_CHANGELOG
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  "$SCRIPT_DIR/extract-changelog-section.sh" "$VERSION_TAG" "$SOURCE_PATH/CHANGELOG.md"
   if [ $? -ne 0 ]; then
     echo "ERROR: Lectura de CHANGELOG.md falló" >&2
     exit 1

@@ -13,107 +13,146 @@
 
 ---
 
-## Paso 1 — Detectar Tecnología del Proyecto
+## Paso 1 — Invocar session-end-gather.ps1 (gathering consolidado)
 
-Detectar automáticamente el stack para ejecutar verificaciones correctas:
+> **Issue #259.** Reemplaza en una sola invocación las ~7 tool-calls dispersas que este
+> protocolo ejecutaba antes por separado (linter, tests, chequeo de rama, 4 llamadas `gh`).
+> Diseño completo en
+> `docs/aura/specs/2026-09-12-session-end-script-consolidation-design.md`.
 
-```bash
-# Python
-if [ -f "pyproject.toml" ] || [ -f "requirements.txt" ]; then
-    LINTER="ruff"
-    TEST_RUNNER="pytest"
-    TYPE_CHECKER="mypy"
-# Node.js
-elif [ -f "package.json" ]; then
-    LINTER="npm run lint"
-    TEST_RUNNER="npm test"
-    TYPE_CHECKER="npx tsc --noEmit"
-# Rust
-elif [ -f "Cargo.toml" ]; then
-    LINTER="cargo clippy"
-    TEST_RUNNER="cargo test"
-    TYPE_CHECKER="cargo check"
-fi
-```
-
----
-
-## Paso 2 — Verificación Obligatoria (antes de permitir cierre)
-
-Ejecutar en orden (si falla, no permitir cierre):
-
-### 1. Linter
-```bash
-# Python
-python -m ruff check .  # 0 errores
-
-# Node.js
-npm run lint || eslint .  # 0 errores
-```
-
-### 2. Tests
-```bash
-# Python
-pytest tests/ --ignore=tests/e2e -q  # todos verdes
-
-# Node.js
-npm test  # todos pasando
-```
-
-### 3. Branch no es develop/main
-```bash
-BRANCH=$(git branch --show-current)
-if [ "$BRANCH" = "develop" ] || [ "$BRANCH" = "main" ]; then
-    echo "ERROR: No puedes cerrar sesión en develop/main"
-    exit 1
-fi
-```
-
----
-
-## Paso 3 — Verificación de Estado GitHub (pre-Engram)
-
-> Ejecutar SOLO si `gh_authenticated == true` (del hook output).
-> Si gh no autenticado → marcar `gh_verified: false` y continuar con advertencia.
-
-### Fast-path
-
-Si el hook ya provee `recently_merged_prs` y `recently_closed_issues` → usar esos datos directamente y saltear el Paso 3.1.
-
-### 3.1 — Capturar estado real (si no hay fast-path)
+Invocar, sin parámetros, al detectar el trigger de cierre de sesión:
 
 ```powershell
-# PRs mergeadas recientemente
-gh pr list --state merged --limit 10 --json number,title,mergedAt,headRefName
-
-# PRs aún abiertas
-gh pr list --state open --limit 20 --json number,title,headRefName
-
-# Issues cerrados recientemente
-gh issue list --state closed --limit 10 --json number,title,closedAt
-
-# Issues listos (trabajo real pendiente)
-gh issue list --label ready --state open --json number,title
+pwsh -NonInteractive -File .claude/hooks/session-end-gather.ps1
 ```
 
-### 3.2 — Construir pending_verified
+El script **no está registrado como hook** `SessionEnd` (ese evento dispara después de que la
+conversación ya cerró — no sirve para este caso, ver spec sección "Problema"). Es el agente
+quien lo invoca manualmente vía Bash/PowerShell tool al detectar el trigger textual
+("terminamos", "cerramos", ...).
+
+Emite un único JSON con:
+
+```json
+{
+  "stack": { "profile": "...", "lint": "...", "test": "...", "source": "session-stack.json | detected | none" },
+  "lint_result": { "ran": true, "command": "...", "exit_code": 0, "output_tail": "..." },
+  "test_result": { "ran": true, "command": "...", "exit_code": 0, "output_tail": "..." },
+  "branch": "feature/xyz",
+  "branch_protected": false,
+  "gh_authenticated": true,
+  "recently_merged_prs": [ { "number": 264, "title": "...", "mergedAt": "...", "headRefName": "..." } ],
+  "recently_closed_issues": [ { "number": 262, "title": "...", "closedAt": "..." } ],
+  "open_prs": [ { "number": 265, "title": "...", "headRefName": "..." } ],
+  "ready_issues": [ { "number": 231, "title": "..." } ],
+  "commits_ahead_of_develop": 3,
+  "pr_for_current_branch": { "number": 265, "title": "..." }
+}
+```
+
+### Interpretación — Gate obligatorio (bloqueante, no permitir cierre si se dispara)
+
+- `lint_result.exit_code != 0` (cuando `lint_result.ran == true`) → mostrar `output_tail` y
+  **no permitir cierre** hasta corregir.
+- `test_result.exit_code != 0` (cuando `test_result.ran == true`) → mismo bloqueo, mostrar
+  `output_tail`.
+- `branch_protected == true` → **no permitir cierre** (rama es `develop` o `main`).
+- Si `stack.source == "none"` (repo sin lenguaje de código, como este mismo harness):
+  `lint_result.ran` y `test_result.ran` vienen en `false` explícito — no es un salteo
+  silencioso, no bloquea.
+
+### Interpretación — Estado GitHub
+
+- `gh_authenticated == false` es la **única** señal válida para "no hay datos de GitHub" — los
+  4 arrays (`recently_merged_prs`, `recently_closed_issues`, `open_prs`, `ready_issues`) vienen
+  vacíos en ese caso. Nunca interpretar un array vacío como "nada pendiente" sin chequear este
+  flag primero. Con `gh_authenticated == false`: marcar `gh_verified: false` y continuar con
+  advertencia (ver Paso 2).
+
+### Fallback — si `session-end-gather.ps1` falla (obligatorio, nunca en silencio)
+
+Si la invocación falla (script ausente, `pwsh` no disponible en el entorno, excepción no
+controlada, o exit code sin JSON válido en stdout):
+
+1. Mostrar explícitamente:
+   ```
+   ⚠ session-end-gather.ps1 no disponible (<motivo>) — degradando a verificación manual
+   ```
+   Nunca asumir en silencio que "no hay pendientes" ni saltear el gate de arriba.
+2. Ejecutar los comandos manuales equivalentes uno por uno — **usar solo si el script falla**:
+
+   **Linter y tests del stack detectado:**
+   ```bash
+   # Python
+   if [ -f "pyproject.toml" ] || [ -f "requirements.txt" ]; then
+       python -m ruff check .   # 0 errores
+       pytest tests/ --ignore=tests/e2e -q   # todos verdes
+   # Node.js
+   elif [ -f "package.json" ]; then
+       npm run lint || eslint .   # 0 errores
+       npm test   # todos pasando
+   # Rust
+   elif [ -f "Cargo.toml" ]; then
+       cargo clippy
+       cargo test
+   fi
+   ```
+
+   **Branch no es develop/main:**
+   ```bash
+   BRANCH=$(git branch --show-current)
+   if [ "$BRANCH" = "develop" ] || [ "$BRANCH" = "main" ]; then
+       echo "ERROR: No puedes cerrar sesión en develop/main"
+       exit 1
+   fi
+   ```
+
+   **Estado GitHub (equivalente a los 4 arrays del JSON):**
+   ```powershell
+   gh pr list --state merged --limit 10 --json number,title,mergedAt,headRefName
+   gh pr list --state open --limit 20 --json number,title,headRefName
+   gh issue list --state closed --limit 10 --json number,title,closedAt
+   gh issue list --label ready --state open --json number,title
+   ```
+
+   **Commits ahead de develop:**
+   ```bash
+   git fetch origin develop --quiet
+   git log origin/develop..HEAD --oneline | wc -l
+   ```
+3. Esta caída **cuenta como señal para la hipótesis P4**
+   (`docs/aura/experiments/2026-09-12-session-end-script-consolidation.md`, sección "Qué la
+   refutaría") — si ocurre en más de 1 de los 3 cierres de la ventana de observación, investigar
+   la causa antes de darla por resuelta, no solo repetir el fallback cada vez.
+
+---
+
+## Paso 2 — Construir pending_verified (síntesis sobre el JSON del Paso 1)
+
+> Sin cambio de lógica respecto al protocolo anterior — solo cambia la fuente de datos (un
+> único JSON en vez de 4 llamadas `gh` sueltas).
 
 Revisar cada item que se planea incluir en `pending`:
 
-- Si menciona "Mergear/PR #N" y PR #N está mergeada → **eliminar**
-- Si menciona "Cerrar/Issue #N" y issue #N está cerrado → **eliminar**
-- Si menciona PR abierta o issue abierto → **conservar**
+- Si menciona "Mergear/PR #N" y PR #N aparece en `recently_merged_prs` → **eliminar**
+- Si menciona "Cerrar/Issue #N" y issue #N aparece en `recently_closed_issues` → **eliminar**
+- Si menciona PR abierta (`open_prs`) o issue abierto (`ready_issues`) → **conservar**
 - Si es trabajo local (código, docs) sin referencia GitHub → **conservar**
 
 Si se eliminó algún item → agregar nota al `## Accomplished` del Paso 4 (Engram):
 > "Verificación pre-Engram: PR #N ya mergeada — eliminado de pending."
 
-### 3.3 — Si gh no autenticado
+### Si `gh_authenticated == false` (del JSON del Paso 1)
 
 ```
 pending_verified = pending_raw  (sin filtrar)
 ⚠ Advertencia en current-session.json: "gh_verified: false — pending puede tener items desactualizados"
 ```
+
+> **Nota de numeración (Issue #259):** el antiguo Paso 3 ("Verificación de Estado GitHub") se
+> absorbió íntegramente en los Pasos 1–2 de arriba — no hay un Paso 3 independiente en esta
+> versión del protocolo. Los pasos siguientes conservan su numeración original (4 en adelante)
+> porque su lógica no cambió, solo la fuente de datos que consumen.
 
 ---
 
@@ -161,6 +200,42 @@ mem_session_summary(
 > algo está mal (posible reversión accidental del `.gitignore`) — no commitearlo, corregir el
 > `.gitignore` primero.
 
+### Detección de Sesión Background (Issue #213)
+
+Antes de proceder con el `Write`: detectar si la sesión activa es una sesión de **background**
+(sesión aislada en un worktree por la plataforma). En sesiones background, cualquier escritura al
+checkout compartido fuera del propio worktree está bloqueada estructuralmente, incluso tras
+`ExitWorktree`.
+
+**Cómo detectar:** verificar si `.git` es un archivo (worktree aislado) vs. un directorio
+(checkout principal):
+
+```bash
+if [ -f .git ]; then
+    # Sesión background en worktree aislado
+    IS_BACKGROUND=true
+else
+    # Checkout principal
+    IS_BACKGROUND=false
+fi
+```
+
+**Si `IS_BACKGROUND == true`:** no invocar `Write`. Emitir en su lugar el siguiente aviso
+textual único (una sola vez, no repetido):
+
+```
+⚠ Sesión background: current-session.json no se actualiza (aislamiento de worktree lo
+bloquea estructuralmente). Continuidad ante caída de Engram no garantizada para esta
+sesión — ver ADR-006.
+```
+
+Continuar con el Paso 6.
+
+**Si `IS_BACKGROUND == false`:** proceder normalmente con el `Write` de los 3 campos descritos
+abajo.
+
+---
+
 Archivo: `.agent/memory/current-session.json`
 
 ```json
@@ -176,7 +251,7 @@ Archivo: `.agent/memory/current-session.json`
   vive en Engram, Paso 4; `session_start.md` nunca leyó esos campos en la práctica).
 - `next_step` debe ser un hecho verificable y telegráfico, no una narrativa del proceso de la
   sesión — ver Issue #121 (privacidad de la forma de trabajar del usuario).
-- Usar EXCLUSIVAMENTE información ya verificada contra GitHub en el Paso 3 (`pending_verified`)
+- Usar EXCLUSIVAMENTE información ya verificada contra GitHub en el Paso 2 (`pending_verified`)
   al redactar `next_step`. Nunca escribir sobre algo sin verificar contra GitHub.
 - Si `gh_verified: false` → agregar `" (⚠ gh no autenticado — verificar manualmente)"` al final
   de `next_step`.
@@ -199,7 +274,9 @@ Si durante la sesión se tomó una decisión arquitectural:
 
 ## Paso 7 — Verificar Issues de la Sesión
 
-> Usar los datos de `gh_reality` capturados en el Paso 3. No ejecutar comandos `gh` adicionales.
+> Reusa `recently_merged_prs`, `recently_closed_issues`, `ready_issues`,
+> `commits_ahead_of_develop` y `pr_for_current_branch` del JSON del Paso 1 — este paso **no
+> ejecuta ningún comando `gh`/`git log` propio** (Issue #259; antes eran 3 comandos sueltos).
 
 Presentar tabla de cierre:
 
@@ -211,17 +288,15 @@ Presentar tabla de cierre:
 | #N+1 | <título> | 🔲 Pendiente (ready) |
 ```
 
-Verificar activamente si hay trabajo listo para PR:
+Usar `commits_ahead_of_develop` y `pr_for_current_branch` (ambos ya calculados en el Paso 1)
+para decidir si hay trabajo listo para PR:
 
-```bash
-BRANCH=$(git branch --show-current)
-COMMITS=$(git log origin/develop..HEAD --oneline 2>/dev/null | wc -l)
-PR_COUNT=$(gh pr list --head "$BRANCH" --state open --json number -q 'length' 2>/dev/null || echo 0)
-```
-
-- Si `$COMMITS > 0` y `$PR_COUNT == 0` → **Proponer:** "Hay $COMMITS commit(s) sin PR. ¿Creamos la PR ahora con `/finish-branch`?"
-- Si hay PR abierta sin reviewer → **Proponer:** "¿Solicitamos review con `/request-review`?"
-- Si la PR fue aprobada y mergeada → **Proponer:** cerrar el issue asociado
+- Si `commits_ahead_of_develop > 0` y `pr_for_current_branch == null` → **Proponer:** "Hay
+  {{commits_ahead_of_develop}} commit(s) sin PR. ¿Creamos la PR ahora con `/finish-branch`?"
+- Si `pr_for_current_branch` no es `null` y no tiene reviewer → **Proponer:** "¿Solicitamos
+  review con `/request-review`?"
+- Si la PR fue aprobada y mergeada (aparece en `recently_merged_prs`) → **Proponer:** cerrar el
+  issue asociado
 
 ---
 
@@ -262,6 +337,10 @@ Antes de cerrar, dedicar 30 segundos a observar:
 - ¿Hubo algún paso que se repitió manualmente más de una vez esta sesión?
 - ¿Algún protocolo o skill no aplicó bien al contexto?
 - ¿El usuario tuvo que corregir al agente en algo recurrente?
+- ¿Se registró algún error de proceso esta sesión? (rama desde HEAD equivocado, orden de
+  merge incorrecto, no reintentar una acción tras un rechazo — ver
+  `.aura/rules/process-error-log.md`). Si sí y no se autodeclaró en el momento con
+  `log-process-error.sh`, registrarlo ahora antes de cerrar.
 
 **Si sí** → proponer `/auto-research` antes de cerrar:
 > "Observé [fricción concreta]. ¿Querés que lo registremos como experimento de mejora del harness?"
@@ -309,7 +388,8 @@ o sin traza.
 | Tests fallan | Corregir antes de cerrar |
 | Engram no disponible | Guardar en current-session.json como backup |
 | Rama develop/main | Crear rama o cambiar de rama |
-| `pending` con items ya mergeados/cerrados | Ejecutar Paso 3 completo antes de continuar — nunca saltear la verificación GitHub |
+| `pending` con items ya mergeados/cerrados | Ejecutar Paso 2 completo antes de continuar — nunca saltear la verificación GitHub |
+| `session-end-gather.ps1` no disponible o falla | Mostrar el aviso explícito del Paso 1 y degradar al fallback manual — nunca en silencio |
 
 ---
 
@@ -329,7 +409,9 @@ planes + `project-log.md`) **ya debería estar hecho** en el momento del merge �
 hizo en su momento, hacerlo ahora antes de cerrar:
 1. Actualizar el ledger de planes (`.agent/memory/plans/<...>.md` → `status: done`) si
    corresponde.
-2. Append a `.agent/memory/project-log.md` si no hay entrada para ese PR todavía.
+2. Guardar el bloque de `project-log.md` en Engram (`topic_key: project-log/pr-bookkeeping`)
+   si no hay entrada para ese PR todavía — nunca un append directo ni una rama/PR dedicada
+   solo para esto (ver `agents/github.md` → "Bookkeeping de `project-log.md`").
 3. Verificar el merge y cerrar el issue referenciado (no reconstruir en prosa):
    ```bash
    skills/agentic-dev-loop/scripts/post-merge.sh <owner>/<repo> {{N}} {{PR}}

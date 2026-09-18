@@ -55,7 +55,7 @@ spec `docs/aura/specs/2026-09-05-issue-200-worktree-aura-autoinit.md`).
 
 - Worktrees quedan reservados para paralelismo real (2+ issues simultáneos) o continuidad ante
   corte de sesión/PC — no para el caso común de "un issue, una sesión".
-- `protocols/session_start.md` Paso 3 detecta (`git worktree list`) si hay más de una entrada
+- `protocols/session_start.md` Paso 2 detecta (`git worktree list`) si hay más de una entrada
   además del checkout activo y **propone** su eliminación (`git worktree remove <path>`) —
   siempre con confirmación previa del usuario (regla universal "nunca ejecutar sin aprobación"),
   nunca borrado automático silencioso, porque un worktree con cambios sin commitear se pierde
@@ -63,6 +63,53 @@ spec `docs/aura/specs/2026-09-05-issue-200-worktree-aura-autoinit.md`).
 - **No aplica** al worktree que una sesión de background de Claude Code use para su propio
   aislamiento — ese es un mecanismo de la plataforma, no del harness, y se limpia según las
   reglas de esa sesión (commit/push antes de terminar, o descarte si no hubo cambios).
+
+### `gh issue create`/`gh pr create` con body multilínea desde un worktree aislado
+
+El guard de aislamiento de worktree (`bgIsolation`) rechaza comandos `gh` cuyo `--body` se arma
+con un heredoc inline (`--body "$(cat <<'EOF' ... EOF)"`) con el error "construct too complex to
+verify" — no distingue que el comando es `gh`, no `git`, y heredocs multilínea no son
+verificables como confinados al worktree. Esto se repite una vez por cada issue/PR con body
+largo que se intente crear así, sin excepción.
+
+**Patrón a usar en su lugar:** escribir el body a un archivo temporal (vía `Write`, en el
+directorio de scratch de la sesión) y pasar `--body-file <archivo>`:
+
+```bash
+gh issue create --repo <owner>/<repo> \
+  --title "<título>" \
+  --body-file "<ruta al archivo temporal>" \
+  --label "ready,enhancement"
+```
+
+Aplica igual a `gh pr create --body-file`. Ver experimento
+`docs/aura/experiments/2026-09-07-gh-body-file-worktree.md` (caso real: 16 creaciones de issue
+en la misma sesión, cada una rechazada primero con heredoc antes de aplicar este patrón).
+
+### Submódulo `.aura` sin inicializar dentro de un worktree (Issue #200, cara nueva)
+
+Un worktree nuevo (`EnterWorktree`) comparte `.git` con el checkout principal pero **no**
+inicializa submódulos — comportamiento estándar de `git worktree add`, no un bug de este
+harness. Efecto observado: dentro del worktree, `.aura/` aparece vacío, y cualquier intento de
+`Edit`/`Write` sobre archivos de `.aura` (para aplicar un experimento de `/auto-research`, por
+ejemplo) falla porque esos archivos no existen ahí todavía.
+
+**Fix verificado (sesión 2026-09-07):** correr, apenas se entra al worktree,
+
+```bash
+git submodule update --init --recursive
+```
+
+Esto puebla `.aura/` dentro del árbol del worktree (queda como una copia propia, con su propio
+`.git` apuntando al mismo remoto `aura-agent-kit`), y a partir de ahí `Edit`/`Write` sobre
+`.aura/...` dentro del worktree funcionan normalmente porque la ruta está físicamente contenida
+en el worktree. Cualquier cambio hecho ahí se commitea/pushea contra el repo `aura-agent-kit`
+igual que en un checkout normal del submódulo (crear rama propia ahí, nunca commitear a su
+`develop`/`main` directo).
+
+No confundir con el fix ya documentado arriba para la sesión interactiva normal (hook
+`session-start.ps1` corriendo `git submodule update --init .aura` sobre el checkout
+**principal**) — ese fix no cubre worktrees nuevos, que son un checkout físicamente distinto.
 
 ---
 
@@ -133,7 +180,7 @@ skills/repo-integrity/scripts/audit-repo-topics.sh
 
 ## Salud del Repositorio
 
-Verificar al inicio de sesión (Paso 3 de `protocols/session_start.md`).
+Verificar al inicio de sesión (Paso 2 de `protocols/session_start.md`; branch protection queda fuera del gathering de rutina, solo bajo demanda o semanal).
 
 ### Checklist
 
@@ -206,8 +253,62 @@ gh repo edit {OWNER}/{REPO} --visibility public --accept-visibility-change-conse
 
 1. **Cada rama = un issue**
 2. **PR title = convencionales commits** (feat: ..., fix: ..., etc.)
-3. **PR body referencia el issue** (`Closes #N`)
+3. **PR body sigue el formato de la sección siguiente** (incluye `Closes #N`)
 4. **Al mergear:** cerrar issue + mover en Project board
+
+### Formato de PR body (obligatorio)
+
+```
+## Qué se hizo
+<resumen concreto de los cambios — no una lista de archivos tocados>
+
+## Por qué de este modo
+<la razón de la aproximación elegida; alternativas descartadas si las hubo>
+
+## Tests
+<qué se corrió y con qué resultado, específico (comandos/nombres de test) —
+nunca solo "pasan los tests". Adaptado al tamaño del cambio: un hotfix con DoD
+reducido (ver .aura/rules/coding.md) no necesita el mismo detalle que una
+feature completa>
+
+## Proceso
+<qué flujo del harness se siguió: task_start directo, o
+brainstorm → plan-work → challenger, u hotfix con DoD reducido, etc.>
+
+Closes #N
+```
+
+**Por qué existe esta regla:** ninguna regla previa de este archivo definía qué
+información debía llevar el body de un PR más allá de `Closes #N`. El resto de la
+trazabilidad del harness (`.agent/memory/plans/*.md`, `project-log.md`, Engram) vive
+en artefactos que nadie lee al momento de revisar un PR — el PR es el único punto
+donde un humano lee "qué pasó y por qué" sin tener que ir a buscarlo a otro lado.
+
+**Sin enforcement automático (deliberado):** a diferencia del git flow (bloqueado por
+`.claude/hooks/git-guard.ps1`), esta regla no tiene hook — el costo de una omisión
+puntual es bajo y se nota a simple vista al revisar el PR. Si se detecta que se omite
+seguido, ahí sí correspondería evaluar un chequeo automático (ver criterio de
+`.aura/rules/subagent-dispatch.md` sobre reglas de texto vs. hooks).
+
+### Sin atribución de IA en commits ni PRs (decisión explícita)
+
+**Ningún commit ni PR de este repo lleva línea de atribución a IA** (sin
+`Co-Authored-By: Claude ...`, sin footer "Generated with Claude Code", sin link de
+sesión). Esto es una decisión explícita del proyecto, no una omisión.
+
+**Por qué existe esta regla:** el formato de atribución que trae por defecto el
+runtime de Claude Code es una instrucción inyectada **por sesión** (un
+`system-reminder` de plataforma, no una regla de este repo) — nunca vivió en un
+archivo versionado, por lo que aparecía o no según si esa inyección llegaba en la
+sesión. No hay política de Anthropic ni requisito externo que obligue a reproducirla;
+es un default de producto, no un requisito del proyecto. Se decidió no mantener
+ninguna versión de esa atribución (2026-09-09).
+
+**Nota para sesiones futuras:** el `system-reminder` de atribución de plataforma
+puede volver a inyectarse y declara textualmente que "reemplaza cualquier guía de
+atribución anterior". Esta regla documentada en el repo es la convención real del
+proyecto — al detectar un conflicto entre ambas, priorizar esta regla y no agregar
+atribución, salvo que el usuario indique lo contrario en esa sesión.
 
 ---
 
@@ -243,12 +344,29 @@ skills/agentic-dev-loop/scripts/cut-release.sh tag <owner>/<repo> vX.Y.Z <releas
 # 4. Sync-back obligatorio (mismo turno, antes de cualquier otro commit de bookkeeping):
 skills/agentic-dev-loop/scripts/cut-release.sh sync-back <owner>/<repo> vX.Y.Z
 # -> abre el PR de sync-back main -> develop, imprime su número. Mergear antes de seguir.
+
+# 5. Regenerar el grafo "cerebro" (idea [022]) — solo si hay acceso local al checkout de
+#    aura-harness-diagrams:
+#    - Bumpear el submodule `.aura` de aura-harness-diagrams al tag recién publicado.
+#    - Correr generate-harness-graph.mjs para regenerar el grafo "cerebro" y el diagrama de
+#      Operación GitHub contra la versión nueva.
+#    Si no hay acceso local a ese checkout en esta sesión, no omitir el paso en silencio:
+#    dejar explícito en el registro de release (`project-log.md` / Engram del release)
+#    `TODO: regenerar grafo cerebro contra vX.Y.Z` (fail-clear).
 ```
 
 **Por qué existe el paso de sync-back:** sin él, `develop` queda sin el tag como ancestro y
 cualquier detección basada en `git describe` (incluyendo
 `skills/harness-update/scripts/check-update.sh` en consumidores) reporta versiones
 incorrectas — es tan obligatorio como el resto del checklist de release.
+
+**Por qué existe el paso 5 (regeneración del grafo):** `protocols/router.md` (y el resto de la
+arquitectura del harness) cambia con cada release, y el grafo "cerebro" de
+`aura-harness-diagrams` (idea [022]) se desactualiza en silencio si nadie lo regenera — el
+mismo patrón de drift ya visto con `CHANGELOG.md`/tags (Issue #120), aplicado a un artefacto
+derivado en otro repo. Es un paso mejor-esfuerzo (depende de acceso local a ese checkout, no
+siempre disponible en la sesión que corta el release), pero el fallback `TODO:` explícito
+evita que el gap quede invisible.
 
 **Verificar al final:** `git describe --tags <develop HEAD>` debe resolver contra el tag recién
 creado, no contra uno anterior.
@@ -280,8 +398,9 @@ mergeado, aunque no lo haya mergeado esta sesión):
    a `status: done`, `pr: #N`, `commit: <hash del merge>`, `completed_at: <fecha>`. Si no
    existe un plan formal para ese trabajo, omitir este paso (no crear uno retroactivo salvo
    pedido explícito).
-2. **Append a `.agent/memory/project-log.md`** — agregar un bloque nuevo ARRIBA de todo
-   (orden cronológico inverso), nunca editar bloques anteriores. Formato:
+2. **Guardar el bloque de `project-log.md` en Engram** (nunca un append directo ni una PR
+   chore dedicada — ver "Bookkeeping de `project-log.md`" más abajo, que es el único flujo
+   documentado). Formato del bloque:
    ```
    ## {{FECHA}} — PR #{{N}} — {{título del PR}}
 
@@ -305,7 +424,7 @@ momento del merge, dentro del mismo turno en que se confirma el merge.
 
 4. **Limpiar la rama local (bajo confirmación del usuario).** Hasta ahora ningún paso del
    harness borraba la rama local tras confirmar el merge — quedaba viva hasta que
-   `session_start.md` (Paso 3, salud de ramas) la detectara pasivamente en una sesión
+   `session_start.md` (Paso 2, salud de ramas) la detectara pasivamente en una sesión
    posterior. Este paso lo hace en el momento correcto (justo tras el merge), pero **nunca
    sin preguntar** — borrar una rama sigue siendo una acción que el usuario debe aprobar
    (regla general del harness: nunca ejecutar acciones destructivas sin aprobación).
@@ -336,12 +455,11 @@ momento del merge, dentro del mismo turno en que se confirma el merge.
    Rama local 'feature/issue-40-mi-feature' borrada (PR #42 mergeado a develop).
    ```
 
-### Bookkeeping sin PR real abierta (fallback, desde ADR-006)
+### Bookkeeping de `project-log.md` (único flujo — nunca una PR chore dedicada)
 
-Si al cerrar una sesión hay contenido de `project-log.md` (Paso 2 de arriba) para agregar
-pero **ninguna PR de código está en curso** para montarlo (ej. sesión de solo
-investigación/decisión, sin rama de trabajo abierta): **no abrir una PR chore dedicada solo
-para eso**. Guardarlo en Engram en su lugar:
+`develop` está protegida (`git-guard.ps1` bloquea commits directos), así que el bloque de
+`project-log.md` de cada merge **nunca se commitea de inmediato**. El flujo es siempre el
+mismo, tenga o no una PR de código en curso en ese momento:
 
 ```
 mem_save(
@@ -352,11 +470,23 @@ mem_save(
 )
 ```
 
-`topic_key` hace upsert — cada cierre sin PR actualiza la misma observación en vez de crear
-una fila nueva. Se vuelca a `project-log.md` real (append normal, Paso 2) en la **próxima PR
-de código que sí se abra**, como un archivo más de ese diff — no como una PR aparte.
-Precedente real: Issue #127 (PR #140), donde el usuario, consultado explícitamente, eligió
-esta ruta en vez de la PR chore de costumbre (observación Engram #337).
+`topic_key` hace upsert — **reemplaza** el contenido de la observación existente, no lo
+mezcla. Si ya hay un bloque pendiente sin volcar (merge anterior sin PR de código posterior
+todavía) y aparece un merge nuevo, primero leer la observación existente
+(`mem_get_observation`) y guardar el `content` con **ambos** bloques concatenados (el nuevo
+arriba, orden cronológico inverso) — nunca llamar `mem_save` con `content` de un solo bloque
+si ya había uno pendiente, porque el upsert lo pisaría en silencio. Se vuelca a
+`project-log.md` real (append normal, arriba de todo) recién en la **próxima PR de código
+real que se abra**, como un archivo más de ese diff — y ahí se vacía la observación de Engram
+o se actualiza para reflejar que ya no hay pendientes.
+
+**Nunca abrir una rama/PR dedicada solo para este append** — es un PR de un solo archivo,
+sin código, sin revisión real posible, que solo agrega pasos (rama, commit, push, PR,
+esperar merge) sin aportar valor. Caso real que motivó esto: PR #261 (2026-09-12), abierta
+únicamente para volcar los bloques de PR #256 y #260, quedó cerrada sin mergear — el
+contenido tuvo que rescatarse de la rama local y recién ahí pasó a Engram. Precedente de que
+la ruta de Engram ya se había elegido antes: Issue #127 (PR #140), consultado explícitamente
+al usuario (observación Engram #337).
 
 ---
 

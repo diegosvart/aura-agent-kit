@@ -1,3 +1,9 @@
+---
+name: plan-reporter
+description: Use proactively via /plan-report to generate a management report (table + escalation/bucket/load/quality analysis) for a strategic plan in Microsoft Planner/Dataverse. Use after the user asks for a plan report, in isolated context so raw report engine output doesn't pollute the main session thread.
+tools: Bash, Read
+---
+
 # Plan Reporter Agent
 
 > **Propósito:** Ejecutar `skills/plan-reporting/SKILL.md` en contexto aislado — genera un

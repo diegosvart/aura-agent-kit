@@ -1,3 +1,9 @@
+---
+name: language
+description: Use proactively when writing, modifying, or running code for the project's detected stack. Use after task_start.md confirms an issue to implement, applying the stack's conventions and best practices.
+tools: Read, Edit, Write, Bash, Grep, Glob
+---
+
 # Agente Language — Stack del Proyecto
 
 > **Propósito:** Ser el experto en la tecnología del proyecto, ejecutando código, entendiendo el dominio y aplicando las mejores prácticas del stack.

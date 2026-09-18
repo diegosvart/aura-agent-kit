@@ -1,3 +1,9 @@
+---
+name: evaluator
+description: Use proactively via /evaluate-sessions to audit whether a past session (or range) respected the harness's declared protocol against the reference flow diagram. Use after a session or batch of sessions has completed, not during active work.
+tools: Read, Grep, Glob, Bash
+---
+
 # Evaluator Agent
 
 > **Propósito:** Cuestionar sesiones **ya ocurridas** — a diferencia de `challenger`, que

@@ -7,6 +7,7 @@
 
 ## Tabla de Routing
 
+<!-- PARSEADO POR generate-harness-graph.mjs — no cambiar la estructura de la tabla sin actualizar el script -->
 | Situación | Archivos a cargar | Trigger |
 |-----------|------------------|---------|
 | **Inicio de sesión** | `protocols/session_start.md` | Primera interacción del día o contexto frío |
@@ -19,18 +20,22 @@
 | **Revisar antes de merge** | `agents/reviewer.md` | Pre-merge, code review, quality gate |
 | **Cuestionar un plan o spec** | `agents/challenger.md` | Spec lista para pasar a /write-plan |
 | **Validar spec técnicamente** | `skills/spec-validation/SKILL.md` | Después de /brainstorm, antes de challenger |
+| **Crear un proyecto nuevo (repo consumidor de Aura)** | `skills/new-project-setup/SKILL.md` via `/new-project` | Usuario quiere iniciar un repo nuevo con el harness instalado de punta a punta (directorio local, submodule/plugin, identidad, primer push) |
 | **Planificar trabajo nuevo** | `skills/issue-planning/SKILL.md` via `/plan-work` | Usuario describe trabajo nuevo, no hay issues ready |
 | **Rama lista para PR** | `skills/finishing-a-development-branch/SKILL.md` via `/finish-branch` | Commits sin PR, rama completa |
 | **Solicitar code review** | `skills/requesting-code-review/SKILL.md` via `/request-review` | PR abierta lista para revisión |
 | **Cambios en documentación** | `agents/doc-guardian.md` via `/doc-check` | Se creó o modificó un archivo .md |
 | **Gestionar objetivos / ideas** | `skills/idea-management/SKILL.md` via `/idea` | Usuario escribe `/idea`, registra idea, o quiere explorar/promover un objetivo |
-| **Mejorar el harness** | `skills/auto-research/SKILL.md` + `docs/aura/specs/2026-05-09-harness-pillars.md` | Fricción detectada, patrón repetitivo |
+| **Mejorar el harness** | `skills/auto-research/SKILL.md` + `docs/aura/adr/ADR-011-los-7-pilares-del-harness.md` | Fricción detectada, patrón repetitivo |
 | **Evaluar sesiones pasadas** | `agents/evaluator.md` via `/evaluate-sessions` | Auditar si una sesión (o rango) respetó el flujo declarado del harness contra el diagrama de referencia de `aura-harness-diagrams` |
+| **Informe agregado de comportamiento de sesiones** | `skills/observability/SKILL.md` (Modo 2) via `/session-report` | Bajo demanda: verificar `delegation_rate` acumulado (ej. cierre del Issue #231), tendencias de tokens/duración o distribución de `tool_uses` a través de varias sesiones — nunca automático en `session_start` |
+| **Ver inventario del harness / detectar referencias rotas** | `skills/harness-status/SKILL.md` | Usuario pide `/harness-status`, o quiere un inventario/diagnóstico de qué existe realmente en el harness |
 | **Seleccionar / cambiar stack** | `skills/stack-selection/SKILL.md` via `/stack` | Sin session-stack.json, inicio de proyecto nuevo, o usuario quiere cambiar stack |
 | **Reporte de plan estratégico** | `skills/plan-reporting/SKILL.md` via `/plan-report` (ejecutado por `plan-reporter`) | Usuario pide reporte de gestión, tareas accionables, análisis de riesgo de un plan |
 | **Loop de desarrollo + verificación de issues** | `skills/agentic-dev-loop/SKILL.md` via `/run-dev-loop` | Usuario pide correr/automatizar el desarrollo de issues `ready`, o avisa que cerró/mergeó un issue y hay que revisarlo |
 | **Lanzar agentes ad-hoc fuera del loop** | `agents/complexity-tiering.md` | Orquestación manual de un bloque de 3+ tareas repetitivas delegadas a agentes, sin pasar por `agentic-dev-loop` |
 | **Manejo de datos sensibles / repo público** | `.claude/rules/sensitive-data-safety.md` | Repo público con datos de cliente, antes de commit/push, o session_start detecta `visibility=public` |
+| **Registrar error de proceso propio detectado/corregido** | `.aura/rules/process-error-log.md` | El agente detecta y corrige un error de proceso propio (rama desde HEAD equivocado, orden de merge incorrecto, no reintentar tras un rechazo) |
 | **Ver / controlar el navegador** | `agents/browser-control.md` | No hay CLI/MCP que alcance la tarea, o el usuario pide que se le muestre/guíe algo en pantalla |
 | **Testing E2E/headless de una app web** | `agents/browser-testing.md` (+ `skills/e2e-testing/SKILL.md` si es multi-paso) | Validar programáticamente un flujo sin supervisión humana — smoke test post-issue, regresión visual, o dentro de `/run-dev-loop` |
 | **Decidir delegar a subagente vs. ejecutar inline** | `.aura/rules/subagent-dispatch.md` | Antes de actuar sobre cualquier situación de este router — define si corresponde despachar vía `Agent` tool o leer el archivo inline |
@@ -42,7 +47,7 @@
 
 1. **Cargar solo lo necesario** — no precargar todos los archivos al inicio
 2. **Una situación puede requerir múltiples archivos** — ej: nueva tarea de código carga `task_start.md` + `language.md`
-3. **Los archivos de pilares** (`docs/aura/specs/2026-05-09-harness-pillars.md`) solo se cargan cuando se invoca challenger o auto-research
+3. **Los archivos de pilares** (`docs/aura/adr/ADR-011-los-7-pilares-del-harness.md`) solo se cargan cuando se invoca challenger o auto-research
 4. **AGENTS.md (spine) siempre está cargado** — no necesita estar en esta tabla
 5. **En caso de duda** sobre qué cargar → leer este router primero, luego decidir
 
@@ -57,7 +62,7 @@
 | Diseño + implementación completa | `task_start.md` → (brainstorm) → `spec-validation` → `challenger` → `language.md` → `github.md` → `reviewer.md` |
 | Inicio sin issues pendientes | `session_start.md` → `/plan-work` → `task_start.md` |
 | Inicio sin stack detectado | `session_start.md` → `stack-selection/SKILL.md` → capability menu |
-| Proyecto nuevo desde cero | `stack-selection/SKILL.md` → estructura inicial → `github.md` → `/plan-work` |
+| Proyecto nuevo desde cero (repo consumidor de Aura) | `/new-project` (`new-project-setup/SKILL.md`, incluye `stack-selection` en su Paso 6) → `github.md` → `/plan-work` |
 | Rama terminada | `session_end.md` → `/finish-branch` → `/request-review` |
 | Cierre con cambios en .md | `session_end.md` → `/doc-check` |
 | Cierre con fricción detectada | `session_end.md` → `/auto-research` |

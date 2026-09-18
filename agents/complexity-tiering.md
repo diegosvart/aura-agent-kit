@@ -1,3 +1,9 @@
+---
+name: complexity-tiering
+description: Use proactively before launching an ad-hoc agent outside agentic-dev-loop, to pick the model tier (Haiku/Sonnet/Opus). Use after determining no GitHub issue with a declared **Complejidad:** field exists to read the tier from.
+tools: Read
+---
+
 # Agente — Tiering de Modelo por Complejidad de Tarea
 
 > **Propósito:** Elegir el tier de modelo (Haiku/Sonnet/Opus) antes de lanzar un agente,

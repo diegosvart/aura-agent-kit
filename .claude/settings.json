@@ -50,7 +50,10 @@
       "Bash(git clean -f:*)",
       "PowerShell(Remove-Item -Recurse *)",
       "Edit(.env)",
-      "Edit(.env.*)",
+      "Edit(.env.local)",
+      "Edit(.env.production)",
+      "Edit(.env.staging)",
+      "Edit(.env.*.local)",
       "Edit(*.pem)",
       "Edit(*.key)",
       "Edit(*.secret)"
@@ -86,6 +89,11 @@
             "type": "command",
             "command": "pwsh -NonInteractive -File .claude/hooks/pr-base-guard.ps1",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File .claude/hooks/checkout-lock-guard.ps1",
+            "timeout": 5
           }
         ]
       },
@@ -105,6 +113,31 @@
           {
             "type": "command",
             "command": "pwsh -NonInteractive -File .claude/hooks/pr-base-guard.ps1",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File .claude/hooks/checkout-lock-guard.ps1",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File .claude/hooks/agent-frontmatter-guard.ps1",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__plugin_engram_engram__(mem_save|mem_save_prompt|mem_capture_passive|mem_update|mem_session_summary|mem_session_end|mem_judge)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File .claude/hooks/sensitive-data-guard.ps1",
             "timeout": 5
           }
         ]
@@ -127,6 +160,16 @@
           {
             "type": "command",
             "command": "pwsh -NonInteractive -File .claude/hooks/session-resume.ps1",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File .claude/hooks/session-start.ps1",
             "timeout": 30
           }
         ]

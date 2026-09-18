@@ -20,9 +20,26 @@
 
 ---
 
+## Doble Rol de `CLAUDE.md` (raíz)
+
+`aura-agent-kit` cumple dos roles simultáneos, y **un único `CLAUDE.md` en la raíz** sirve a
+ambos sin distinción de contenido ni lógica condicional:
+
+- **Rol A** — harness auto-evolucionando su propia fuente (este mismo repo, dogfooding).
+- **Rol B** — dependencia embebida en un consumidor real vía `git submodule add ... .aura`; el
+  import `@.aura/CLAUDE.md` que genera `skills/new-project-setup/SKILL.md` resuelve a este
+  mismo archivo raíz.
+
+Las 6 reglas del harness (`harness-core`, `design-flow`, `repo-integrity`, `routing-menu`,
+`coding`, `subagent-dispatch`) vienen fijas y activas para ambos roles — no hay
+personalización de rule-set ni mecanismo opt-in. Cualquier cambio futuro a este archivo
+impacta los dos roles a la vez (ver Issue #297/#298 para el hallazgo que motivó esta nota).
+
+---
+
 ## Los 7 Pilares
 
-> Fuente de verdad completa: `docs/aura/specs/2026-05-09-harness-pillars.md`
+> Fuente de verdad completa: `docs/aura/adr/ADR-011-los-7-pilares-del-harness.md`
 
 | # | Pilar | Regla en una línea |
 |---|-------|--------------------|
@@ -50,6 +67,7 @@
 | Pre-merge / quality gate | `agents/reviewer.md` |
 | Cuestionar spec o plan | `agents/challenger.md` |
 | Validar spec técnicamente | `skills/spec-validation/SKILL.md` |
+| Crear un proyecto nuevo (repo consumidor de Aura) | `/new-project` → `skills/new-project-setup/SKILL.md` |
 | Planificar trabajo nuevo | `/plan-work` → `skills/issue-planning/SKILL.md` |
 | Rama lista para PR | `/finish-branch` → `skills/finishing-a-development-branch/SKILL.md` |
 | Solicitar code review | `/request-review` → `skills/requesting-code-review/SKILL.md` |
@@ -57,6 +75,7 @@
 | Gestionar objetivos / ideas | `/idea` → `skills/idea-management/SKILL.md` |
 | Mejorar el harness | `/auto-research` → `skills/auto-research/SKILL.md` |
 | Evaluar sesiones pasadas | `/evaluate-sessions` → `agents/evaluator.md` |
+| Informe agregado de comportamiento de sesiones (`delegation_rate`, tendencias) | `/session-report` → `skills/observability/SKILL.md` (Modo 2) |
 | Reporte de un plan estratégico | `/plan-report` → `skills/plan-reporting/SKILL.md` → `agents/plan-reporter.md` |
 | Loop de desarrollo + verificación de issues | `/run-dev-loop` → `skills/agentic-dev-loop/SKILL.md` |
 | Manejo de datos sensibles / repo público | `.claude/rules/sensitive-data-safety.md` |
@@ -100,7 +119,7 @@
   ADR-006
 - **Puntero local (no versionado):** `.agent/memory/current-session.json` — gitignored, solo
   lectura de emergencia si Engram no está disponible al iniciar sesión (ver
-  `protocols/session_start.md` Paso 5); nunca se commitea ni genera rama/PR
+  `protocols/session_start.md` Paso 0); nunca se commitea ni genera rama/PR
 - **Ledger de planes:** `.agent/memory/plans/` — un archivo por plan aprobado, nunca se pisa
 - **Bitácora de proyecto:** `.agent/memory/project-log.md` — qué se agregó, actualizada en
   cada merge a develop (no depende del cierre de sesión)
@@ -135,12 +154,13 @@
 | Categoría | Ejemplo | ¿Versionar? | Razón |
 |---|---|---|---|
 | Estructura del harness | `.aura/`, `AGENTS.md`, `protocols/`, `skills/`, `agents/`, `.claude/rules/` | Sí | Es el harness en sí |
-| Identidad de sesión activa | `.agent/memory/current-session.json` | No (desde ADR-006) | Puntero local de continuidad, solo fallback si Engram no está disponible — Engram es la memoria primaria real; versionarlo generaba una PR chore por cada cierre de sesión y exponía la forma de trabajar del usuario en un repo público (Issue #121) |
+| Identidad de sesión activa | `.agent/memory/current-session.json` | No (desde ADR-006) | Puntero local de continuidad, solo fallback si Engram no está disponible — Engram es la memoria primaria real; versionarlo generaba una PR chore por cada cierre de sesión y exponía la forma de trabajar del usuario en un repo público (Issue #121); en sesiones background, el puntero no se actualiza por restricción de aislamiento de worktree (enmienda ADR-006 / Issue #213) |
 | Bitácora de proyecto | `.agent/memory/project-log.md`, `objectives.md` | Sí | P5; sujeta al barrido de `.claude/rules/sensitive-data-safety.md` |
 | Ledger de planes aprobados | `.agent/memory/plans/*.md` | Sí, con barrido obligatorio | Trazabilidad de decisiones — categoría de mayor riesgo de fuga real; anonimizar dato de negocio (placeholders) antes de commitear |
 | Backups automáticos | `.agent/memory/backups/*.json` | No | Estado transitorio regenerable |
 | Índice de observability de sesiones | `.agent/memory/observability/sessions-index.jsonl` | No | Más sensible que `current-session.json`: expone patrón de trabajo detallado (split LLM/script/comando por sesión, horarios), no solo metadata de progreso; riesgo de fuga de comportamiento del agente |
 | Análisis/informes ad-hoc | hallazgos de debugging, reportes exploratorios | No | Efímero — `docs/aura/specs/` (gitignored) o solo Engram |
+| Clasificación de repo | `.agent/memory/repo-classification.json` (`repo_type`: `harness`/`personal`/`cliente`) | Sí | Declaración explícita sin datos sensibles — habilita la política de memoria segura por repo (Issue #303) y el enforcement de `.claude/hooks/sensitive-data-guard.ps1` sobre `mem_save`; su ausencia o corrupción bloquea `mem_save` incondicionalmente (fail-closed) |
 
 Esta tabla es la fuente de verdad única: todo proyecto que inicializa el harness la
 hereda igual, sin reinventarla por repo.
@@ -155,6 +175,6 @@ El harness tiene tres roles funcionales:
 |-----|-----------|----------------------------------|
 | **Objetivos** | Este archivo (AGENTS.md) | Solo con nueva spec aprobada |
 | **Operacional** | `skills/`, `protocols/`, `agents/` | Sí, con hipótesis documentada (P4) |
-| **Evaluación** | `agents/challenger.md`, `docs/aura/specs/harness-pillars.md` | No — son la vara de medición |
+| **Evaluación** | `agents/challenger.md`, `docs/aura/adr/ADR-011-los-7-pilares-del-harness.md` | No — son la vara de medición |
 
 Para proyectos complejos con contextos imprevisibles, considerar reemplazar la tabla de routing estática por un **router subagente** (`protocols/router.md` explica cuándo).

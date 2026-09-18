@@ -1,3 +1,9 @@
+---
+name: browser-testing
+description: Use proactively after implementing an issue with UI impact, or after a critical flow change, to validate the app headlessly without human supervision. Use after code changes and before marking a task done, or inside a dev loop.
+tools: Bash, Read
+---
+
 # Agente Browser Testing — E2E/Headless de Apps Web
 
 > **Propósito:** Validar programáticamente que una app web funciona — sin supervisión

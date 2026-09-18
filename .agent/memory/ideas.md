@@ -316,13 +316,28 @@ _(sin iterar)_
 ---
 
 ## [022] Visibilidad del harness — dashboard/diagrama de arquitectura completo
-**Estado:** raw  
-**Capturado:** 2026-09-05  
-**Prioridad:** Planificar — impacto alto, esfuerzo medio  
+**Estado:** planificada — spec validada (Challenger GO), issues creados
+**Capturado:** 2026-09-05
+**Prioridad:** Planificar — impacto alto, esfuerzo medio
 **Contexto:** Tras muchos PRs y funcionalidades acumuladas (protocolos, skills, agentes, hooks, reglas), no hay una vista completa y general del harness que permita evaluarlo de un vistazo — ni para el usuario ni para el propio agente. El usuario propone seguir/inspirarse en `https://github.com/tt-a1i/archify` ("Agent skill for beautiful, verifiable architecture, workflow, sequence, data-flow, and lifecycle diagrams — self-contained HTML with motion and crisp export") para armar un flujo/diagrama visible del harness completo: qué protocolos existen, cómo se conectan (router.md), qué skills/agentes hay y cuándo se activan, y el estado real vs. lo documentado. Candidato de implementación: un artifact HTML autocontenido (o adoptar archify como skill) generado a partir de `AGENTS.md`/`router.md`/`skills/*/SKILL.md`, actualizable cada vez que se agrega una capability nueva — no un documento estático que se desactualice como pasó con `docs/aura/specs/2026-05-09-harness-pillars.md` (Issue #147, referenciado pero inexistente en disco).
 
 ### Iteraciones
-_(sin iterar)_
+- [2026-09-14] Usuario retomó la idea explícitamente vía `/brainstorm`, pidiendo una vista tipo
+  "cerebro" (harness al centro, capacidades como ramas). Brainstorm completo + validación
+  Challenger (veredicto **GO**) en `docs/aura/specs/2026-09-14-harness-graph-cerebro-design.md`
+  (gitignored, local). Alcance acotado explícitamente a **visualización derivada de solo
+  lectura** (grafo tipo `architecture`, 7 categorías: Memoria, Protocolos, Skills, Agentes,
+  Reglas, Herramientas/MCP, Flujos) generado por un parser determinístico
+  (`generate-harness-graph.mjs`, `node:test`) desde los `.md` fuente — **no** se migra la
+  lógica de ejecución del harness al grafo. Issues creados: `aura-agent-kit` #280 (contrato de
+  formato en `router.md` + paso de release), `aura-harness-diagrams` #11 (parser) y #12 (4º
+  diagrama, "Operación GitHub").
+- **Iteración futura, explícitamente NO incluida en el alcance de 2026-09-14:** evaluar si el
+  grafo puede evolucionar de "vista derivada" a "fuente de verdad ejecutable" que el agente
+  consulte en runtime para rutear (reemplazando o complementando `protocols/router.md` como
+  mecanismo de lectura). Es una re-arquitectura del harness completo, no una funcionalidad de
+  visualización — requiere su propio proceso P4/brainstorm/Challenger si se retoma, no se
+  deriva automáticamente de esta iteración.
 
 
 ## [023] Review obligatorio (gate duro) + agente en loop hasta objetivo medible
@@ -366,5 +381,285 @@ idea [021] (mecanismo de validacion/seguimiento de errores del agente).
   mecanismo — captura de error/denegación de tool en el momento (posible hook o wrapper),
   guardado consultable (¿extensión de `sessions.jsonl`?), y una definición explícita de
   "comportamiento esperado" contra la cual medir cada corrida, no solo `delegation_rate`.
+- [2026-09-06] Nueva evidencia concreta de "gate declarado en texto pero no forzado", esta vez
+  en el proceso de release: el PR de sync-back (`cut-release.sh sync-back`, paso 4 obligatorio)
+  se mergeó como squash en vez de merge commit, rompiendo la ancestría del tag `v2.7.0` en
+  `develop` (mismo patrón de drift que el incidente de `v2.2.0`, Issue #120). El script abre el
+  PR correctamente pero no controla ni valida qué botón de merge usa GitHub — el gate real
+  (ancestría del tag) depende de que el humano recuerde elegir "Create a merge commit". Refuerza
+  el pedido original de #023: el review/merge-method de un PR crítico debería ser un gate duro
+  (¿validación post-merge automática que corra `git describe`/`merge-base` y alerte si el tag no
+  quedó como ancestro, en vez de depender de que alguien lo note?), no una instrucción de texto
+  en el PR body. Ver `.agent/memory/project-log.md` (bloque "Release v2.7.0") para el detalle
+  completo del incidente y su fix (PR #243).
+
+---
+
+## [024] Enforcement duro de cuenta git/gh por repo (personal vs. corporativo)
+**Estado:** raw
+**Capturado:** 2026-09-07
+**Contexto:** El usuario detectó una vulnerabilidad real en vivo: durante esta misma sesión la
+cuenta `gh` activa cambió de `diegosvart` (personal) a `ServiciosTIebi` (corporativa, token con
+scopes `admin:enterprise`/`admin:org`/`delete_repo`) sin que nada en el harness lo detectara ni
+bloqueara. Hoy el único control es el topic de GitHub `personal`/`<empresa>-copropiedad`
+(`agents/github.md` → "Convención de Topics de GitHub", Issue #201) — es **declarativo**, se lee
+una vez en `session-start.ps1` para sugerir la identidad de commit, pero ningún hook
+(`git-guard.ps1`, `sensitive-data-guard.ps1`, `pr-base-guard.ps1`) contrasta la cuenta `gh`
+activa (`gh auth status --active`) contra la clasificación del repo antes de un
+`push`/`gh pr create`/`gh repo edit`. Objetivo declarado por el usuario: **Aura debe identificar
+con qué cuenta git corresponde trabajar cada repo (personal o corporativo, clasificación por
+repo) y esa regla no puede saltarse** — es decir, pasar de sugerencia leída a enforcement duro
+(bloqueo real si la cuenta activa no coincide con la clasificación declarada del repo).
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [025] Aislar los archivos de Aura del repo que aloja el trabajo (no convivir en el mismo árbol)
+**Estado:** raw
+**Capturado:** 2026-09-07
+**Contexto:** Objetivo declarado por el usuario: los archivos del harness (`.aura/`, hooks,
+settings) no deben quedar versionados/mezclados dentro del repo consumidor que el agente usa
+para trabajar — deben poder vivir gitignoreados o fuera del árbol del repo, en vez de ser un
+submodule commiteado dentro de cada proyecto. Esto es un cambio de modelo de distribución más
+profundo que el canal "submodule pinneado a un tag" vigente hoy (`skills/new-project-setup/SKILL.md`,
+`agents/github.md`) — el objetivo explícito es que "aura no quede junto a los repositorios donde
+trabaja". Relacionado directo con [026] (worktrees), porque separar a Aura del árbol del repo
+resolvería de raíz el problema de que un `git worktree add` no trae consigo los archivos de
+Aura (hoy son parte del working tree versionado/submodule, así que cada worktree nuevo parte sin
+ellos).
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [026] Worktrees de Claude Code rompen el harness en todos los repos consumidores
+**Estado:** exploring
+**Capturado:** 2026-09-07
+**Prioridad:** Hacer — impacto alto (afecta todo repo consumidor), esfuerzo medio
+**Contexto:** El usuario reporta que "todo el harness se ve estropeado" por la funcionalidad de
+worktrees de Claude Code, con evidencia real de otra sesión: (1) un agente bloqueado al intentar
+tocar el submódulo `.aura` desde un worktree, porque `.gitmodules`/`.git/config` de submódulos
+es compartido entre todos los worktrees del mismo repo — modificarlo desde un worktree puede
+romper el checkout principal en uso; (2) errores repetidos de hooks
+`PreToolUse:Bash`/`PreToolUse:PowerShell` — `.claude/hooks/git-guard.ps1` y
+`.claude/hooks/sensitive-data-guard.ps1` no encontrados ("is not recognized as the name of a
+script file"). Diagnóstico ya hecho en esta sesión (verificado contra doc oficial de Claude Code
+vía agente `claude-code-guide`): los hooks de `settings.json` usan rutas **relativas**
+(`.claude/hooks/<script>.ps1`), que Claude Code resuelve contra `cwd` — y `cwd` sigue al
+worktree activo, mientras que la variable oficial `$CLAUDE_PROJECT_DIR` es **fija** y siempre
+apunta al checkout principal (no al worktree). El fix ingenuo (agregar `$CLAUDE_PROJECT_DIR` a
+todos los `command` de `settings.json`) arregla el "not found" pero rompe otra cosa: 3 hooks
+(`session-start.ps1`, `session-end.ps1`, `session-resume.ps1`) calculan `$projectRoot` a partir
+de `$PSScriptRoot` (dónde vive el archivo .ps1) — si se invocan vía `$CLAUDE_PROJECT_DIR`
+quedarían leyendo/escribiendo `.agent/memory/*` del **checkout principal**, no del worktree
+activo, silenciosamente. Fix identificado (no implementado): (a) `settings.json` → todos los
+`command` con `"$CLAUDE_PROJECT_DIR"/.claude/hooks/<script>.ps1`; (b) reemplazar el cálculo de
+`$projectRoot` en esos 3 scripts por `git rev-parse --show-toplevel` (worktree-aware) en vez de
+`$PSScriptRoot`. La regla existente `agents/github.md` → "Regla anti-worktree" (Issue #200) solo
+cubre el auto-init del submódulo, no estos dos problemas. Relacionado directo con [025]: el
+usuario plantea que la causa de fondo es que los worktrees "no son generados con los archivos de
+Aura" — separar a Aura del árbol del repo (idea 025) resolvería este síntoma de raíz en vez de
+parchear hook por hook.
+
+### Iteraciones
+- [2026-09-07] Causa raíz de los errores de hooks confirmada contra documentación oficial de
+  Claude Code (agente `claude-code-guide`): `cwd` sigue al worktree, `$CLAUDE_PROJECT_DIR` es
+  fijo al checkout principal. Fix acotado identificado (2 partes) pero no implementado — el
+  usuario pidió en cambio partir de una spec que declare los 3 objetivos (024/025/026) como
+  marco antes de tocar código, en vez de parchear el síntoma puntual de hooks.
+
+---
+
+## [028] Pipeline de agentes en paralelo por rol, con reglas no-saltables por el orquestador
+**Estado:** raw
+**Capturado:** 2026-09-08
+**Prioridad:** Explorar — impacto alto, esfuerzo alto
+**Contexto:** Surge al preparar la spec del Issue #217 (lock de checkout para el dev-runner).
+El usuario aclaró que su objetivo de fondo va más allá de resolver la concurrencia de un único
+dev-runner: quiere que en el futuro varios subagentes trabajen **en paralelo según el flujo**
+(unos en specs, otros como reviewers, otros como challengers, avanzando cada uno según el estado
+del pipeline), y que las reglas del harness que gobiernan ese flujo **no puedan ser salteadas por
+el agente orquestador** — ni por olvido, ni por presión de contexto.
+
+Distinción clave ya identificada al responder: el harness hoy separa implícitamente trabajo
+**mutante** (escribe al git/filesystem compartido — requiere exclusión mutua, es lo que cubre el
+lock de #217) de trabajo **no mutante** (leer/analizar/comentar/emitir veredicto — ya corre en
+paralelo sin conflicto, ver Fase 2 del loop: "auditar no muta código"). La visión de este pipeline
+encaja naturalmente en la segunda categoría para las etapas de spec/review/challenge, pero si el
+objetivo incluye además que **varios dev-runners escriban código en paralelo de verdad** (no solo
+analicen), eso requeriría aislamiento real de filesystem por rama — mismo problema ya abierto y
+sin resolver en ideas [025]/[026] (worktrees rotos en este harness).
+
+Sobre el enforcement: el patrón repetido de este repo (`git-guard.ps1`, `pr-base-guard.ps1`) es
+que una regla en prosa/prompt se salta hasta que se convierte en hook `PreToolUse` que bloquea la
+acción a nivel de herramienta. Cualquier diseño de este pipeline paralelo debería nacer ya como
+hook/mecanismo forzado, no como convención de prompt a la que se confía que cada agente adhiera —
+mismo aprendizaje aplicado en la corrección del propio Issue #217 (lock con hook de enforcement,
+no solo snippet en el prompt del dev-runner).
+## [027] Regla irrompible — session_end no debe cerrar con worktrees abiertos/pendientes
+**Estado:** raw
+**Capturado:** 2026-09-07
+**Contexto:** Disparador concreto de esta misma sesión: el cierre quedó bloqueado porque el
+worktree de la sesión (`.claude/worktrees/issue-230-pr-base-guard`) seguía abierto y
+`protocols/session_end.md` no tiene ningún paso que lo detecte ni lo exija resuelto antes de
+terminar — a diferencia de `protocols/session_start.md` Paso 3, que sí detecta worktrees
+adicionales vía `git worktree list`, pero solo los **propone** eliminar (con confirmación del
+usuario), nunca bloquea el flujo. Objetivo declarado por el usuario: debe existir una regla
+**irrompible** — no una sugerencia — de que al cerrar sesión no queden worktrees abiertos o
+pendientes.
+
+Relacionado con [026] (worktrees rompiendo hooks) pero es un problema distinto: [026] es sobre
+compatibilidad técnica (hooks/submódulo no funcionan bien dentro de un worktree), mientras que
+[027] es sobre **higiene de ciclo de vida** (un worktree que sobrevive al cierre de la sesión
+que lo creó queda huérfano, acumulándose sin que nada lo note — mismo síntoma que ya motivó
+`skills/repo-integrity/scripts/check-orphaned-worktrees.sh`, pero ese script es un chequeo de
+*inicio* de sesión, no un gate de *cierre*). Ambos comparten la causa raíz de fondo: el harness
+no trata los worktrees como ciudadanos de primera clase del ciclo de vida de sesión.
+
+Implementación futura probable (no evaluada aún — pendiente de iterar con `/idea 027`): un nuevo
+paso obligatorio en `protocols/session_end.md` (ej. "Paso 0 — Verificar Worktrees Pendientes")
+que bloquee el cierre si `git worktree list` devuelve más de una entrada sin resolver — salvo el
+caso ya documentado en `agents/github.md` → "Regla anti-worktree" de un worktree de sesión de
+background que se limpia solo al terminar (vía `ExitWorktree`), que es precisamente el mecanismo
+que se usó para resolver el bloqueo de esta sesión en el momento en que se capturó esta idea.
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [029] Entender por qué los worktrees no se eliminan al terminar una sesión/tarea
+**Estado:** raw
+**Capturado:** 2026-09-17
+**Prioridad:** Explorar — impacto medio, esfuerzo bajo (es investigación, no fix todavía)
+**Contexto:** Disparador concreto de esta sesión (Paso 2 de `session_start.md`,
+`check-orphaned-worktrees.sh`): al iniciar se detectaron 2 worktrees huérfanos —
+`daily-issue-sweep` (rama ya mergeada/gone, nadie corrió `git worktree remove` tras cerrar
+esa sesión) y, más llamativo, el worktree de **esta misma sesión de background**
+(`auto-research-session-start-gaps`), marcado huérfano porque el script no encontró un
+proceso vivo dueño del lock (pid 40036) — pese a que la sesión seguía activa. A diferencia de
+[027] (que ya propone la solución: un gate de cierre que bloquee `session_end` con worktrees
+pendientes) y de [026] (causa raíz de por qué los hooks/submódulo se rompen *dentro* de un
+worktree), esta idea es más angosta: entender **el mecanismo real de limpieza** — ¿el
+`ExitWorktree`/ciclo de vida de sesión de background de la plataforma está fallando en
+detectar su propio proceso dueño, o el chequeo de `check-orphaned-worktrees.sh` tiene un falso
+positivo estructural con sesiones background (PID reportado no es el PID real del proceso que
+sostiene el lock)? Antes de implementar el gate de [027], vale la pena confirmar si el problema
+es "nadie llama a la limpieza" (higiene de proceso, lo que [027] ya resuelve) o "se llama pero
+falla silenciosamente" (bug de la plataforma o del script de detección) — son fixes distintos.
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [030] Formato definido para reviews de PR, coherente con el formato de la descripción
+**Estado:** raw
+**Capturado:** 2026-09-17
+**Prioridad:** Hacer — impacto medio, esfuerzo bajo
+**Contexto:** Disparador directo: el PR #300 (Issue #298) se publicó con una descripción que
+no seguía el "Formato de PR body (obligatorio)" ya definido en `agents/github.md` (faltaban
+`## Por qué de este modo` y `## Proceso`, sin `Closes #N` literal, con footer de atribución de
+IA prohibido) — corregido en la misma sesión (ver Issue #301, que investiga por qué se salteó).
+Al revisar ese incidente, el usuario notó que existe una regla clara para el **body del PR**
+(`agents/github.md` → "Formato de PR body") pero ninguna regla equivalente para el **review**
+que se deja sobre ese PR (agente `reviewer`, o revisión humana) — el review terminó siendo un
+comentario de texto libre sin estructura acordada, sin garantía de que cubra las mismas
+dimensiones que el body promete (qué se hizo / por qué / tests / proceso).
+
+Objetivo: definir un formato de review de PR que sea **coherente** con el formato de la
+descripción — que un reviewer (agente o humano) pueda verificar explícitamente cada sección del
+body (¿el "por qué" se sostiene?, ¿los tests declarados corren y prueban lo que dicen?, ¿el
+"proceso" declarado es el que realmente se siguió?) en vez de una evaluación de calidad genérica
+desconectada de lo que el propio PR afirma. Relacionado con Issue #301 (agente especialista de
+GitHub) — si ese agente termina siendo el punto único de operaciones de GitHub, este formato de
+review sería una responsabilidad natural suya.
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [031] `cleanup-merged-branch.sh` da falso negativo en sesiones de worktree
+**Estado:** raw
+**Capturado:** 2026-09-17
+**Prioridad:** Quick win — impacto medio, esfuerzo bajo
+**Contexto:** Disparador: al cerrar el Issue #298 (PR #300 ya mergeado y verificado contra
+`origin/develop`), `skills/agentic-dev-loop/scripts/cleanup-merged-branch.sh` reportó "La rama
+local 'fix/issue-298-unificar-claude-md' existe pero NO aparece como mergeada en develop" —
+falso negativo. Causa: el script calcula `git merge-base develop "$branch"` y
+`git branch --merged develop` contra la rama **local** `develop`, no `origin/develop`. En una
+sesión aislada en worktree, la rama local `develop` está checked out en otro worktree (el
+checkout principal) y no se puede actualizar desde acá (`git checkout develop` falla:
+"already used by worktree"), así que queda desactualizada indefinidamente mientras dure la
+sesión — cualquier merge nuevo a `origin/develop` no se refleja en el juicio del script hasta
+que alguien actualice la rama local `develop` desde el checkout principal.
+
+Se resolvió en el momento verificando manualmente (`git merge-base --is-ancestor <rama>
+origin/develop` + `git diff origin/develop <rama>` vacío) antes de borrar la rama local con
+confirmación del usuario — pero el script en sí sigue dando el falso negativo para cualquier
+sesión futura en worktree. Mismo patrón de fondo que el `Learned` de `cut-release.sh` documentado
+en el bookkeeping de PR #193-195 (v2.6.0): scripts de `agentic-dev-loop`/`repo-integrity` que
+asumen un checkout único y no contemplan que la sesión activa puede estar en un worktree
+distinto del que tiene `develop`/`main` checked out.
+
+**Fix probable (no evaluado aún):** cambiar `git merge-base develop "$branch"` y
+`git branch --merged develop` por sus equivalentes contra `origin/develop` (mismo `git fetch
+origin develop --quiet` que el script ya hace, pero comparando contra la ref remota en vez de
+la local). Evaluar si aplica el mismo fix a otros scripts hermanos que puedan tener el mismo
+supuesto (`post-merge.sh`, `classify-branch.sh`).
+
+### Iteraciones
+_(sin iterar)_
+
+---
+
+## [032] Aura Control Panel — panel de control visual + documental del harness
+**Estado:** en progreso (Issue #304)
+**Capturado:** 2026-09-17
+**Prioridad:** Planificar — impacto alto, esfuerzo medio (Enfoque C, primer peldaño de C → A → B)
+**Contexto:** Disparador: usuario propone, en paralelo al trabajo del Issue #303, evolucionar
+la infraestructura física ya existente (VPS, dominio, MFA, Docker, Traefik, Claude Code, Aura
+Agent Kit) hacia un panel de control ("Aura Control Panel") que permita lanzar loops con varios
+subagentes y luego revisar esas sesiones tanto de forma visual como documental — usuario y Aura
+viéndolas juntos. Menciona explícitamente crear un "objeto sesión" que cubra tanto a Aura como
+al controller del harness, y arrancar con una lista básica porque la cobertura de seguridad de
+la información va a mejorar más adelante (dependencia futura, no bloqueante para arrancar).
+
+Sin spec ni diseño previo — candidato directo a `/brainstorm` antes de `/plan-work`, siguiendo
+`.aura/rules/design-flow.md` (involucra arquitectura nueva + integración con infraestructura
+externa, más de 2 archivos/componentes nuevos esperables).
+
+### Iteraciones
+
+**2026-09-17 — Brainstorm inicial (fork, sin usuario interactivo en vivo):** design doc en
+`docs/aura/specs/2026-09-17-aura-control-panel-brainstorm.md` (gitignored). 3 enfoques
+evaluados — A) dashboard estático sobre `sessions.jsonl`/Engram/`ideas.md`; B) servicio propio
+en el VPS detrás de Traefik+MFA con lanzador de loops; C) extender `skills/observability/`
+con un modo "resumen de loop" versionable, sin servicio nuevo. Sugerencia de secuencia
+C → A → B, no vinculante. Riesgos de seguridad identificados: repo público + incidente previo
+de datos de cliente filtrados, dependencia del enforcement de Issue #303 (clasificación de
+repos) antes de agregar sesiones de repos `cliente`, herencia del MFA existente en vez de auth
+nueva, credenciales de VPS/Traefik/Docker nunca versionadas. 6 preguntas abiertas quedaron
+pendientes de que el usuario responda (ver design doc) — no se creó ningún issue todavía.
+
+**2026-09-17 — Usuario responde las 4 preguntas clave del brainstorm:** (1) Enfoque inicial:
+**C** (extender `skills/observability/`, sin servicio nuevo). (2) Objeto sesión: **agregación**
+de lo que ya existe (`sessions.jsonl` + Engram + `ideas.md`/`plans/`), no un esquema nuevo
+paralelo. (3) Alcance vs. Issue #303: arranca **ya, restringido a repos `harness`/`personal`**
+— ningún repo `cliente` hasta que el enforcement (Pasos 3-4 de esa spec) exista. (4) Auth
+futura (cuando se llegue al Enfoque B): **reusar el MFA/Traefik existente**, sin capa nueva.
+Con esto, la idea tiene dirección suficiente para pasar a `/plan-work` cuando el usuario lo
+pida — siguiente paso natural: issue(s) para el Enfoque C (modo "resumen de loop" en
+`skills/observability/`).
+
+**2026-09-17 — Issue #304 creado:** "Modo 'resumen de loop' en skills/observability/ (Aura
+Control Panel, Enfoque C)", label `ready,enhancement`. Primer issue accionable de la idea.
+
+### Iteraciones
+_(sin iterar)_
 
 ---

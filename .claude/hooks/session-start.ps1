@@ -103,6 +103,27 @@ if ($output.gh_authenticated) {
     }
 }
 
+# Visibilidad del repo (Issue #258) -- alimenta el gate de datos sensibles de session_start.md
+if ($output.gh_authenticated) {
+    try {
+        $output.repo_visibility = (gh repo view --json visibility -q .visibility 2>$null)
+    } catch {
+        $output.repo_visibility = $null
+    }
+}
+
+# PRs abiertas (Issue #258) -- señal más directa de trabajo a un paso de cerrarse
+$output.open_prs = @()
+if ($output.gh_authenticated) {
+    try {
+        $prsJson = gh pr list --state open --json number,title,headRefName,baseRefName,mergeable --limit 20 2>$null
+        if ($prsJson) {
+            $parsedPrs = $prsJson | ConvertFrom-Json
+            if ($parsedPrs) { $output.open_prs = @($parsedPrs) }
+        }
+    } catch { }
+}
+
 # current-session.json
 $sessionFile = Join-Path $projectRoot ".agent\memory\current-session.json"
 if (Test-Path $sessionFile) {
@@ -142,6 +163,56 @@ try {
 } catch {
     $output.merged_branches = @()
     $output.gone_branches = @()
+}
+
+# 4 scripts de repo-integrity (Issue #258) -- stdout capturado, fail-silent si no imprimen nada
+$output.repo_integrity = @{}
+try {
+    $gitCmdForScripts = (Get-Command git -ErrorAction SilentlyContinue).Source
+    $gitBashForScripts = $null
+    if ($gitCmdForScripts) {
+        # git.exe puede resolverse desde dos profundidades distintas segun el layout de Git for
+        # Windows -- Git\cmd\git.exe (clasico, bash.exe a 2 niveles) o Git\mingw64\bin\git.exe
+        # (via mingw64, bash.exe a 3 niveles). Mismo fix que Get-GitBashPath en
+        # session-end-gather.ps1 (Issue #267 / PR #266).
+        $binDirForScripts = Split-Path $gitCmdForScripts -Parent
+        $depth2RootForScripts = Split-Path $binDirForScripts -Parent
+        $depth3RootForScripts = Split-Path $depth2RootForScripts -Parent
+        foreach ($rootForScripts in @($depth2RootForScripts, $depth3RootForScripts)) {
+            $candidateBash = Join-Path $rootForScripts "bin\bash.exe"
+            if (Test-Path $candidateBash) { $gitBashForScripts = $candidateBash; break }
+        }
+    }
+    if (-not $gitBashForScripts) {
+        # Señal diagnosticable cuando bash no se resuelve en ningún layout -- mismo patrón que
+        # harness_update_check_error mas abajo en este archivo (Issue #111).
+        $output.repo_integrity_error = "gitBash no resuelto (Git for Windows no encontrado en 2 ni 3 niveles bajo git.exe)"
+    }
+
+    if ($gitBashForScripts) {
+        $integrityScripts = @{
+            release_drift      = "skills\repo-integrity\scripts\check-release-drift.sh"
+            repo_manifest      = "skills\repo-integrity\scripts\check-repo-manifest.sh"
+            base_branch        = "skills\repo-integrity\scripts\check-base-branch.sh"
+            orphaned_worktrees = "skills\repo-integrity\scripts\check-orphaned-worktrees.sh"
+        }
+        Push-Location $projectRoot
+        try {
+            foreach ($key in $integrityScripts.Keys) {
+                $scriptPath = Join-Path $projectRoot $integrityScripts[$key]
+                if (Test-Path $scriptPath) {
+                    $result = & $gitBashForScripts $scriptPath 2>$null
+                    if ($result) {
+                        $output.repo_integrity[$key] = ($result -join "`n")
+                    }
+                }
+            }
+        } finally {
+            Pop-Location
+        }
+    }
+} catch {
+    # Fail-silent -- mismo patrón que los otros chequeos de repo-integrity
 }
 
 # Issues con label ready (si gh autenticado)

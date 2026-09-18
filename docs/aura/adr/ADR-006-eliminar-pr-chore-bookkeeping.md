@@ -57,13 +57,30 @@ trabajo del usuario).
    devuelve vacío, leer `current-session.json` local y usarlo para poblar "Última Sesión" en
    el Resumen Ejecutivo, con advertencia explícita de que puede estar desactualizado. Esta es
    la única razón de ser del archivo a partir de ahora.
+
+   > **Enmienda (Issue #213, 2026-09-14):** en sesiones de background (sesiones aisladas en
+   > worktree por la plataforma), `protocols/session_end.md` Paso 5 no puede escribir a
+   > `.agent/memory/current-session.json` — el aislamiento de worktree rechaza cualquier
+   > escritura al checkout compartido fuera de su propio contexto, incluso para archivos
+   > gitignored, y esa restricción no cambia tras `ExitWorktree`. Consecuencia: el puntero de
+   > emergencia no se actualiza en esas sesiones, quedando permanentemente stale. Dado que
+   > Engram sigue siendo la memoria primaria (este mismo punto), la continuidad ante caída de
+   > Engram **no está garantizada en sesiones background** — limitación estructural no
+   > contemplada en el trade-off original de este ADR. Ver `protocols/session_end.md` Paso 5
+   > para la detección y el aviso explícito agregado en esas sesiones.
 5. El mismo patrón se formaliza como política por defecto para `project-log.md`: sus
-   entradas de bookkeeping puro (sin PR de código en curso para montarlas) se guardan en
-   Engram con `topic_key: project-log/pr-bookkeeping` (upsert) en vez de abrir una PR chore
-   dedicada, y se vuelcan al archivo real en la próxima PR de código que se abra
-   (`agents/github.md` → "Bookkeeping sin PR real abierta"). `project-log.md` en sí **sigue
-   versionado** — es el registro histórico real del proyecto, no metadata de sesión; lo que
-   cambia es que deja de generar una PR solo por eso.
+   entradas de bookkeeping se guardan en Engram con `topic_key: project-log/pr-bookkeeping`
+   (upsert) en vez de un append directo o una PR chore dedicada, y se vuelcan al archivo real
+   en la próxima PR de código que se abra (`agents/github.md` → "Bookkeeping de
+   `project-log.md`"). `project-log.md` en sí **sigue versionado** — es el registro histórico
+   real del proyecto, no metadata de sesión; lo que cambia es que deja de generar una PR solo
+   por eso.
+
+   > **Enmienda (Issue #262, 2026-09-12):** el punto 5 original condicionaba esta ruta a "sin
+   > PR de código en curso para montarlas" — dejaba la puerta abierta a que igual se abriera
+   > una PR chore dedicada cuando sí había código en curso. Caso real de esa puerta usada: PR
+   > #261, abierta solo para volcar bookkeeping de PR #256+#260, quedó cerrada sin mergear. La
+   > condición se eliminó: la ruta de Engram es ahora el único flujo, siempre, sin excepción.
 6. `AGENTS.md` → "Qué se Versiona": la fila "Identidad de sesión activa" pasa de **Sí** a
    **No**, referenciando este ADR.
 
@@ -107,5 +124,6 @@ en su momento; este ADR documenta el cambio posterior.
 - `protocols/session_end.md` — Paso 5 reescrito (sin rama/PR)
 - `protocols/session_start.md` — Paso 5, fallback de lectura nuevo
 - `AGENTS.md` — tabla "Qué se Versiona", sección "Memoria"
-- `agents/github.md` — nueva sub-sección "Bookkeeping sin PR real abierta"
+- `agents/github.md` — nueva sub-sección "Bookkeeping de `project-log.md`" (Issue #262:
+  dejó de ser condicional/fallback, es el único flujo)
 - `docs/aura/adr/ADR-000-registro.md` — registro de este ADR

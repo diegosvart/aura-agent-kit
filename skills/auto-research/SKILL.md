@@ -61,7 +61,7 @@ Ejemplo: *"En la próxima sesión con feature nueva, spec-validation se ejecuta 
 
 - **Máximo 2 experimentos activos en simultáneo** — más de eso diluye la atribución de resultados
 - **Un experimento = una hipótesis** — no mezclar cambios en el mismo experimento
-- **No modificar pilares** (`docs/aura/specs/2026-05-09-harness-pillars.md`) como parte de un experimento — los pilares requieren nueva spec aprobada
+- **No modificar pilares** (`docs/aura/adr/ADR-011-los-7-pilares-del-harness.md`) como parte de un experimento — los pilares requieren nueva spec aprobada
 - **No modificar este skill** durante un experimento activo
 
 ---

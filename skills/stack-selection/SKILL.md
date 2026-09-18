@@ -123,6 +123,32 @@ Una vez confirmado el perfil, escribir en `.agent/memory/session-stack.json`:
 }
 ```
 
+### Paso 5 — Clasificación de repo (Issue #303, D1) — solo si falta
+
+Si `.agent/memory/repo-classification.json` no existe todavía en este repo, aprovechar esta
+invocación de `/stack` para completarlo (evita que la primera sesión del proyecto quede
+bloqueada más tarde por la pregunta de `protocols/session_start.md`). No preguntar de nuevo si
+el archivo ya existe — el stack puede cambiar mid-session (Regla 2), la clasificación de repo
+no.
+
+```
+¿Este repo es `harness` (fork/dogfooding directo del harness), `personal` (proyecto propio, sin
+terceros con acceso) o `cliente` (un tercero tiene o puede tener acceso)?
+```
+
+Escribir `.agent/memory/repo-classification.json`:
+
+```json
+{
+  "repo_type": "<harness|personal|cliente>",
+  "classified_at": "<ISO timestamp>",
+  "classified_by": "manual"
+}
+```
+
+Ver `docs/aura/specs/2026-09-17-memoria-clasificacion-repos-design.md` (D1-D3) para el criterio
+completo — determina qué puede guardar `mem_save` en este repo desde la próxima observación.
+
 ---
 
 ## Tabla de Perfiles — Detalle Completo

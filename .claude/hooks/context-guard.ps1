@@ -8,16 +8,17 @@
 #
 # Estimación: total_chars / 4 ≈ tokens (±10% de margen, suficiente para guardia)
 #
-# Umbrales (ventana real: 200k tokens):
-#   < 130k tokens  → sin ruido
-#   130k–160k tokens → warning suave (~65-80% de la ventana)
-#   ≥ 160k tokens  → warning urgente (dejar buffer para autocompact de 33k)
+# Umbrales (ventana real: 300k tokens — recalibrado en Issue #270, ver
+# docs/aura/experiments/2026-09-15-context-guard-umbral-300k.md, gitignored/local):
+#   < 195k tokens  → sin ruido
+#   195k–240k tokens → warning suave (~65-80% de la ventana)
+#   ≥ 240k tokens  → warning urgente (dejar buffer para autocompact)
 #
 # Claude Code inyecta el input como JSON en stdin:
 #   { "session_id": "...", "transcript_path": "...", "message": "..." }
 
-$THRESHOLD_WARN  = 130000
-$THRESHOLD_ALERT = 160000
+$THRESHOLD_WARN  = 195000
+$THRESHOLD_ALERT = 240000
 
 # Leer stdin
 $raw = $null
@@ -60,7 +61,7 @@ if ($estimated_tokens -lt $THRESHOLD_WARN) {
 if ($estimated_tokens -ge $THRESHOLD_ALERT) {
     $warning = @"
 ⚠️ CONTEXT-GUARD — ALERTA URGENTE
-Tokens estimados: ~$estimated_tokens / 200.000 ventana
+Tokens estimados: ~$estimated_tokens / 300.000 ventana
 El contexto está en zona crítica. Compactar manualmente antes de continuar:
   • Escribí /compact en el prompt para comprimir el historial
   • O cerrá la sesión con el protocolo session_end para guardar en Engram
@@ -69,7 +70,7 @@ Continuar sin compactar puede causar degradación o pérdida de contexto.
 } else {
     $warning = @"
 ℹ️ CONTEXT-GUARD — Advertencia
-Tokens estimados: ~$estimated_tokens / 200.000 ventana
+Tokens estimados: ~$estimated_tokens / 300.000 ventana
 El contexto está creciendo. Considerá compactar pronto con /compact.
 "@
 }

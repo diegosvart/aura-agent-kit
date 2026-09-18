@@ -1,11 +1,38 @@
 #!/usr/bin/env bash
 # Segunda capa de enforcement de "nunca push directo a develop/main", independiente de Claude
 # Code. Espejo del set protegido de .claude/hooks/git-guard.ps1 ($protected = @("develop", "main")).
-# Git invoca este hook con una linea por cada ref actualizada, via stdin:
+# Git invoca este hook con dos argumentos (nombre y URL del remote destino) y una linea por
+# cada ref actualizada via stdin:
 #   <local ref> <local sha1> <remote ref> <remote sha1>
+#
+# Issue #253: la version original solo miraba el nombre de la ref remota (refs/heads/develop),
+# sin mirar a que repositorio pertenecia esa ref. Un mirror push hacia un repo DISTINTO al
+# origin (ej. un sandbox) tambien actualiza sus refs/heads/develop y quedaba bloqueado igual,
+# aunque no fuera un push directo a develop/main de este proyecto. Mismo bug que se encontro y
+# corrigio en git-guard.ps1 -- aca aplica el mismo fix: comparar el repo destino contra origin
+# y salir sin bloquear si difieren.
 set -euo pipefail
 
+remote_url="${2:-}"
+
 protected_refs="refs/heads/develop refs/heads/main"
+
+normalize_repo_url() {
+  # Normaliza esquema/sufijo .git/slash final para poder comparar
+  # https://github.com/owner/repo.git, git@github.com:owner/repo.git, etc.
+  echo "$1" | sed -E 's#^[a-zA-Z]+://##; s#^git@##; s#:#/#; s#\.git$##; s#/+$##'
+}
+
+origin_url="$(git remote get-url origin 2>/dev/null || true)"
+
+if [ -n "$origin_url" ] && [ -n "$remote_url" ]; then
+  norm_origin="$(normalize_repo_url "$origin_url")"
+  norm_remote="$(normalize_repo_url "$remote_url")"
+  if [ "$norm_origin" != "$norm_remote" ]; then
+    # Push a un repo distinto al origin del checkout -- fuera de alcance de esta regla.
+    exit 0
+  fi
+fi
 
 while read -r _local_ref _local_sha remote_ref _remote_sha; do
   for ref in $protected_refs; do

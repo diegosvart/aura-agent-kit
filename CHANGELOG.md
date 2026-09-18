@@ -5,7 +5,105 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.8.0] - 2026-09-18
+
+### Added
+- `skills/new-project-setup/SKILL.md` (+ `/new-project`): wizard end-to-end para scaffoldear
+  un repo consumidor de Aura desde cero (directorio local, clonado del remoto, submodule
+  pinneado a un tag, hooks, identidad, `.gitignore`, stack de sesión y primer push), dejándolo
+  listo para arrancar `claude .` sin fricción. Formaliza el procedimiento manual ya ejecutado
+  en dos scaffolds reales (`aura-harness-diagrams`, `ebi-insight-power-apps`).
+- `protocols/session_start.md`: Paso 0 (recuperación de contexto Engram) ahora es obligatorio
+  y bloqueante, corre siempre con fallback explícito a `current-session.json`. Gathering
+  determinístico extendido a 16 ítems (visibilidad del repo, PRs abiertas, 4 scripts de
+  `repo-integrity`) vía `.claude/hooks/session-start.ps1`. Resumen ejecutivo reagrupado en 3
+  preguntas raíz (Continuidad / Estado real / Próximo movimiento) sin perder cobertura previa
+  (Issue #257/#258, PR #260).
+- `.claude/hooks/session-end-gather.ps1`: consolida el gathering de cierre de sesión (linter,
+  tests, rama, PRs/issues, commits ahead de develop) en una sola invocación, reemplazando ~7
+  tool-calls dispersas (PR #266).
+- Clasificación de repos (`harness`/`personal`/`cliente`, `.agent/memory/repo-classification.json`)
+  y enforcement de datos sensibles sobre las tools de escritura de Engram (`mem_save`,
+  `mem_save_prompt`, `mem_capture_passive`, `mem_update`, `mem_session_summary`,
+  `mem_session_end`, `mem_judge`) vía `sensitive-data-guard.ps1` — fail-closed si la
+  clasificación falta o es inválida (Issue #303/#304/#306/#309, PRs #307/#310).
+- `/harness-status`: inventario de agentes/skills/protocolos/reglas/comandos/hooks del harness
+  con detección de referencias rotas en `protocols/router.md` (Issue #208, PR #289).
+- `/session-report` (Modo 2 de observability): informe agregado bajo demanda de
+  `delegation_rate`, tokens/duración y distribución de `tool_uses` a través de sesiones (Issue
+  #265, PR #284). Modo 3 (`loop-summary.sh`) agrega un batch puntual de sesiones para revisar
+  el costo de una corrida de subagentes/forks (Issue #304, PR #305).
+- Log de errores de proceso del agente (`log-process-error.sh` / `check-process-errors.sh`,
+  taxonomía cerrada de 4 tipos) con aviso automático en `session_start.md` cuando un mismo tipo
+  aparece 3+ veces en las últimas 10 sesiones (Issue #206, PR #293).
+- Excepción acotada en `.claude/rules/data-safety.md`: el agente puede **redactar** (nunca
+  ejecutar) DCL de permisos (`GRANT`/`REVOKE`/`DENY`) para revisión manual del usuario (Issue
+  #142, PR #278).
+- Instaladores (`install.ps1`/`install.sh`): paso `[4/4]` que verifica que los hooks declarados
+  en `.claude/settings.json` estén realmente trackeados en git, evitando el caso real de un
+  hook presente en disco pero nunca commiteado (Issue #156, PR #279).
+- `.claude/hooks/agent-frontmatter-guard.ps1`: gate `PreToolUse` que valida el frontmatter YAML
+  de `agents/*.md` antes de permitir la edición (Issue #231/#286, PRs #291/#294).
+- Campo `Despacho` obligatorio en cada paso del Plan de `protocols/task_start.md` — declara
+  antes de ejecutar si el paso se delega (fork/subagente) o corre inline (Issue #268, PR #269).
+
+### Changed
+- Formato de PR body estandarizado (4 secciones + `Closes #N`) y eliminada la atribución de IA
+  en commits/PRs de este repo — nunca fue una regla versionada, sino una inyección de
+  plataforma inconsistente entre sesiones (PR #256).
+- Bookkeeping de `.agent/memory/project-log.md` deja de requerir una PR chore dedicada: se
+  guarda primero en Engram (`topic_key: project-log/pr-bookkeeping`, upsert) y se vuelca en la
+  próxima PR de código real (ADR-006, PR #264).
+- `.claude/hooks/context-guard.ps1`: umbral recalibrado de una ventana asumida de 200k a 300k
+  tokens (`WARN` 130k→195k, `ALERT` 160k→240k), con evidencia real de sesiones que disparaban
+  alerta prematura (Issue #270, PR #292).
+- `skills/agentic-dev-loop/SKILL.md`: el rol verifier también debe preferir `gh pr diff <N>`
+  sobre `git diff develop..<rama>` para evitar la race de checkout compartido con el dev-runner
+  corriendo en paralelo (Issue #276, PR #283).
+
+### Fixed
+- Eliminado `.aura/CLAUDE.md` (anidado): confirmado huérfano por validación empírica contra un
+  repo consumidor real — el import que genera `skills/new-project-setup/SKILL.md` resuelve al
+  `CLAUDE.md` raíz, nunca al anidado, así que este último quedaba doblemente anidado en
+  `<consumidor>/.aura/.aura/CLAUDE.md` sin ningún import que lo alcance. Corregido
+  `skills/new-project-setup/SKILL.md`: eliminado el Paso 0.7 (pregunta sobre reglas opt-in, ya
+  no existe esa decisión) y el Paso 4 ya no instruye editar un archivo inerte. Las 6 reglas del
+  harness quedan fijas y activas para todo consumidor, documentado en `AGENTS.md`. Sin cambio
+  de comportamiento observable para consumidores existentes (ya recibían las 6 reglas activas).
+  Agregado chequeo de regresión en `skills/repo-integrity/scripts/check-repo-manifest.sh`: falla
+  si aparece un `CLAUDE.md` fuera de la raíz del repo (Issue #297/#298, PRs #300/#302). Validado
+  end-to-end contra un consumidor real (`aura-hello-world-validation`) confirmando que el fix
+  resuelve correctamente sin regresión (Issue #299, PR #311).
+- `.claude/hooks/git-guard.ps1` y `.githooks/pre-push` no distinguían el repositorio remoto de
+  destino de un push — un mirror push a un repo distinto (ej. sandbox) quedaba bloqueado igual
+  que un push directo real a `develop`/`main` de este repo (PR #254).
+- `Get-GitBashPath` (hooks de `session_start`/`session_end`) ahora prueba 2 y 3 niveles de
+  profundidad bajo `git.exe` para localizar `bash.exe`, con rastro diagnosticable cuando ningún
+  candidato existe (Issue #267, PR #271).
+- `sync_pretooluse_hook` (`apply-update.sh`) distinguía incorrectamente "no se pudo verificar"
+  de "ya estaba registrado" para hooks de seguridad críticos — corregido para reportar 3
+  estados reales en vez de 2 (Issue #196, PR #273).
+- Permisos: reemplazado el wildcard `Edit(.env.*)` por una lista explícita de variantes
+  reales peligrosas — dejaba de bloquear plantillas públicas legítimas como `.env.example`
+  (Issue #155, PR #274).
+- `protocols/session_end.md` Paso 5 detecta sesiones de background (worktree aislado de
+  plataforma) y saltea el intento de escritura a `current-session.json`, que fallaba
+  estructuralmente ahí sin aviso claro (Issue #213, PR #277).
+- 7 bugs de correctness + 1 duplicación encontrados por code-review sobre PR #284:
+  normalización de versión en `apply-update.sh`, detección de todas las referencias
+  `Closes/Fixes/Resolves` en `classify-branch.sh`, matcheo de la rama actual checkouteada en
+  `cleanup-merged-branch.sh`, texto obsoleto en `verify-issue-201-fixes.sh`, manejo de código
+  de salida inalcanzable en `cut-release.sh`, word-splitting en `cleanup-merged-branch.sh`, y
+  wireado del gate huérfano `check-agent-frontmatter.sh` a `session_start.md` (Issue #285, PR
+  #287).
+- 2 referencias fantasma remanentes a `docs/aura/specs/harness-pillars.md` (ruta que nunca
+  existió) corregidas para apuntar a `docs/aura/adr/ADR-011-los-7-pilares-del-harness.md`
+  (Issues #147/#275, PRs #272/#290).
+
+### Security
+- `mem_session_end` y `mem_judge` (tools de escritura de Engram) cubiertas por el enforcement
+  de datos sensibles — quedaban sin filtrar pese a que la lista de tools ya era explícita
+  (hallazgo de reviewer post-merge, Issue #309, PR #310).
 
 ## [2.7.0] - 2026-09-06
 

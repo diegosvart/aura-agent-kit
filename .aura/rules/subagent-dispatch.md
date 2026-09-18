@@ -22,6 +22,17 @@ Esto formaliza como regla del harness Aura un principio que ya existe como guía
 de ejecución (fork vs. fresh agent) — no es mecanismo nuevo, es hacerlo explícito y auditable
 dentro de `AGENTS.md`/`router.md`, en vez de dejarlo a criterio implícito caso por caso.
 
+## Mecanismo operativo — campo `- Despacho:` del Plan (Issue #268)
+
+Las dos condiciones de arriba se completan hoy en el momento de armar el "Paso 1: Plan" de
+`protocols/task_start.md`, como un cuarto campo obligatorio (`- Despacho: DELEGAR (...) |
+INLINE (...)`) en cada `### Paso N`, junto a Qué/Archivos/Seguridad. Esto no cambia las
+condiciones — les da un punto de aplicación declarado y auditable *antes* de ejecutar cada
+paso, en vez de una evaluación implícita que dependía de que el agente se acordara de aplicar
+esta regla. `task_start.md` define también el formato exacto y el manejo de reintento cuando
+un paso `DELEGAR` falla. `delegation_rate` (más abajo) sigue siendo la auditoría *posterior* —
+el campo Despacho es la decisión *previa* que ese cociente termina midiendo.
+
 ## Caso borde — tarea ambigua entre delegar e inline
 
 Si la condición 1 aplica pero la condición 2 es dudosa (la tarea toca tanto contexto vivo como
@@ -47,7 +58,7 @@ vía la métrica `delegation_rate` (ver abajo), como detección, no como bloqueo
 ## Métrica de auditoría — `delegation_rate`
 
 Calculada por sesión en `skills/observability/scripts/process-session.sh` y expuesta en
-`protocols/session_start.md` Paso 5.5 (reporte de sesión anterior):
+`protocols/session_start.md` Paso 3.5 (reporte de sesión anterior):
 
 - **Denominador `a` (triggers aplicables):** derivado mecánicamente por matching de patrón
   entre el transcript de la sesión y las columnas "Situación"/"Trigger" de

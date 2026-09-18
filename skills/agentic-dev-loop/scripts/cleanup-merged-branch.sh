@@ -36,7 +36,7 @@ fi
 
 git fetch origin develop --quiet || true
 
-merge_base=$(git merge-base develop "$branch") || {
+merge_base=$(git merge-base origin/develop "$branch") || {
   echo "No se pudo calcular el merge-base entre 'develop' y '$branch'." >&2
   exit 1
 }
@@ -47,9 +47,9 @@ mapfile -t changed_files < <(git diff --name-only "$merge_base" "$branch")
 # final ya está incorporado). Ver docs/aura/experiments/2026-09-05-cleanup-branch-squash-merge-gap.md.
 # El prefijo de `git branch --merged` es "  " para una rama no-activa y "* " si es la rama
 # actualmente checkouteada — se recorta con sed antes de comparar (Issue #285, bug #3).
-if git branch --merged develop | sed 's/^[* ] //' | grep -qx "$branch"; then
+if git branch --merged origin/develop | sed 's/^[* ] //' | grep -qx "$branch"; then
   :
-elif [ ${#changed_files[@]} -eq 0 ] || git diff --quiet develop "$branch" -- "${changed_files[@]}"; then
+elif [ ${#changed_files[@]} -eq 0 ] || git diff --quiet origin/develop "$branch" -- "${changed_files[@]}"; then
   :
 else
   echo "La rama local '$branch' existe pero NO aparece como mergeada en develop (ni por ancestría ni por contenido) — ¿falta git fetch/pull, o el merge no está completo?" >&2

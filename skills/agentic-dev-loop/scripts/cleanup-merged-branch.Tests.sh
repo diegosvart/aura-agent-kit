@@ -128,6 +128,62 @@ else
     fail_count=$((fail_count + 1))
 fi
 
+# Issue #317: el script compara contra la referencia local `develop` en vez de
+# `origin/develop`. Cuando la sesion activa corre en un checkout cuyo `develop` local esta
+# desactualizado (no se puede `git checkout develop` ahi, ej. un worktree distinto), pero
+# `origin/develop` YA tiene el merge (fetcheado), el script reporta un falso negativo: dice
+# que la rama NO esta mergeada cuando en realidad si lo esta en el remoto.
+echo ""
+echo "--- Issue #317: develop local desactualizada respecto a origin/develop con el merge ya aplicado debe detectarse como mergeada ---"
+test_count=$((test_count + 1))
+fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-issue317-$$"
+mkdir -p "$fixture_dir/bin" "$fixture_dir/origin"
+setup_fake_gh "$fixture_dir/bin" "feature-stale-local-develop"
+(
+    set -e
+    cd "$fixture_dir/origin"
+    git init -q
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git config core.autocrlf false
+    echo base > base.txt
+    git add base.txt
+    git commit -q -m base
+    git branch -q develop
+
+    git checkout -q -b feature-stale-local-develop
+    echo "feature change" > feature.txt
+    git add feature.txt
+    git commit -q -m "feature commit"
+
+    git checkout -q develop
+    git merge -q --no-ff feature-stale-local-develop -m "merge feature-stale-local-develop"
+
+    cd "$fixture_dir"
+    git clone -q "$fixture_dir/origin" local
+
+    cd "$fixture_dir/local"
+    git checkout -q develop
+    # Local develop queda desactualizada (antes del merge) aunque origin/develop (ya
+    # fetcheado por el clone) SI tiene el merge — este es el escenario real del Issue #317.
+    git reset -q --hard HEAD~1
+    git branch -q feature-stale-local-develop origin/feature-stale-local-develop
+
+    PATH="$fixture_dir/bin:$PATH" "$SCRIPT_PATH" "fake/repo" "3"
+) > "$fixture_dir/output.txt" 2>&1
+output=$(cat "$fixture_dir/output.txt")
+rm -rf "$fixture_dir"
+
+if echo "$output" | grep -q "está mergeada en develop y lista para borrar"; then
+    echo -e "${GREEN}✓ PASS${NC} — develop local desactualizada no genera falso negativo, el script usa origin/develop"
+    pass_count=$((pass_count + 1))
+else
+    echo -e "${RED}✗ FAIL${NC} — develop local desactualizada no genera falso negativo, el script usa origin/develop"
+    echo "  Expected: salida que contenga 'está mergeada en develop y lista para borrar'"
+    echo "  Got:      $output"
+    fail_count=$((fail_count + 1))
+fi
+
 echo ""
 echo "=== Resumen de tests ==="
 echo "Total: $test_count"

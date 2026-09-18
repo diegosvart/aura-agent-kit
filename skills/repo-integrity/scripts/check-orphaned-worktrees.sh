@@ -36,7 +36,7 @@ LAST_TASKLIST_OUTPUT=""
 pid_alive() {
   local pid="$1"
   command -v tasklist >/dev/null 2>&1 || return 1
-  LAST_TASKLIST_OUTPUT=$(tasklist //FI "PID eq $pid" 2>&1)
+  LAST_TASKLIST_OUTPUT=$(tasklist //FI "PID eq $pid" 2>/dev/null)
   echo "$LAST_TASKLIST_OUTPUT" | grep -q "$pid"
 }
 

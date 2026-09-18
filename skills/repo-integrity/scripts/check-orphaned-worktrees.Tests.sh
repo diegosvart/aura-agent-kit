@@ -19,15 +19,7 @@ fail_count=0
 
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/check-orphaned-worktrees.sh"
 
-echo ""
-echo "--- Issue #318: worktree huerfano por lock muerto debe anexar diagnostico JSONL ---"
-test_count=$((test_count + 1))
-
-fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-issue318-$$"
-mkdir -p "$fixture_dir"
-(
-    set -e
-    cd "$fixture_dir"
+setup_fixture_repo() {
     git init -q main
     cd main
     git config user.email "test@example.com"
@@ -37,6 +29,18 @@ mkdir -p "$fixture_dir"
     git add base.txt
     git commit -q -m base
     git branch -q develop
+}
+
+echo ""
+echo "--- Issue #318: worktree huerfano por lock muerto debe anexar diagnostico JSONL ---"
+test_count=$((test_count + 1))
+
+fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-issue318-$$"
+mkdir -p "$fixture_dir"
+(
+    set -e
+    cd "$fixture_dir"
+    setup_fixture_repo
 
     # Worktree secundario con lock "muerto" -- reason trae un PID que no corre en esta
     # maquina (999999), simulando una sesion que murio sin liberar el lock.
@@ -90,15 +94,7 @@ mkdir -p "$fixture_dir2"
 (
     set -e
     cd "$fixture_dir2"
-    git init -q main
-    cd main
-    git config user.email "test@example.com"
-    git config user.name "Test User"
-    git config core.autocrlf false
-    echo base > base.txt
-    git add base.txt
-    git commit -q -m base
-    git branch -q develop
+    setup_fixture_repo
 
     # Worktree A: lock con PID vivo (el propio PID de este proceso de test) -- pid_alive()
     # corre tasklist para $$ y lo cachea, luego el script hace "continue" sin loggear.

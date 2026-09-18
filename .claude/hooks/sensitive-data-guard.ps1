@@ -133,13 +133,17 @@ function Test-SensitiveDataGuard {
 # Tools MCP de Engram que ESCRIBEN contenido libre de forma persistente (no las de lectura
 # como mem_search/mem_context/mem_get_observation) — todas caen bajo el mismo enforcement,
 # no solo mem_save (hallazgo code-review PR #307: mem_save_prompt/mem_capture_passive/
-# mem_update quedaban sin cubrir pese a persistir el mismo tipo de dato).
+# mem_update quedaban sin cubrir pese a persistir el mismo tipo de dato; hallazgo reviewer
+# post-merge PR #307, Issue #309: mem_session_end/mem_judge quedaban afuera pese a persistir
+# texto libre — summary/reason/evidence respectivamente).
 $script:EngramWriteTools = @(
     'mem_save',
     'mem_save_prompt',
     'mem_capture_passive',
     'mem_update',
-    'mem_session_summary'
+    'mem_session_summary',
+    'mem_session_end',
+    'mem_judge'
 )
 
 # Issue #303 Paso 4 (D4, capa hook duro): intercepta las tools de escritura de Engram de arriba

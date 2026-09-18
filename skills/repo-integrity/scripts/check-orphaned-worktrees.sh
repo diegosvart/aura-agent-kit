@@ -78,6 +78,7 @@ git worktree list --porcelain 2>/dev/null | awk '
 
   if [ "$locked" = "1" ]; then
     pid=$(echo "$reason" | grep -oE 'pid [0-9]+' | grep -oE '[0-9]+' | head -1)
+    LAST_TASKLIST_OUTPUT=""
     if [ -n "$pid" ] && pid_alive "$pid"; then
       continue
     fi

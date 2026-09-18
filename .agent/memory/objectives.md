@@ -4,12 +4,25 @@
 
 ---
 
-## ASAP — Backlog priorizado (actualizado 2026-09-18)
+## ASAP — Backlog priorizado (actualizado 2026-09-18, sesión de cierre)
 
-> Refresco completo: el bloque anterior (fechado 2026-09-05) tenía **14 de 16 issues
-> referenciados ya cerrados** (verificado vía `gh issue view` en esta sesión) — incluidos
-> #217/#210, que seguían listados como "P0 bloqueante estructural" pese a estar cerrados desde
-> 2026-09-09. Nota histórica importante: **#217 resolvió `agentic-dev-loop` eliminando
+> Prioridad #1 confirmada por el usuario al cierre de esta sesión: **Fase 2
+> (worktree-lifecycle, issues #321/#322/#323)** — quedaron `ready` sin delegar al loop
+> todavía. Empezar la próxima sesión por ahí antes de cualquier otra cosa nueva.
+
+### Fase 2 (worktree-lifecycle) — próxima prioridad, `ready` sin empezar
+- **#323** (D1, enforcement) — enforcement duro de cuenta git/gh por repo.
+- **#322** (D4, piloto) — piloto de delegación del gathering de `session_start` Paso 2 a
+  subagente.
+- **#321** (D3, stopgap) — stopgap de hooks rotos dentro de worktree.
+- PR #319 y PR #320 (Fase 1, mismo tema) ya mergeadas — ver Engram #120/#121/#122 para el
+  detalle del ciclo de review de PR #320 (2 regresiones propias detectadas y corregidas en
+  pasadas sucesivas de `/code-review`).
+
+> Refresco anterior (2026-09-05→2026-09-18): el bloque de esa fecha tenía **14 de 16 issues
+> referenciados ya cerrados** (verificado vía `gh issue view`) — incluidos #217/#210, que
+> seguían listados como "P0 bloqueante estructural" pese a estar cerrados desde 2026-09-09.
+> Nota histórica importante: **#217 resolvió `agentic-dev-loop` eliminando
 > `isolation:"worktree"` (reemplazado por rama+lock)**, dirección opuesta a cualquier trabajo
 > futuro que busque paralelismo real vía worktrees — cualquier brainstorm sobre ese tema debe
 > partir de esta decisión previa, no ignorarla.

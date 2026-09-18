@@ -4,6 +4,27 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-18 — Issue #299 — dogfooding: validado el fix de CLAUDE.md contra repo consumidor real
+
+**Plan:** no hubo plan formal (validación operativa, AC ya definidos en el issue).
+**Qué se agregó:** Ninguna línea de código nueva en este repo — se confirmó empíricamente
+que el fix de Issue #298 (PR #300 + follow-up #302, ya en `develop`) funciona en un
+consumidor real. Se reutilizó `diegosvart/aura-hello-world-validation` y se actualizó su
+submodule `.aura` (que estaba pinneado a `v2.7.0`, anterior al fix) al HEAD actual de
+`develop`. Resultado: `<consumidor>/.aura/CLAUDE.md` resuelve al `CLAUDE.md` raíz de
+aura-agent-kit (mismo contenido, mismas 6 reglas fijas), sin archivo huérfano ni doblemente
+anidado, y `new-project-setup/SKILL.md` ya no instruye editar una sección opt-in inexistente.
+**Por qué importa:** Cierra la cadena de investigación de #297 — confirma la hipótesis (a):
+el mecanismo de import de Claude Code resuelve `@.aura/CLAUDE.md` relativo al archivo que
+importa (el `CLAUDE.md` raíz de este repo, clonado dentro de `.aura/` vía submodule), no al
+root del proyecto consumidor. El archivo `.aura/CLAUDE.md` anidado que motivó la
+investigación original nunca fue alcanzable por ningún consumidor real.
+**No se cortó tag nuevo** — `v2.7.0` sigue siendo el punto de retorno seguro; el corte de
+tag queda para un release posterior.
+**Archivos clave:** `.agent/memory/project-log.md` (esta entrada). Repo externo validado:
+`diegosvart/aura-hello-world-validation` (submodule `.aura` actualizado localmente durante
+la validación, sin push — la validación no requiere dejar cambios permanentes ahí).
+
 ## 2026-09-09 — PR #255 — feat(agentic-dev-loop): reemplaza isolation de worktree por lock de checkout
 
 **Plan:** no hubo plan formal (ver Issue #217, ya `ready` con DoD actualizado).

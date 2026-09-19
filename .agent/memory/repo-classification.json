@@ -1,5 +1,6 @@
 {
   "repo_type": "harness",
   "classified_at": "2026-09-17T17:12:14Z",
-  "classified_by": "manual"
+  "classified_by": "manual",
+  "expected_gh_account": "diegosvart"
 }

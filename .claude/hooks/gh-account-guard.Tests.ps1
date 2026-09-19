@@ -86,3 +86,57 @@ Describe 'gh-account-guard.ps1 - entry point (fail-open)' {
         $proc.ExitCode | Should Be 0
     }
 }
+
+Describe 'gh-account-guard.ps1 - entry point (block, Issue #327 bugfix)' {
+
+    It 'bloquea git push con protocolo JSON stdout + exit code 2 cuando la cuenta no coincide' {
+        $projectRoot = (git rev-parse --show-toplevel 2>$null).Trim()
+        $classificationPath = Join-Path $projectRoot '.agent/memory/repo-classification.json'
+        $backupPath = "$classificationPath.bak-test"
+
+        $activeAccount = $null
+        $ghStatus = (& gh auth status --active 2>&1) -join "`n"
+        if ($ghStatus -match 'account\s+([a-zA-Z0-9\-._]+)') { $activeAccount = $Matches[1] }
+        if (-not $activeAccount) {
+            Set-TestInconclusive -Message 'No se pudo determinar la cuenta gh activa en este entorno'
+            return
+        }
+        $mismatchedAccount = "$activeAccount-mismatch-test"
+
+        $hadOriginal = Test-Path $classificationPath
+        if ($hadOriginal) { Copy-Item $classificationPath $backupPath -Force }
+
+        try {
+            @{ repo_type = 'harness'; expected_gh_account = $mismatchedAccount } |
+                ConvertTo-Json | Set-Content -Path $classificationPath -Encoding UTF8
+
+            $psi = New-Object System.Diagnostics.ProcessStartInfo
+            $psi.FileName = 'pwsh'
+            $psi.Arguments = "-NonInteractive -File `"$hookPath`""
+            $psi.RedirectStandardInput = $true
+            $psi.RedirectStandardOutput = $true
+            $psi.UseShellExecute = $false
+            $psi.WorkingDirectory = $projectRoot
+
+            $proc = [System.Diagnostics.Process]::Start($psi)
+            $proc.StandardInput.Write('{"tool_name":"Bash","tool_input":{"command":"git push origin develop"}}')
+            $proc.StandardInput.Close()
+            $stdout = $proc.StandardOutput.ReadToEnd()
+            $proc.WaitForExit()
+
+            $proc.ExitCode | Should Be 2
+
+            $parsed = $stdout | ConvertFrom-Json
+            $parsed.decision | Should Be 'block'
+            $parsed.reason | Should Match ([regex]::Escape($mismatchedAccount))
+            $parsed.reason | Should Match ([regex]::Escape($activeAccount))
+        } finally {
+            if ($hadOriginal) {
+                Copy-Item $backupPath $classificationPath -Force
+                Remove-Item $backupPath -Force
+            } else {
+                Remove-Item $classificationPath -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+}

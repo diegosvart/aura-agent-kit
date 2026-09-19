@@ -73,6 +73,22 @@ Si se detecta esta condición, incluirla en la sección "Advertencias" del Resum
 > **Nota de alcance:** este paso es sobre gathering de **git/gh/filesystem**, no sobre memoria
 > Engram (eso ya se resolvió en el Paso 0, con un mecanismo distinto).
 
+### Modos de Ejecución (Issue #322, D4 — piloto de delegación)
+
+Dos opciones equivalentes para resolver este paso (ítems 1-17 abajo):
+
+| Modo | Cuándo usarlo | Cómo |
+|------|---------------|-----|
+| **Automático (hook)** | Sesión con hooks del harness configurados y disparando | Hook `.claude/hooks/session-start.ps1` emite JSON; ver "Si el JSON del hook ya está disponible" más abajo |
+| **Manual (línea por línea)** | Sesión sin hooks, o el JSON del hook no llegó | Ejecutar manualmente los comandos de la tabla; ver sección "Si el hook no disparó" más abajo |
+| **Delegado (piloto)** | Optativo — para medir consumo de contexto de esta sesión | Lanzar un subagente que ejecuta `skills/session-lifecycle/scripts/gather-session-start.sh` y reformatea su JSON para el Resumen Ejecutivo; ver sección "Modo piloto: delegación a subagente" más abajo |
+
+Todos los modos producen el mismo output final (datos 1-17 disponibles para los Pasos 3-4).
+El usuario puede optar por el modo manual en sesiones sin hooks, o experimentar con delegación
+en sesiones con hooks disponibles (para recolectar datos de comparación de contexto, Issue #322).
+
+---
+
 El hook `.claude/hooks/session-start.ps1` corre en los matchers `startup`/`resume`/`clear` y
 emite un único JSON cubriendo los ítems 1-16 de la tabla siguiente. El ítem 17
 (clasificación de repo) **todavía no está wireado al hook** — pese a documentarse acá como
@@ -101,13 +117,13 @@ más abajo — no asumir que llega en el JSON del hook:
 | 16 | Update del harness disponible | compara tag local de `.aura` vs. remoto (caché 30 min) o versión de plugin instalada vs. marketplace |
 | 17 | Clasificación de repo (Issue #303, D1) — **NO implementado en el hook, ver nota arriba** | comando manual (`cat .agent/memory/repo-classification.json`, más abajo); alimenta el Gate de Clasificación de Repo (Paso 3) |
 
-**Si el JSON del hook ya está disponible en el contexto** (campos como `branch`,
-`issues_ready`, `open_prs`, `repo_visibility`, `repo_integrity`, `last_session`,
-`harness_update_available` presentes): usar esos datos directamente para el Paso 3 y el Paso 4
-— no repetir ninguna de las llamadas de la tabla de arriba.
+### Si el JSON del hook ya está disponible en el contexto
 
-**Si el hook no disparó** (sesión sin hooks configurados, o el JSON no llegó): ejecutar
-manualmente los comandos equivalentes:
+(campos como `branch`, `issues_ready`, `open_prs`, `repo_visibility`, `repo_integrity`,
+`last_session`, `harness_update_available` presentes): usar esos datos directamente para el
+Paso 3 y el Paso 4 — no repetir ninguna de las llamadas de la tabla de arriba.
+
+### Si el hook no disparó
 
 ```bash
 # Rama, estado, commits
@@ -167,6 +183,38 @@ checkout activo.
 Chequeo de protección de `main`/`develop` (`gh api repos/{{OWNER}}/{{REPO}}/branches/.../protection`)
 → **omitir por defecto**; solo ejecutar bajo demanda o una vez por semana. No forma parte del
 gathering de rutina de este paso.
+
+---
+
+### Modo piloto: delegación a subagente (Issue #322, D4)
+
+**Régimen experimental** (no es el default): si el orquestador quiere medir el impacto en
+consumo de contexto de delegar el Paso 2 completo a un subagente (en vez de ejecutar 17 comandos
+crudos e inyectar su output), puede optar por este modo:
+
+**Precondición:** El JSON del hook nativo está disponible, O el orquestador está dispuesto a
+ejecutar la versión manual — se necesita alguno de los dos para proceder.
+
+**Flujo:**
+1. Ejecutar (o recibir del hook): todos los datos de la tabla 1-17 de alguna forma.
+2. **Si se opta por delegación:** Lanzar un subagente con el siguiente contrato autocontenido:
+   - **Input:** el número/nombre del repo (o auto-detectar desde cwd).
+   - **Tarea:** Ejecutar el script `skills/session-lifecycle/scripts/gather-session-start.sh
+     <owner>/<repo>` una sola vez.
+   - **Output:** Capturar su JSON, parsear los campos, y devolver al orquestador un resumen ya
+     formateado (mismo shape que el Resumen Ejecutivo espera para el Paso 4 — no JSON crudo).
+3. El subagente NO ejecuta comandos adicionales ni razona comando por comando — solo corre el
+   script una sola vez y reformatea su output.
+
+**Métrica de éxito:** tokens de contexto del orquestador consumidos durante esta sesión,
+registrados en `.agent/memory/observability/sessions.jsonl` (automático al cierre, Paso 10 de
+`session_end.md`). Comparar contra el promedio de sesiones recientes sin piloto activado para
+medir reducción. Ver `docs/aura/specs/2026-09-18-fase2-marco-024-025-026-028-design.md` (D4)
+para el objetivo completo.
+
+**Nota:** Este modo es optativo y experimental — no reemplaza el flujo manual/hook existente.
+Se documenta acá para que el usuario pueda activarlo en sesiones posteriores si lo desea.
+Mediciones reales solo ocurren en sesiones siguientes donde se active efectivamente.
 
 ---
 

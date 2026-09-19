@@ -4,6 +4,40 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-19 — Issue #323 — protocolo de bloqueo real de gh-account-guard.ps1 (PR #327 + #329)
+
+**Plan:** Fase 2 worktree-lifecycle (`docs/aura/specs/2026-09-18-worktree-lifecycle-gaps-design.md`).
+**Qué se agregó:** `.claude/hooks/gh-account-guard.ps1` — hook que bloquea `git push`/
+`gh pr create`/`gh repo edit` cuando la cuenta gh activa no coincide con
+`expected_gh_account` en `.agent/memory/repo-classification.json`. PR #327 introdujo el hook
+pero con el protocolo de bloqueo equivocado (`Write-Error`+`exit 1`, que Claude Code no
+reconoce como instrucción de bloqueo — solo ve un hook fallido). PR #329 (seguimiento, mismo
+día) corrigió eso a JSON `{decision,reason}` a stdout + `exit 2` (protocolo real de
+`git-guard.ps1`), y además 2 bugs adicionales descubiertos por TDD end-to-end: la variable
+automática `$input` de PowerShell drenaba el stdin antes de leerlo, y `-match` sobre un array
+nunca poblaba `$Matches`.
+**Por qué importa:** PR #327 se mergeó (14:57:56 UTC) 7 minutos antes de que terminara la
+verificación del fix real (15:04:49 UTC) — `develop` quedó momentáneamente con el enforcement
+roto en la práctica. Issue #323 se reabrió y volvió a cerrar con PR #329. Caso real para
+`.aura/rules/subagent-dispatch.md`: coordinación entre un dev-runner en background y una
+aprobación de merge en tiempo real puede adelantarse al resultado verificado.
+**Archivos clave:** `.claude/hooks/gh-account-guard.ps1`, `.claude/hooks/gh-account-guard.Tests.ps1`.
+
+## 2026-09-19 — Issue #322 — piloto de delegación del gathering de session_start (PR #326)
+
+**Plan:** Fase 2 worktree-lifecycle (`docs/aura/specs/2026-09-18-worktree-lifecycle-gaps-design.md`).
+**Qué se agregó:** `skills/session-lifecycle/scripts/gather-session-start.sh` — script
+consolidado que ejecuta los 17 comandos del Paso 2 de `session_start.md` (git/gh/filesystem)
+y emite un único JSON, reemplazando el gathering manual disperso. Documentado en
+`protocols/session_start.md`.
+**Por qué importa:** El script original usaba `jq -Rs .` para escapar JSON, pero `jq` no
+está instalado en este entorno — bajo `set -euo pipefail` abortaba cada vez que había
+hallazgos de repo-integrity. Verificado independientemente (no solo el auto-reporte del
+dev-runner): reproducido el bug real, corrido el fix con hallazgos simulados con comillas/
+backslash/tabs/UTF-8, JSON válido confirmado byte a byte.
+**Archivos clave:** `skills/session-lifecycle/scripts/gather-session-start.sh`,
+`protocols/session_start.md`.
+
 ## 2026-09-18 — Issue #299 — dogfooding: validado el fix de CLAUDE.md contra repo consumidor real
 
 **Plan:** no hubo plan formal (validación operativa, AC ya definidos en el issue).

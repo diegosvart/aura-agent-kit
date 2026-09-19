@@ -4,20 +4,32 @@
 
 ---
 
-## ASAP — Backlog priorizado (actualizado 2026-09-18, sesión de cierre)
+## ASAP — Backlog priorizado (actualizado 2026-09-19, sesión de cierre)
 
-> Prioridad #1 confirmada por el usuario al cierre de esta sesión: **Fase 2
-> (worktree-lifecycle, issues #321/#322/#323)** — quedaron `ready` sin delegar al loop
-> todavía. Empezar la próxima sesión por ahí antes de cualquier otra cosa nueva.
+> **Fase 2 (worktree-lifecycle, issues #321/#322/#323) COMPLETA** — los 3 issues cerrados y
+> verificados independientemente (no solo el auto-reporte de los dev-runners). Prioridad #1
+> para la próxima sesión: **Issue #328** (`cut-release.sh` no crea el GitHub Release), spec
+> ya lista.
 
-### Fase 2 (worktree-lifecycle) — próxima prioridad, `ready` sin empezar
-- **#323** (D1, enforcement) — enforcement duro de cuenta git/gh por repo.
-- **#322** (D4, piloto) — piloto de delegación del gathering de `session_start` Paso 2 a
-  subagente.
-- **#321** (D3, stopgap) — stopgap de hooks rotos dentro de worktree.
+### Fase 2 (worktree-lifecycle) — CERRADA 2026-09-19
+- **#321** (D3, stopgap) — PR #325 mergeada.
+- **#322** (D4, piloto) — PR #326 mergeada. Verificado independientemente: bug real de `jq`
+  ausente reproducido y fix confirmado sin regresiones (Engram #131).
+- **#323** (D1, enforcement) — PR #327 mergeada con protocolo de bloqueo equivocado
+  (`Write-Error`+`exit 1`); PR #329 (seguimiento, mismo día) corrigió el protocolo real
+  (JSON stdout + `exit 2`) más 2 bugs adicionales encontrados por TDD end-to-end. Nota de
+  proceso: #327 se mergeó 7 minutos antes de que terminara la verificación del fix real —
+  ver Engram #133 para el caso completo (relevante para `.aura/rules/subagent-dispatch.md`).
 - PR #319 y PR #320 (Fase 1, mismo tema) ya mergeadas — ver Engram #120/#121/#122 para el
   detalle del ciclo de review de PR #320 (2 regresiones propias detectadas y corregidas en
   pasadas sucesivas de `/code-review`).
+
+### Issue #328 — próxima prioridad, `ready`
+`cut-release.sh` (subcomando `tag`) no crea el GitHub Release, solo el tag — 7 releases
+(v2.4.1→v2.8.0) sin Release publicado en GitHub pese a tener tag. Spec completa en
+`docs/aura/specs/2026-09-19-cut-release-no-crea-github-release-design.md` (local). Incluye
+plan de test TDD (fixture con `gh` fake) y nota de que el backfill de los 7 Releases
+faltantes es una acción manual separada, fuera del PR de código.
 
 > Refresco anterior (2026-09-05→2026-09-18): el bloque de esa fecha tenía **14 de 16 issues
 > referenciados ya cerrados** (verificado vía `gh issue view`) — incluidos #217/#210, que

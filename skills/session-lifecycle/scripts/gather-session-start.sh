@@ -203,11 +203,14 @@ if [ -f "skills/repo-integrity/scripts/check-agent-frontmatter.sh" ]; then
   fi
 fi
 
-repo_integrity_output=""
+repo_integrity_output='[]'
 if [ ${#repo_integrity_messages[@]} -gt 0 ]; then
-  repo_integrity_output=$(printf '%s\n' "${repo_integrity_messages[@]}" | jq -Rs .)
-else
-  repo_integrity_output='""'
+  repo_integrity_output="["
+  for i in "${!repo_integrity_messages[@]}"; do
+    if [ $i -gt 0 ]; then repo_integrity_output="$repo_integrity_output,"; fi
+    repo_integrity_output="$repo_integrity_output$(json_string "${repo_integrity_messages[$i]}")"
+  done
+  repo_integrity_output="$repo_integrity_output]"
 fi
 data[repo_integrity_messages]="$repo_integrity_output"
 

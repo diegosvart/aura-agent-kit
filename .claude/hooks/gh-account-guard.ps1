@@ -64,7 +64,11 @@ function Get-ExpectedGhAccount {
 
 function Get-ActiveGhAccount {
     try {
-        $output = & gh auth status --active 2>$null
+        # `gh auth status` imprime varias lineas: al capturarlo, PowerShell lo devuelve como
+        # array de strings, y -match sobre un array filtra elementos en vez de poblar
+        # $Matches (eso solo ocurre con -match sobre un string escalar). Unir las lineas
+        # antes de matchear evita que $Matches quede vacio/null aunque el patron matchee.
+        $output = (& gh auth status --active 2>$null) -join "`n"
         # Formato típico: "Logged in to github.com account diegosvart (keyring)"
         if ($output -match 'account\s+([a-zA-Z0-9\-._]+)') {
             return $Matches[1]
@@ -139,15 +143,15 @@ function Test-GhAccountGuard {
 if ($MyInvocation.InvocationName -ne '.') {
     try {
         $input_json = [System.Console]::In.ReadToEnd()
-        $input = $input_json | ConvertFrom-Json
+        $parsedInput = $input_json | ConvertFrom-Json
 
-        $command = $input.tool_input.command
+        $command = $parsedInput.tool_input.command
         $result = Test-GhAccountGuard -Command $command
 
         if ($result -and $result.decision -eq 'block') {
-            Write-GuardLog "BLOCK: $($result.reason)"
-            Write-Error $result.reason
-            exit 1
+            $response = @{ decision = $result.decision; reason = $result.reason } | ConvertTo-Json -Compress
+            Write-Output $response
+            exit 2
         }
 
         exit 0

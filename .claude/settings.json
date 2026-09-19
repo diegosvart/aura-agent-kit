@@ -97,7 +97,7 @@
           },
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/gh-account-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/gh-account-guard.ps1\"",
             "timeout": 5
           }
         ]
@@ -127,7 +127,7 @@
           },
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/gh-account-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/gh-account-guard.ps1\"",
             "timeout": 5
           }
         ]

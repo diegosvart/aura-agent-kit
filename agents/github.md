@@ -339,7 +339,8 @@ skills/agentic-dev-loop/scripts/cut-release.sh promote <owner>/<repo> vX.Y.Z <ch
 
 # 3. Tras mergear el PR de release:
 skills/agentic-dev-loop/scripts/cut-release.sh tag <owner>/<repo> vX.Y.Z <release_pr_n>
-# -> crea el tag anotado sobre el merge commit y lo publica.
+# -> crea el tag anotado sobre el merge commit, lo publica, y crea el GitHub Release
+#    correspondiente.
 
 # 4. Sync-back obligatorio (mismo turno, antes de cualquier otro commit de bookkeeping):
 skills/agentic-dev-loop/scripts/cut-release.sh sync-back <owner>/<repo> vX.Y.Z

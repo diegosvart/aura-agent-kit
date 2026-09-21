@@ -4,6 +4,19 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-21 — Issue #306 — leer AGENTS.local.md explícitamente en session_start (PR #334)
+
+**Plan:** no hubo plan formal (fix puntual, spec previa no requerida).
+**Qué se agregó:** `protocols/session_start.md` Paso 1 ahora lista explícitamente
+`AGENTS.local.md` entre los archivos a leer al iniciar sesión, junto a `AGENTS.md` y
+`current-session.json`.
+**Por qué importa:** `CLAUDE.md` ya importaba `@../AGENTS.local.md` en la sección
+"Identidad y Pilares", pero `session_start.md` (el protocolo que efectivamente se ejecuta
+paso a paso al arrancar) no lo mencionaba — la identidad/personalización real del proyecto
+podía quedar sin cargarse en la práctica pese a estar declarada como import. Fix mínimo de
+4 líneas.
+**Archivos clave:** `protocols/session_start.md`.
+
 ## 2026-09-19 — Issue #323 — protocolo de bloqueo real de gh-account-guard.ps1 (PR #327 + #329)
 
 **Plan:** Fase 2 worktree-lifecycle (`docs/aura/specs/2026-09-18-worktree-lifecycle-gaps-design.md`).

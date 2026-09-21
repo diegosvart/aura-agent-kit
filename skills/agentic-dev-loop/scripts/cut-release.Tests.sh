@@ -32,7 +32,9 @@ SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/cut-release.sh"
 # grep sobre ese log).
 #
 # Variables de entorno esperadas en tiempo de ejecucion del fake (no en tiempo de escritura):
-#   GH_LOG_FILE, EXPECTED_REPO, EXPECTED_VERSION, EXPECTED_RELEASE_PR, EXPECTED_COMMIT_HASH
+#   GH_LOG_FILE, EXPECTED_REPO, EXPECTED_VERSION, EXPECTED_RELEASE_PR, EXPECTED_COMMIT_HASH,
+#   FAKE_RELEASE_EXISTS (opcional, "true"/"false", default "false" -- usado por "gh release
+#   view" para simular si el Release ya existe en GitHub; hallazgo de reintentabilidad, PR #331)
 write_fake_gh() {
     local target="$1"
     cat > "$target" << 'FAKE_GH_END'
@@ -84,6 +86,32 @@ if [ "$1" = "pr" ] && [ "$2" = "view" ]; then
             ;;
     esac
     exit 0
+fi
+
+if [ "$1" = "release" ] && [ "$2" = "view" ]; then
+    version_arg="$3"
+    if [ "$version_arg" != "$EXPECTED_VERSION" ]; then
+        fail "gh release view recibio version inesperada: '$version_arg' (esperado '$EXPECTED_VERSION')"
+    fi
+    shift 3
+    repo_ok=0
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --repo)
+                shift
+                [ "${1:-}" = "$EXPECTED_REPO" ] && repo_ok=1
+                ;;
+        esac
+        shift
+    done
+    if [ "$repo_ok" -ne 1 ]; then
+        fail "gh release view sin --repo '$EXPECTED_REPO' valido"
+    fi
+    if [ "${FAKE_RELEASE_EXISTS:-false}" = "true" ]; then
+        exit 0
+    else
+        exit 1
+    fi
 fi
 
 if [ "$1" = "release" ] && [ "$2" = "create" ]; then
@@ -266,6 +294,101 @@ else
     fi
     if [ ! -z "$full_output" ]; then
       echo "  Full output (first 500 chars): $(echo "$full_output" | head -c 500)"
+    fi
+    fail_count=$((fail_count + 1))
+fi
+
+echo ""
+echo "--- Hallazgo code-review PR #331: cut-release.sh tag debe ser reintentable si 'gh release create' fallo tras crear el tag ---"
+test_count=$((test_count + 1))
+fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-cutrelease-retry-$$"
+mkdir -p "$fixture_dir"
+fake_bin_dir="$fixture_dir/fake_bin"
+mkdir -p "$fake_bin_dir"
+
+(
+    cd "$fixture_dir"
+    # Crear un repo remoto bare
+    origin_dir="$fixture_dir/origin.git"
+    mkdir -p "$origin_dir"
+    git init -q --bare "$origin_dir"
+
+    # Crear repo de trabajo
+    git init -q
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git config core.autocrlf false
+    git remote add origin "$origin_dir"
+
+    # Crear rama main
+    git checkout -q -b main
+    echo "initial" > README.md
+    git add README.md
+    git commit -q -m "initial commit"
+    git push -q -u origin main
+
+    # Crear rama develop
+    git checkout -q -b develop
+    echo "develop" > develop.md
+    git commit -q -m "develop commit"
+    git push -q -u origin develop
+
+    # Volver a main
+    git checkout -q main
+
+    real_commit_hash=$(git rev-parse HEAD)
+
+    # Simular el escenario del bug: un run anterior murio DESPUES de crear+pushear el tag
+    # pero ANTES de "gh release create" -- el tag ya existe localmente, apuntando al mismo
+    # merge commit que devolveria "gh pr view".
+    git tag -a "v9.9.9" -m "v9.9.9" "$real_commit_hash"
+    git push -q origin "refs/tags/v9.9.9"
+
+    export GH_LOG_FILE="$fixture_dir/gh.log"
+    touch "$GH_LOG_FILE"
+
+    mkdir -p "$fake_bin_dir"
+    write_fake_gh "$fake_bin_dir/gh"
+    export EXPECTED_REPO="fake/repo"
+    export EXPECTED_VERSION="v9.9.9"
+    export EXPECTED_RELEASE_PR="999"
+    export EXPECTED_COMMIT_HASH="$real_commit_hash"
+    # El Release NUNCA se llego a crear en el run anterior -- esto es lo que dispara el bug.
+    export FAKE_RELEASE_EXISTS="false"
+
+    real_git_path=$(which git)
+    cat > "$fake_bin_dir/git" << FAKE_GIT_END
+#!/usr/bin/env bash
+if [ "\$1" = "pull" ]; then
+  exit 0
+fi
+exec "$real_git_path" "\$@"
+FAKE_GIT_END
+    chmod +x "$fake_bin_dir/git"
+
+    export PATH="$fake_bin_dir:$PATH"
+
+    "$SCRIPT_PATH" tag "fake/repo" "v9.9.9" "999" > "$fixture_dir/output.txt" 2>&1
+    echo $? > "$fixture_dir/script_exit_code.txt"
+) > "$fixture_dir/full_output.txt" 2>&1
+actual_exit_code=$(cat "$fixture_dir/script_exit_code.txt" 2>/dev/null || echo "unknown")
+output=$(cat "$fixture_dir/output.txt")
+gh_log=$(cat "$fixture_dir/gh.log" 2>/dev/null || echo "")
+rm -rf "$fixture_dir"
+
+# Comportamiento esperado (post-fix): el script detecta que el tag ya existe localmente, NO
+# lo vuelve a crear, pero SI invoca "gh release create" (porque el Release todavia no existe
+# en GitHub) y termina en exit 0.
+if echo "$gh_log" | grep -q "release create" && [ "$actual_exit_code" = "0" ]; then
+    echo -e "${GREEN}✓ PASS${NC} — reintento tras tag-ya-creado-pero-sin-release SI invoca gh release create y sale exit 0"
+    pass_count=$((pass_count + 1))
+else
+    echo -e "${RED}✗ FAIL${NC} — reintento tras tag-ya-creado-pero-sin-release no invoco gh release create o no salio exit 0"
+    echo "  Expected: gh.log con 'release create v9.9.9 ...', exit 0"
+    echo "  Got exit: $actual_exit_code"
+    echo "  Got gh.log: $gh_log"
+    if [ ! -z "$output" ]; then
+      echo "  Script output: $output"
     fi
     fail_count=$((fail_count + 1))
 fi

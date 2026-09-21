@@ -155,6 +155,7 @@ PYTHON_PLUGIN_BUMP
     git pull origin main --ff-only
     git tag -a "$VERSION" -m "$VERSION" "$merge_commit"
     git push origin "refs/tags/$VERSION"
+    gh release create "$VERSION" --repo "$REPO" --title "$VERSION" --generate-notes
     echo "$merge_commit"
     ;;
 

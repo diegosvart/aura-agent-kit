@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# cut-release.Tests.sh — Tests para cut-release.sh (Issue #285, bug #5)
-# Bug: el chequeo "if [ $? -ne 0 ]" despues del heredoc de bump de plugin.json es
-# inalcanzable bajo `set -euo pipefail` -- un heredoc que falla aborta el script antes de
-# llegar a ese chequeo, y el diagnostico "ERROR: Bump de .claude-plugin/plugin.json fallo"
-# nunca se imprime.
+# cut-release.Tests.sh — Tests para cut-release.sh (Issue #285, bug #5, Issue #328)
 
 set -uo pipefail
 
@@ -55,6 +51,123 @@ else
     echo "  Expected: output con 'ERROR: Bump de .claude-plugin/plugin.json fallo', exit != 0"
     echo "  Got exit: $actual_exit_code"
     echo "  Got output: $output"
+    fail_count=$((fail_count + 1))
+fi
+
+echo ""
+echo "--- Issue #328: cut-release.sh tag debe crear el GitHub Release ---"
+test_count=$((test_count + 1))
+fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-cutrelease-tag-$$"
+mkdir -p "$fixture_dir"
+fake_bin_dir="$fixture_dir/fake_bin"
+mkdir -p "$fake_bin_dir"
+
+(
+    cd "$fixture_dir"
+    # Crear un repo remoto bare
+    origin_dir="$fixture_dir/origin.git"
+    mkdir -p "$origin_dir"
+    git init -q --bare "$origin_dir"
+
+    # Crear repo de trabajo
+    git init -q
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git config core.autocrlf false
+    git remote add origin "$origin_dir"
+
+    # Crear rama main
+    git checkout -q -b main
+    echo "initial" > README.md
+    git add README.md
+    git commit -q -m "initial commit"
+    git push -q -u origin main
+
+    # Crear rama develop
+    git checkout -q -b develop
+    echo "develop" > develop.md
+    git commit -q -m "develop commit"
+    git push -q -u origin develop
+
+    # Volver a main
+    git checkout -q main
+
+    # Obtener el hash real del último commit en main para que el fake gh lo devuelva
+    real_commit_hash=$(git rev-parse HEAD)
+    export GH_LOG_FILE="$fixture_dir/gh.log"
+    touch "$GH_LOG_FILE"
+
+    # Crear fake gh dentro de la subshell con variables disponibles
+    mkdir -p "$fake_bin_dir"
+    cat > "$fake_bin_dir/gh" << 'FAKE_GH_END'
+#!/usr/bin/env bash
+echo "$@" >> "$GH_LOG_FILE"
+
+if [ "$1" = "pr" ] && [ "$2" = "view" ]; then
+  # Parsear los argumentos para encontrar --jq
+  jq_filter=""
+  for arg in "$@"; do
+    if [ "$prev_was_jq" = "1" ]; then
+      jq_filter="$arg"
+      break
+    fi
+    if [ "$arg" = "--jq" ]; then
+      prev_was_jq=1
+    fi
+  done
+
+  if [ "$jq_filter" = ".state" ]; then
+    echo "MERGED"
+  elif [ "$jq_filter" = ".mergeCommit.oid" ]; then
+    echo "REPLACE_COMMIT_HASH"
+  else
+    echo '{"state":"MERGED","mergeCommit":{"oid":"REPLACE_COMMIT_HASH"}}'
+  fi
+  exit 0
+fi
+exit 0
+FAKE_GH_END
+    # Reemplazar el placeholder con el hash real
+    sed -i "s/REPLACE_COMMIT_HASH/$real_commit_hash/g" "$fake_bin_dir/gh"
+    chmod +x "$fake_bin_dir/gh"
+
+    # Crear un fake git que ignora "git pull"
+    real_git_path=$(which git)
+    cat > "$fake_bin_dir/git" << FAKE_GIT_END
+#!/usr/bin/env bash
+if [ "\$1" = "pull" ]; then
+  exit 0
+fi
+exec "$real_git_path" "\$@"
+FAKE_GIT_END
+    chmod +x "$fake_bin_dir/git"
+
+    # Usar el fake git y fake gh en el PATH
+    export PATH="$fake_bin_dir:$PATH"
+
+    # Ejecutar cut-release.sh tag
+    "$SCRIPT_PATH" tag "fake/repo" "v9.9.9" "999" > "$fixture_dir/output.txt" 2>&1 || true
+) > "$fixture_dir/full_output.txt" 2>&1
+actual_exit_code=$?
+output=$(cat "$fixture_dir/output.txt")
+full_output=$(cat "$fixture_dir/full_output.txt")
+gh_log=$(cat "$fixture_dir/gh.log" 2>/dev/null || echo "")
+rm -rf "$fixture_dir"
+
+# Verificar que gh.log contiene "release create" (fix aplicado)
+if echo "$gh_log" | grep -q "release create"; then
+    echo -e "${GREEN}✓ PASS${NC} (GREEN) — fix verificado: cut-release.sh tag SÍ invoca gh release create"
+    pass_count=$((pass_count + 1))
+else
+    echo -e "${RED}✗ FAIL${NC} (GREEN) — fix no funciona, falta release create en el log"
+    echo "  Expected: gh.log con 'release create v9.9.9 ... --generate-notes'"
+    echo "  Got gh.log: $gh_log"
+    if [ ! -z "$output" ]; then
+      echo "  Script output: $output"
+    fi
+    if [ ! -z "$full_output" ]; then
+      echo "  Full output (first 500 chars): $(echo "$full_output" | head -c 500)"
+    fi
     fail_count=$((fail_count + 1))
 fi
 

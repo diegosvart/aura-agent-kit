@@ -109,8 +109,11 @@ carrera que existía cuando "elegir" y "marcar" eran dos pasos separados); no ha
 ```bash
 skills/agentic-dev-loop/scripts/resolve-tier.sh <OWNER>/<REPO> <N>
 ```
-Default **Haiku**; escala a **Sonnet** si el body trae `**Complejidad:** alta` o si ya hay 1
-comentario de bloqueo/fallo previo en el issue; a **Opus** si hay 2 o más.
+Default **Haiku**; escala a **Sonnet** si el body trae `**Complejidad:** alta` o `**Complejidad:**
+media` (declaración explícita del template de issue, ver `skills/issue-planning/SKILL.md`) o si
+ya hay 1 comentario de bloqueo/fallo previo en el issue; a **Opus** si hay 2 o más. La
+declaración inicial y el escalamiento reactivo por comentarios son independientes — el segundo
+sigue actuando como red de seguridad encima del primero, nunca en su reemplazo.
 
 ### Paso 4 — Lanzar el agente de desarrollo
 Prompt autocontenido (el agente parte de cero — sin memoria de esta sesión):
@@ -167,6 +170,16 @@ Prompt autocontenido (el agente parte de cero — sin memoria de esta sesión):
      contra `main` (el default branch del repo) en vez de `develop` (caso real Issues #75/#76,
      ver Errores Comunes) — con `open-pr.sh` ninguno de los dos es posible porque el agente nunca
      construye el comando a mano.
+
+     El archivo de resumen (`<archivo-resumen>`) sigue el **template de PR body unificado**
+     (Issue #332, fuente de verdad en
+     `docs/aura/specs/2026-09-21-issue-332-unificar-formato-artefactos-design.md`):
+     `open-pr.sh` ya antepone `Closes #N`, así que el resumen que arma el dev-runner empieza
+     directo en `# <Título del PR>` seguido de `## Qué` / `## Beneficio` / `## Por qué` /
+     `## Cómo` / `## Criterios de Aceptación` / `## Testing` / `## Notas para el reviewer`
+     (esta última opcional). `## Testing` lleva el output real de `verify.sh` (Paso 4, sub-paso
+     3), no una afirmación sin evidencia — mismo criterio que
+     `.aura/rules/harness-core.md` aplica a cualquier estado verificable.
   6. Si en algún punto queda bloqueado (dependencia no resuelta que no se había detectado,
      ambigüedad real del DoD): **no commitear a medias** — comentar en el issue qué falta y
      terminar sin PR.

@@ -13,6 +13,11 @@ if echo "$body" | grep -qi '\*\*Complejidad:\*\* alta'; then
   exit 0
 fi
 
+if echo "$body" | grep -qi '\*\*Complejidad:\*\* media'; then
+  echo "sonnet"
+  exit 0
+fi
+
 fail_comments=$(gh issue view "$ISSUE" --repo "$REPO" --json comments \
   --jq '[.comments[] | select(.body | test("(?i)bloqueado|fall[oó]"))] | length')
 

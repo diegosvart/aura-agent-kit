@@ -41,6 +41,10 @@
 
 Leer en paralelo:
 - `AGENTS.md` (este archivo, si no se cargó antes)
+- `AGENTS.local.md` (raíz del proyecto, si existe) — **Read explícito obligatorio**: el `@import`
+  automático de `CLAUDE.md` no resuelve archivos gitignorados de forma confiable. Este Read
+  explícito es el fallback estructural de defensa en profundidad (mismo patrón de "dos capas"
+  que usa el Paso 0 con Engram).
 - `{{PROJECT_CONTEXT}}` (archivo de contexto del proyecto)
 - `{{MATRIZ_PLANIFICACION}}` (si existe)
 - `.agent/memory/repo-classification.json` (si existe) — `repo_type`: `harness` / `personal` /

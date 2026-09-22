@@ -4,6 +4,34 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-22 — Issue #337 — hora de red verificada, timezone de visualización y tabla de herramientas (PR #339)
+
+**Plan:** `.agent/memory/plans/2026-09-21-session-start-hora-red-y-tabla-herramientas.md` (status: done)
+**Qué se agregó:** `protocols/session_start.md` y `protocols/session_end.md` ahora consultan
+hora de red (`timeapi.io`, con fallback a reloj local declarado) al inicio y al cierre de
+sesión, con conversión a hora local vía el campo `Timezone (IANA)` de `AGENTS.local.md`. El
+Resumen Ejecutivo gana filas de continuidad ("Sesión anterior cerrada"/"Extraído ahora", ambas
+en UTC + hora local) y reemplaza el check binario `git/gh/engram` por dos tablas nuevas
+(Herramientas MCP configuradas + Hooks activos), sin perder esa fila original.
+**Por qué importa:** El usuario detectó que el timestamp de continuidad nunca se contrastaba
+contra una fuente de hora externa (solo relojes locales/de Engram) y que no había visibilidad
+de qué herramientas MCP/hooks tenía disponible el agente en cada sesión — relevante porque
+varias tools son `deferred` y solo se cargan tras un `ToolSearch` explícito.
+**Archivos clave:** `protocols/session_start.md`, `protocols/session_end.md`, `AGENTS.local.md`.
+
+## 2026-09-22 — Issue #336 — desplegar automáticamente specs nuevas para revisión (PR #338)
+
+**Plan:** sin ledger de plan formal (regla incorporada directamente a `.aura/rules/design-flow.md`)
+**Qué se agregó:** Regla nueva — cada vez que el agente crea o edita sustancialmente un
+archivo en `docs/aura/specs/`, se abre automáticamente en VS Code (`code <path>`) si el CLI
+está disponible, o se muestra el contenido completo en el chat si no lo está.
+**Por qué importa:** El usuario tuvo que pedir explícitamente "abrime el archivo" tras
+aprobarse una spec — el protocolo no contemplaba ningún paso de despliegue automático.
+**Hallazgo corregido en el mismo PR:** `code` no estaba en `permissions.allow` de
+`.claude/settings.json` — cada invocación de la regla nueva iba a disparar un permission-prompt,
+la misma fricción que la regla busca eliminar.
+**Archivos clave:** `.aura/rules/design-flow.md`, `.claude/settings.json`.
+
 ## 2026-09-21 — Issue #306 — leer AGENTS.local.md explícitamente en session_start (PR #334)
 
 **Plan:** no hubo plan formal (fix puntual, spec previa no requerida).

@@ -406,6 +406,7 @@ sección por completo (no mostrar un bloque vacío ni un mensaje de error).
 ## 2. Estado real — mío
 | Check | Estado |
 |---|---|
+| git / gh / engram | ✓/✗ (detallar cuál si alguno falla) |
 | Repo | <repo_name> — topics: <lista o "sin topics"> |
 | Clasificación (Issue #303) | <repo_type: harness/personal/cliente> |
 | Branch | <nombre> |

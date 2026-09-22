@@ -26,6 +26,14 @@ Invocar, sin parámetros, al detectar el trigger de cierre de sesión:
 pwsh -NonInteractive -File .claude/hooks/session-end-gather.ps1
 ```
 
+**Hora de red (Issue #337):** en paralelo (no bloquea lo anterior), consultar `WebFetch` contra
+`https://timeapi.io/api/time/current/zone?timeZone=UTC` para obtener `session_end_utc` (ISO
+8601 UTC). Si falla (sin red, API caída): usar el reloj local como fallback con advertencia
+explícita `⚠ Hora de red no disponible — usando reloj local (posible drift)`. Se usa en el
+Paso 4 (línea `Cierre (UTC, hora de red)` de `mem_session_summary`) y en el Paso 5
+(`current-session.json.last_updated`) — mismo timestamp para ambos, una sola consulta por
+cierre.
+
 El script **no está registrado como hook** `SessionEnd` (ese evento dispara después de que la
 conversación ya cerró — no sirve para este caso, ver spec sección "Problema"). Es el agente
 quien lo invoca manualmente vía Bash/PowerShell tool al detectar el trigger textual
@@ -182,10 +190,17 @@ mem_session_summary(
 
 ## Relevant Files
 - [archivo 1] — [qué hace o cambió]
-- [archivo 2] — [qué hace o cambió]",
+- [archivo 2] — [qué hace o cambió]
+
+---
+Cierre (UTC, hora de red): {{session_end_utc}}",
   project="{{PROJECT_NAME}}"
 )
 ```
+
+`{{session_end_utc}}` es el timestamp obtenido en el Paso 1 (o su fallback declarado) — nunca
+omitir esta línea, incluso en el caso de fallback (en ese caso, escribir el aviso de fallback
+en lugar del timestamp, nunca dejar la línea vacía).
 
 ---
 
@@ -240,7 +255,7 @@ Archivo: `.agent/memory/current-session.json`
 
 ```json
 {
-  "last_updated": "{{ISO_TIMESTAMP}}",
+  "last_updated": "{{session_end_utc}}",
   "branch": "{{CURRENT_BRANCH}}",
   "next_step": "{{SIGUIENTE_ACCIÓN_CONCRETA, UNA LÍNEA, SIN PROSA DE PROCESO}}"
 }
@@ -249,6 +264,9 @@ Archivo: `.agent/memory/current-session.json`
 **Reglas:**
 - Solo estos 3 campos — sin `focus`, `pending` ni `required_reads` (narrativa/detalle real
   vive en Engram, Paso 4; `session_start.md` nunca leyó esos campos en la práctica).
+- `last_updated` es siempre `{{session_end_utc}}` (hora de red del Paso 1, o su fallback
+  declarado) — nunca el reloj local del host directamente (Issue #337: corrige la fuente de
+  este campo, no agrega uno nuevo).
 - `next_step` debe ser un hecho verificable y telegráfico, no una narrativa del proceso de la
   sesión — ver Issue #121 (privacidad de la forma de trabajar del usuario).
 - Usar EXCLUSIVAMENTE información ya verificada contra GitHub en el Paso 2 (`pending_verified`)

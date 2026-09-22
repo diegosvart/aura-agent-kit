@@ -25,6 +25,15 @@
    explícito del agente en esa sesión. Afirmar "no hay next_step" sin haber hecho esta llamada
    es una violación de la regla de `.aura/rules/harness-core.md` de no afirmar estado sin
    verificar.
+2.5. **Hora de red** (Issue #337): consultar `WebFetch` contra
+   `https://timeapi.io/api/time/current/zone?timeZone=UTC`, extrayendo el datetime ISO 8601
+   UTC. Si la consulta falla (sin red, API caída): usar el reloj local como fallback con
+   advertencia explícita `⚠ Hora de red no disponible — usando reloj local (posible drift)`.
+   Este timestamp se reporta en la tabla "1. Continuidad" del Paso 4, fila "Extraído ahora
+   (UTC, hora de red)" — complementa el `Created:` de Engram, no lo reemplaza. Conversión a
+   hora local: ver `AGENTS.local.md` → "Configuración Regional" → `Timezone (IANA)`; si el
+   campo no existe, mostrar solo UTC con el aviso `⚠ Timezone no configurado en
+   AGENTS.local.md — mostrando solo UTC` (nunca inferir por heurística).
 3. Si `mem_context` falla (error de MCP) o no devuelve resultados → fallback a
    `.agent/memory/current-session.json` (si existe), usando sus 3 campos (`last_updated`,
    `branch`, `next_step`), con advertencia explícita:
@@ -391,17 +400,41 @@ sección por completo (no mostrar un bloque vacío ni un mensaje de error).
 | Pendiente (última sesión) | <de session_summary #ID, texto completo, no preview> |
 | Próximo paso sugerido | <next_step> |
 | Fuente | Engram (#ID) / fallback current-session.json |
+| Sesión anterior cerrada (UTC, hora de red) | <de la línea "Cierre (UTC, hora de red): ..." dentro de mem_session_summary, o current-session.json.last_updated si Engram no la tiene> |
+| Extraído ahora (UTC, hora de red) | <timestamp del ítem 2.5 del Paso 0, o aviso de fallback a reloj local> |
 
 ## 2. Estado real — mío
 | Check | Estado |
 |---|---|
-| git / gh / engram | ✓/✗ (detallar cuál si alguno falla) |
 | Repo | <repo_name> — topics: <lista o "sin topics"> |
 | Clasificación (Issue #303) | <repo_type: harness/personal/cliente> |
 | Branch | <nombre> |
 | Sin rastrear | N archivos |
 | Cambios sin commit | N |
 | Último commit | <hash> "<mensaje>" |
+
+### Herramientas MCP
+| Nombre | Ubicación (config) | Objetivo | Cargada en contexto |
+|---|---|---|---|
+| <nombre> | <archivo/sección de config> | <una línea> | ✓ / ✗ (deferred) |
+
+> Fuente "configuradas": `.claude/settings.json` (`permissions.allow`, `enabledPlugins`) —
+> estático, no cambia salir del Paso 2, delegable a un subagente de solo lectura si el volumen
+> lo justifica (`.aura/rules/subagent-dispatch.md`). Fuente "cargada en contexto": el
+> `<system-reminder>` de deferred tools de esta sesión — **no delegable**, es estado vivo del
+> orquestador. Nota conocida (Issue #337, inventario 2026-09-21): un MCP server puede llegar
+> por instalación **global** del usuario (ej. Engram vía `~/.claude/plugins/`) sin aparecer en
+> `enabledPlugins` de este repo — en ese caso listar igual la tool (aparece en
+> `permissions.allow`) con la ubicación real de su config, no asumir que "no está en
+> settings.json" == "no configurada".
+
+### Hooks activos
+| Nombre | Ubicación (config) | Matcher/Evento | Objetivo |
+|---|---|---|---|
+| <nombre> | `.claude/settings.json` → `<bloque>` | <matcher> | <una línea> |
+
+> Los hooks no tienen columna "cargada en contexto" — no son tools invocables, corren
+> automáticamente en cada evento.
 
 ## 2. Estado real — ajeno / repo
 | Check | Estado |
@@ -424,6 +457,20 @@ Cierre del resumen, línea nueva (capa de visibilidad, no de enforcement):
 ```
 ✓ Contexto previo recuperado (Paso 0) · N chequeos obtenidos por script (Paso 2) · 0 gathering manual
 ```
+
+### Formato de conversión de hora de red a timezone local (Issue #337)
+
+Cada timestamp de red mostrado en la tabla "1. Continuidad" (`Sesión anterior cerrada`,
+`Extraído ahora`) agrega entre paréntesis la conversión a `Timezone (IANA)` de
+`AGENTS.local.md`:
+
+```
+2026-09-21T22:14:11 UTC (19:14:11 America/Santiago)
+```
+
+Si `AGENTS.local.md` no tiene el campo `Timezone (IANA)`: mostrar solo el valor UTC + el
+aviso `⚠ Timezone no configurado en AGENTS.local.md — mostrando solo UTC` (una sola vez en
+Advertencias, no repetido por cada fila).
 
 ### Advertencias — casos especiales a incluir cuando aplican
 

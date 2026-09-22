@@ -19,6 +19,8 @@
       "PowerShell(agent-browser *)",
       "Bash(where:*)",
       "Bash(which:*)",
+      "Bash(code:*)",
+      "PowerShell(code *)",
       "Bash(ls:*)",
       "Bash(grep:*)",
       "PowerShell(Get-ChildItem *)",

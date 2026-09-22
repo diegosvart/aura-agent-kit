@@ -32,8 +32,8 @@ nueva o revisión sustancial de una existente), antes de darla por lista para ap
 2. **Si está disponible:** `code "<path-de-la-spec>"` — la abre en una pestaña del editor del
    usuario, sin bloquear la sesión de Claude Code.
 3. **Si no está disponible:** mostrar el contenido completo del archivo en la respuesta del
-   chat (no solo un resumen) — mismo criterio ya usado en esta sesión (ver Engram, sesión
-   2026-09-21).
+   chat (no solo un resumen) — el usuario necesita poder revisarlo igual, sin depender de
+   abrir el archivo manualmente en otra herramienta.
 4. Nunca asumir en silencio cuál de las dos rutas aplica — el chequeo del paso 1 es obligatorio,
    no una suposición basada en el sistema operativo.
 

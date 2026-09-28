@@ -20,6 +20,7 @@
 | **Revisar antes de merge** | `agents/reviewer.md` | Pre-merge, code review, quality gate |
 | **Cuestionar un plan o spec** | `agents/challenger.md` | Spec lista para pasar a /write-plan |
 | **Validar spec técnicamente** | `skills/spec-validation/SKILL.md` | Después de /brainstorm, antes de challenger |
+| **Recolectar muchas decisiones discretas tipo matriz (N ítems × M opciones) para una spec** | `.aura/rules/interactive-spec-forms.md` | Spec con varias pantallas/ítems y varias opciones por ítem cada uno — preguntar uno por uno sería lento; no aplica a una sola decisión con pocas opciones (usar `AskUserQuestion`) |
 | **Crear un proyecto nuevo (repo consumidor de Aura)** | `skills/new-project-setup/SKILL.md` via `/new-project` | Usuario quiere iniciar un repo nuevo con el harness instalado de punta a punta (directorio local, submodule/plugin, identidad, primer push) |
 | **Planificar trabajo nuevo** | `skills/issue-planning/SKILL.md` via `/plan-work` | Usuario describe trabajo nuevo, no hay issues ready |
 | **Rama lista para PR** | `skills/finishing-a-development-branch/SKILL.md` via `/finish-branch` | Commits sin PR, rama completa |

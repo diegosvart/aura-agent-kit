@@ -70,3 +70,13 @@ task_start con Issue #N
 - Afecta la arquitectura o el modelo de datos
 - El usuario no sabe exactamente qué campos/endpoints/componentes necesita
 - Es una integración con sistema externo
+
+---
+
+## Recolectar decisiones tipo matriz (N ítems × M opciones)
+
+Si dentro del brainstorm/spec la cantidad de decisiones discretas crece a una matriz
+grande (ej. varias pantallas × varios controles cada una), preguntar una por una con
+`AskUserQuestion` es lento e improductivo. Ver `.aura/rules/interactive-spec-forms.md`
+para el patrón de formulario HTML local (siempre gitignored, nunca publicado como
+Artifact) que resuelve ese caso puntual sin salir del flujo de diseño de arriba.

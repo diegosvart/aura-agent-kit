@@ -1,7 +1,7 @@
 ---
-status: approved
-pr:
-completed_at:
+status: done
+pr: "#339"
+completed_at: "2026-09-22T15:51:24Z"
 ---
 # Plan — Session Start/End: hora de red verificada, timezone de visualización y tabla de herramientas
 

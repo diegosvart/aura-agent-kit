@@ -232,17 +232,33 @@ setup_fake_gh "$fixture_dir/bin" "feature-delete-stale"
 
     # Ejecutar el script con --delete
     PATH="$fixture_dir/bin:$PATH" "$SCRIPT_PATH" "fake/repo" "4" --delete
+
+    # Hallazgo 3 (PR #350): el script debe dejar el checkout en una rama real, nunca en
+    # detached HEAD, en el caso comun (no-worktree). `git symbolic-ref -q HEAD` tiene exito
+    # solo si HEAD apunta a una rama (falla en detached HEAD).
+    if git symbolic-ref -q HEAD > /dev/null; then
+        echo "HEAD_DETACHED=no"
+    else
+        echo "HEAD_DETACHED=yes"
+    fi
+    echo "CURRENT_BRANCH=$(git branch --show-current)"
 ) > "$fixture_dir/output.txt" 2>&1
-output=$(cat "$fixture_dir/output.txt")
+# Capturar el exit code del subshell INMEDIATAMENTE -- Hallazgo 2 (PR #350): leerlo despues de
+# `cat` captura el exit code de `cat`, no el del subshell, y la aserción de abajo queda muerta
+# (siempre 0).
 actual_exit=$?
+output=$(cat "$fixture_dir/output.txt")
 rm -rf "$fixture_dir"
 
-if [ $actual_exit -eq 0 ] && echo "$output" | grep -q "Rama local 'feature-delete-stale' borrada"; then
-    echo -e "${GREEN}✓ PASS${NC} — --delete usa origin/develop, rama borrada exitosamente incluso con develop local stale"
+if [ $actual_exit -eq 0 ] \
+    && echo "$output" | grep -q "Rama local 'feature-delete-stale' borrada" \
+    && echo "$output" | grep -q "HEAD_DETACHED=no" \
+    && echo "$output" | grep -q "CURRENT_BRANCH=develop"; then
+    echo -e "${GREEN}✓ PASS${NC} — --delete usa origin/develop, rama borrada exitosamente, y el checkout queda en 'develop' (no detached HEAD)"
     pass_count=$((pass_count + 1))
 else
-    echo -e "${RED}✗ FAIL${NC} — --delete debe usar origin/develop cuando develop local está stale"
-    echo "  Expected: salida que contenga 'Rama local' ... 'borrada'"
+    echo -e "${RED}✗ FAIL${NC} — --delete debe usar origin/develop cuando develop local está stale, y dejar el checkout en 'develop' (no detached HEAD)"
+    echo "  Expected: salida con 'Rama local' ... 'borrada', HEAD_DETACHED=no, CURRENT_BRANCH=develop"
     echo "  Got:      $output (exit=$actual_exit)"
     fail_count=$((fail_count + 1))
 fi

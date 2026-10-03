@@ -60,7 +60,22 @@ fi
 if [ "$MODE" == "--delete" ]; then
   current=$(git branch --show-current)
   if [ "$current" == "$branch" ]; then
-    git checkout origin/develop
+    # No podemos asumir que el checkout activo pueda pararse en la rama local 'develop': en un
+    # worktree distinto del que ya tiene 'develop' activo, `git checkout develop` falla con
+    # "already used by worktree" (docs/aura/specs/2026-09-18-worktree-lifecycle-gaps-design.md,
+    # sección A). El caso común (no-worktree) intenta primero 'develop' real y la actualiza por
+    # fast-forward contra origin/develop -- deja al usuario en una rama de verdad, nunca detached
+    # (Issue #344, hallazgo 1: `git checkout origin/develop` sin más deja detached HEAD en
+    # silencio, rompiendo a los ~10 consumidores de `git branch --show-current` del harness).
+    # Solo si ese checkout falla (caso worktree) caemos a detached HEAD explícito, avisando.
+    if git checkout -q develop 2>/dev/null; then
+      if ! git merge -q --ff-only origin/develop; then
+        echo "AVISO: 'develop' local no pudo actualizarse por fast-forward contra origin/develop (posible divergencia) — seguís en 'develop' pero puede estar desactualizada." >&2
+      fi
+    else
+      git checkout -q --detach origin/develop
+      echo "AVISO: no se pudo dejar el checkout en la rama 'develop' (probablemente está activa en otro worktree) — quedaste en detached HEAD sobre origin/develop. Corré 'git checkout develop' manualmente cuando ese worktree la libere." >&2
+    fi
   fi
   git branch -d "$branch"
   echo "Rama local '$branch' borrada (PR #$PR mergeado a develop)."

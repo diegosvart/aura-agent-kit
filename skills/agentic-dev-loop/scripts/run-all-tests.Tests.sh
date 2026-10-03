@@ -22,6 +22,7 @@ pass_count=0
 fail_count=0
 
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run-all-tests.sh"
+trap 'rm -rf "$(dirname "$SCRIPT_PATH")"/.tmp-test-runalltests-*' EXIT
 
 write_passing_suite() {
     local target="$1"
@@ -75,7 +76,7 @@ fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-runalltests-ok-$$"
 mkdir -p "$fixture_dir"
 write_passing_suite "$fixture_dir/one.Tests.sh"
 write_passing_suite "$fixture_dir/two.Tests.sh"
-output=$(NO_PWSH=1 "$SCRIPT_PATH" "$fixture_dir" 2>&1)
+output=$(NO_PWSH=1 bash "$SCRIPT_PATH" "$fixture_dir" 2>&1)
 actual_exit=$?
 rm -r "$fixture_dir"
 assert_exit "dos suites OK -> exit 0" "0" "$actual_exit"
@@ -86,7 +87,7 @@ fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-runalltests-mixed-$$"
 mkdir -p "$fixture_dir"
 write_passing_suite "$fixture_dir/one.Tests.sh"
 write_failing_suite "$fixture_dir/two.Tests.sh"
-output=$(NO_PWSH=1 "$SCRIPT_PATH" "$fixture_dir" 2>&1)
+output=$(NO_PWSH=1 bash "$SCRIPT_PATH" "$fixture_dir" 2>&1)
 actual_exit=$?
 test_count=$((test_count + 1))
 if [ "$actual_exit" -ne 0 ] && echo "$output" | grep -q "two.Tests.sh"; then
@@ -106,7 +107,7 @@ fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-runalltests-order-$$"
 mkdir -p "$fixture_dir"
 write_failing_suite "$fixture_dir/a-first.Tests.sh"
 write_passing_suite "$fixture_dir/z-last.Tests.sh"
-output=$(NO_PWSH=1 "$SCRIPT_PATH" "$fixture_dir" 2>&1)
+output=$(NO_PWSH=1 bash "$SCRIPT_PATH" "$fixture_dir" 2>&1)
 actual_exit=$?
 rm -r "$fixture_dir"
 assert_exit "fallo en la primera suite -> exit 1 pese a que la ultima pasa" "1" "$actual_exit"
@@ -117,7 +118,7 @@ fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-runalltests-nopwsh-$$"
 mkdir -p "$fixture_dir"
 write_passing_suite "$fixture_dir/one.Tests.sh"
 touch "$fixture_dir/fake.Tests.ps1"
-output=$(NO_PWSH=1 "$SCRIPT_PATH" "$fixture_dir" 2>&1)
+output=$(NO_PWSH=1 bash "$SCRIPT_PATH" "$fixture_dir" 2>&1)
 actual_exit=$?
 rm -r "$fixture_dir"
 test_count=$((test_count + 1))
@@ -137,7 +138,7 @@ fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-runalltests-hang-$$"
 mkdir -p "$fixture_dir"
 write_hanging_suite "$fixture_dir/hang.Tests.sh"
 write_passing_suite "$fixture_dir/ok.Tests.sh"
-output=$(NO_PWSH=1 SUITE_TIMEOUT_SECONDS=2 timeout 20 "$SCRIPT_PATH" "$fixture_dir" 2>&1)
+output=$(NO_PWSH=1 SUITE_TIMEOUT_SECONDS=2 timeout 20 bash "$SCRIPT_PATH" "$fixture_dir" 2>&1)
 actual_exit=$?
 rm -r "$fixture_dir"
 test_count=$((test_count + 1))
@@ -150,6 +151,17 @@ else
     echo "$output" | tail -20
     fail_count=$((fail_count + 1))
 fi
+
+echo ""
+echo "--- Fixture huerfano .tmp-test-* dentro del root no se ejecuta como suite ---"
+fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-runalltests-leak-$$"
+mkdir -p "$fixture_dir/.tmp-test-leak"
+write_passing_suite "$fixture_dir/ok.Tests.sh"
+write_failing_suite "$fixture_dir/.tmp-test-leak/x.Tests.sh"
+output=$(NO_PWSH=1 bash "$SCRIPT_PATH" "$fixture_dir" 2>&1)
+actual_exit=$?
+rm -r "$fixture_dir"
+assert_exit "suite en .tmp-test-* excluida -> exit 0" "0" "$actual_exit"
 
 write_passing_ps1_suite() {
     local target="$1"
@@ -179,7 +191,7 @@ if command -v pwsh >/dev/null 2>&1; then
     fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-runalltests-ps1ok-$$"
     mkdir -p "$fixture_dir"
     write_passing_ps1_suite "$fixture_dir/fixture.Tests.ps1"
-    output=$("$SCRIPT_PATH" "$fixture_dir" 2>&1)
+    output=$(bash "$SCRIPT_PATH" "$fixture_dir" 2>&1)
     actual_exit=$?
     rm -r "$fixture_dir"
     test_count=$((test_count + 1))
@@ -198,7 +210,7 @@ if command -v pwsh >/dev/null 2>&1; then
     fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-runalltests-ps1fail-$$"
     mkdir -p "$fixture_dir"
     write_failing_ps1_suite "$fixture_dir/fixture.Tests.ps1"
-    output=$("$SCRIPT_PATH" "$fixture_dir" 2>&1)
+    output=$(bash "$SCRIPT_PATH" "$fixture_dir" 2>&1)
     actual_exit=$?
     rm -r "$fixture_dir"
     test_count=$((test_count + 1))
@@ -207,6 +219,29 @@ if command -v pwsh >/dev/null 2>&1; then
         pass_count=$((pass_count + 1))
     else
         echo -e "${RED}✗ FAIL${NC} — suite .ps1 fallando -> exit != 0 y se reporta"
+        echo "  Got exit $actual_exit"
+        echo "$output" | tail -30
+        fail_count=$((fail_count + 1))
+    fi
+
+    echo ""
+    echo "--- pwsh real disponible: Invoke-Pester que falla sin asignar \$r -> exit != 0 agregado ---"
+    fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-runalltests-pesterbroken-$$"
+    mkdir -p "$fixture_dir/mods/Pester" "$fixture_dir/fx"
+    echo 'function Invoke-Pester { Write-Error "pester roto" }' > "$fixture_dir/mods/Pester/Pester.psm1"
+    echo "@{ ModuleVersion='99.0.0'; RootModule='Pester.psm1'; FunctionsToExport='Invoke-Pester'; GUID='11111111-2222-3333-4444-555555555555' }" > "$fixture_dir/mods/Pester/Pester.psd1"
+    echo 'Describe "a" { It "b" { 1 | Should Be 1 } }' > "$fixture_dir/fx/f.Tests.ps1"
+    path_sep="$(pwsh -NoProfile -Command '[IO.Path]::PathSeparator')"
+    win_mods="$(cygpath -w "$fixture_dir/mods" 2>/dev/null || echo "$fixture_dir/mods")"
+    output=$(PSModulePath="$win_mods$path_sep${PSModulePath:-}" bash "$SCRIPT_PATH" "$fixture_dir/fx" 2>&1)
+    actual_exit=$?
+    rm -r "$fixture_dir"
+    test_count=$((test_count + 1))
+    if [ "$actual_exit" -ne 0 ] && echo "$output" | grep -q "f.Tests.ps1"; then
+        echo -e "${GREEN}✓ PASS${NC} — Invoke-Pester roto sin \$r -> exit != 0 y se reporta"
+        pass_count=$((pass_count + 1))
+    else
+        echo -e "${RED}✗ FAIL${NC} — Invoke-Pester roto sin \$r -> exit != 0 y se reporta"
         echo "  Got exit $actual_exit"
         echo "$output" | tail -30
         fail_count=$((fail_count + 1))

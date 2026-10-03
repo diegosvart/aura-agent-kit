@@ -47,6 +47,22 @@ DEFAULT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 ROOT_DIR="${1:-$DEFAULT_ROOT}"
 SUITE_TIMEOUT_SECONDS="${SUITE_TIMEOUT_SECONDS:-90}"
 
+# Excluye fixtures huerfanos ".tmp-test-*" SOLO por debajo de ROOT_DIR: los tests de esta
+# suite usan un root_dir que ya se llama ".tmp-test-*", y un "*/.tmp-test-*" suelto lo excluiria entero.
+FIND_EXCLUDES=(-not -path "*/node_modules/*" -not -path "$ROOT_DIR/.tmp-test-*" -not -path "$ROOT_DIR/*/.tmp-test-*")
+
+run_with_timeout() {
+    if command -v timeout >/dev/null 2>&1; then
+        timeout -k 10 "$SUITE_TIMEOUT_SECONDS" "$@"
+    else
+        if [ -z "${TIMEOUT_WARNED:-}" ]; then
+            echo "AVISO: 'timeout' no disponible en PATH, las suites corren SIN limite de tiempo"
+            TIMEOUT_WARNED=1
+        fi
+        "$@"
+    fi
+}
+
 overall_status=0
 total=0
 failed=0
@@ -57,7 +73,7 @@ run_bash_suite() {
     total=$((total + 1))
     echo "--- bash: $file ---"
     local rc
-    timeout -k 10 "$SUITE_TIMEOUT_SECONDS" bash "$file"
+    run_with_timeout bash "$file"
     rc=$?
     if [ "$rc" -eq 0 ]; then
         :
@@ -98,7 +114,7 @@ run_ps1_suite() {
     echo "--- pwsh/Pester: $file ---"
     local tmp_out rc
     tmp_out="$(mktemp)"
-    timeout -k 10 "$SUITE_TIMEOUT_SECONDS" pwsh -NoProfile -Command "\$r = Invoke-Pester -Script '$win_file' -PassThru; exit [int]\$r.FailedCount" > "$tmp_out" 2>&1
+    run_with_timeout pwsh -NoProfile -Command "\$ErrorActionPreference = 'Stop'; \$r = Invoke-Pester -Script '$win_file' -PassThru; if (\$null -eq \$r) { exit 1 }; exit [int]\$r.FailedCount" > "$tmp_out" 2>&1
     rc=$?
     cat "$tmp_out"
     rm -f "$tmp_out"
@@ -117,14 +133,14 @@ run_ps1_suite() {
 
 while IFS= read -r f; do
     run_bash_suite "$f"
-done < <(find "$ROOT_DIR" -name "*.Tests.sh" -not -path "*/node_modules/*" | sort)
+done < <(find "$ROOT_DIR" -name "*.Tests.sh" "${FIND_EXCLUDES[@]}" | sort)
 
 if [ -z "${NO_PWSH:-}" ] && command -v pwsh >/dev/null 2>&1; then
     while IFS= read -r f; do
         run_ps1_suite "$f"
-    done < <(find "$ROOT_DIR" -name "*.Tests.ps1" -not -path "*/node_modules/*" | sort)
+    done < <(find "$ROOT_DIR" -name "*.Tests.ps1" "${FIND_EXCLUDES[@]}" | sort)
 else
-    ps1_count=$(find "$ROOT_DIR" -name "*.Tests.ps1" -not -path "*/node_modules/*" | wc -l | tr -d ' ')
+    ps1_count=$(find "$ROOT_DIR" -name "*.Tests.ps1" "${FIND_EXCLUDES[@]}" | wc -l | tr -d ' ')
     if [ "$ps1_count" -gt 0 ]; then
         echo "SKIP suites PowerShell/Pester ($ps1_count encontradas): pwsh no disponible en PATH, omitiendo"
     fi

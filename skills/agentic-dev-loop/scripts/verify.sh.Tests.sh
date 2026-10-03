@@ -23,6 +23,7 @@ pass_count=0
 fail_count=0
 
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/verify.sh"
+trap 'rm -rf "$(dirname "$SCRIPT_PATH")"/.tmp-test-verify-*' EXIT
 
 write_stack_file() {
     # Escribe el JSON a mano (sin python3): el python3 nativo de Windows de este entorno no
@@ -38,7 +39,7 @@ STACK_JSON_END
 
 run_verify_in() {
     local fixture_dir="$1"
-    ( cd "$fixture_dir" && "$SCRIPT_PATH" )
+    ( cd "$fixture_dir" && bash "$SCRIPT_PATH" )
 }
 
 echo ""
@@ -49,11 +50,11 @@ write_stack_file "$fixture_dir" "" "" ""
 output=$(run_verify_in "$fixture_dir" 2>&1)
 actual_exit=$?
 rm -r "$fixture_dir"
-if echo "$output" | grep -q "SKIP lint" && echo "$output" | grep -q "SKIP typecheck" && echo "$output" | grep -q "SKIP test"; then
-    echo -e "${GREEN}✓ PASS${NC} — comando vacio imprime SKIP para los 3 checks"
+if [ "$actual_exit" -eq 0 ] && echo "$output" | grep -q "SKIP lint" && echo "$output" | grep -q "SKIP typecheck" && echo "$output" | grep -q "SKIP test"; then
+    echo -e "${GREEN}✓ PASS${NC} — comando vacio imprime SKIP para los 3 checks y exit 0"
     pass_count=$((pass_count + 1))
 else
-    echo -e "${RED}✗ FAIL${NC} — comando vacio imprime SKIP para los 3 checks"
+    echo -e "${RED}✗ FAIL${NC} — comando vacio imprime SKIP para los 3 checks y exit 0"
     echo "  Got exit $actual_exit"
     echo "$output"
     fail_count=$((fail_count + 1))

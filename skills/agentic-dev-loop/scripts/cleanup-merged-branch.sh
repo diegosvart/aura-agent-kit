@@ -60,7 +60,7 @@ fi
 if [ "$MODE" == "--delete" ]; then
   current=$(git branch --show-current)
   if [ "$current" == "$branch" ]; then
-    git checkout develop
+    git checkout origin/develop
   fi
   git branch -d "$branch"
   echo "Rama local '$branch' borrada (PR #$PR mergeado a develop)."

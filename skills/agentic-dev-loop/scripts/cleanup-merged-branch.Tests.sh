@@ -185,6 +185,85 @@ else
 fi
 
 echo ""
+echo "--- Issue #344: --delete debe usar origin/develop en vez de develop local stale ---"
+test_count=$((test_count + 1))
+fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-issue344-$$"
+mkdir -p "$fixture_dir/bin" "$fixture_dir/origin"
+setup_fake_gh "$fixture_dir/bin" "feature-delete-stale"
+(
+    set -e
+    # Configurar repositorio remoto (origin)
+    cd "$fixture_dir/origin"
+    git init -q
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git config core.autocrlf false
+    echo base > base.txt
+    git add base.txt
+    git commit -q -m base
+    git branch -q develop
+
+    # Crear rama de feature y mergearla en origin/develop
+    git checkout -q -b feature-delete-stale
+    echo "feature content" > feature.txt
+    git add feature.txt
+    git commit -q -m "feature commit"
+
+    git checkout -q develop
+    git merge -q --no-ff feature-delete-stale -m "merge feature-delete-stale"
+
+    # Clonar a local
+    cd "$fixture_dir"
+    git clone -q "$fixture_dir/origin" local
+
+    cd "$fixture_dir/local"
+    # Crear rama local desde origin
+    git checkout -q -b feature-delete-stale origin/feature-delete-stale
+
+    # Resetear develop local para que esté stale
+    git checkout -q develop
+    git reset -q --hard HEAD~1
+
+    # Volver a la rama feature para simular el escenario real
+    git checkout -q feature-delete-stale
+
+    # Ahora origin/develop tiene el merge pero develop local no
+    # Cuando el script hace git checkout origin/develop, debería funcionar correctamente
+
+    # Ejecutar el script con --delete
+    PATH="$fixture_dir/bin:$PATH" "$SCRIPT_PATH" "fake/repo" "4" --delete
+
+    # Hallazgo 3 (PR #350): el script debe dejar el checkout en una rama real, nunca en
+    # detached HEAD, en el caso comun (no-worktree). `git symbolic-ref -q HEAD` tiene exito
+    # solo si HEAD apunta a una rama (falla en detached HEAD).
+    if git symbolic-ref -q HEAD > /dev/null; then
+        echo "HEAD_DETACHED=no"
+    else
+        echo "HEAD_DETACHED=yes"
+    fi
+    echo "CURRENT_BRANCH=$(git branch --show-current)"
+) > "$fixture_dir/output.txt" 2>&1
+# Capturar el exit code del subshell INMEDIATAMENTE -- Hallazgo 2 (PR #350): leerlo despues de
+# `cat` captura el exit code de `cat`, no el del subshell, y la aserción de abajo queda muerta
+# (siempre 0).
+actual_exit=$?
+output=$(cat "$fixture_dir/output.txt")
+rm -rf "$fixture_dir"
+
+if [ $actual_exit -eq 0 ] \
+    && echo "$output" | grep -q "Rama local 'feature-delete-stale' borrada" \
+    && echo "$output" | grep -q "HEAD_DETACHED=no" \
+    && echo "$output" | grep -q "CURRENT_BRANCH=develop"; then
+    echo -e "${GREEN}✓ PASS${NC} — --delete usa origin/develop, rama borrada exitosamente, y el checkout queda en 'develop' (no detached HEAD)"
+    pass_count=$((pass_count + 1))
+else
+    echo -e "${RED}✗ FAIL${NC} — --delete debe usar origin/develop cuando develop local está stale, y dejar el checkout en 'develop' (no detached HEAD)"
+    echo "  Expected: salida con 'Rama local' ... 'borrada', HEAD_DETACHED=no, CURRENT_BRANCH=develop"
+    echo "  Got:      $output (exit=$actual_exit)"
+    fail_count=$((fail_count + 1))
+fi
+
+echo ""
 echo "=== Resumen de tests ==="
 echo "Total: $test_count"
 echo -e "${GREEN}Pass: $pass_count${NC}"

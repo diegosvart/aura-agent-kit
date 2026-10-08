@@ -26,6 +26,13 @@ status=0
 run_check() {
   local name="$1" cmd="$2"
   if [ -z "$cmd" ]; then
+    # Issue #351: un comando vacio NO es lo mismo que un check verde -- antes esta rama
+    # devolvia 0 sin imprimir nada, indistinguible para quien lee el output de "corrio y
+    # paso". Ahora el salteo queda explicito en el output; sigue sin bloquear el exit code
+    # agregado (no-fatal), igual que ya hace "lint" cuando shellcheck no esta disponible --
+    # un check deliberadamente vacio (ej. "typecheck" en un stack sin tipos) es una decision
+    # de diseño valida, no una regresion.
+    echo "SKIP $name (sin comando en session-stack.json)"
     return 0
   fi
   local output rc

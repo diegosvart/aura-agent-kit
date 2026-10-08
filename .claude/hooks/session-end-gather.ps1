@@ -275,6 +275,8 @@ if ($MyInvocation.InvocationName -ne '.') {
     # Raiz del proyecto (2 niveles arriba de .claude/hooks/), mismo patron que session-start.ps1
     $projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     $stackFilePath = Join-Path $projectRoot ".agent\memory\session-stack.json"
+    # Override para tests: evita que el test de entry point ejecute el lint/test reales del repo (Issue #355).
+    if ($env:AURA_SESSION_STACK_FILE) { $stackFilePath = $env:AURA_SESSION_STACK_FILE }
 
     $result = Get-SessionEndGatherResult -ProjectRoot $projectRoot -StackFilePath $stackFilePath
     $result | ConvertTo-Json -Depth 6

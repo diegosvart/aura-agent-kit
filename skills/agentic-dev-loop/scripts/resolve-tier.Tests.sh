@@ -225,6 +225,8 @@ MARKER='<!-- aura:verifier-reject -->'
 run_case "1 rechazo del verifier (marcador) -> sonnet" "sin campo de complejidad" "$MARKER
 Rechazo del verifier registrado." "sonnet"
 run_case "Prosa del verifier (BLOQUEANTE / NO PASA) sin marcador NO escala -> haiku" "sin campo de complejidad" "**BLOQUEANTE** NO PASA: nunca puede fallar, falla con error, bloqueado, fallo" "haiku"
+run_case "Marcador citado en medio de una linea (no al inicio) NO cuenta -> haiku" "sin campo de complejidad" "El verifier uso $MARKER en su texto
+y tambien > $MARKER citado" "haiku"
 run_case "Complejidad media + 0 rechazos -> sonnet" "**Complejidad:** media" "" "sonnet"
 run_case "Complejidad media + rechazos -> sonnet (la declaracion inicial manda, sin cambiar umbrales)" "**Complejidad:** media" "$MARKER
 x

@@ -27,7 +27,7 @@ REJECT_MARKER='<!-- aura:verifier-reject -->'
 
 comment_bodies=$(gh issue view "$ISSUE" --repo "$REPO" --json comments --jq '.comments[].body')
 fail_comments=$(printf '%s
-' "$comment_bodies" | grep -cF "$REJECT_MARKER" || true)
+' "$comment_bodies" | grep -c "^$REJECT_MARKER" || true)
 
 if [ "$fail_comments" -ge 2 ]; then
   echo "opus"

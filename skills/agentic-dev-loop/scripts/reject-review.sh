@@ -10,11 +10,6 @@ ISSUE="${2:?Uso: reject-review.sh <owner>/<repo> <issue>}"
 
 gh issue edit "$ISSUE" --repo "$REPO" --remove-label review --add-label changes-requested
 
-# Marcador legible por maquina que resolve-tier.sh cuenta para escalar el modelo (Issue #352).
-# Debe coincidir con REJECT_MARKER de resolve-tier.sh.
-gh issue comment "$ISSUE" --repo "$REPO" --body "<!-- aura:verifier-reject -->
-Rechazo del verifier registrado (el detalle de los hallazgos va en el comentario del veredicto)."
-
 state=$(gh issue view "$ISSUE" --repo "$REPO" --json state --jq '.state')
 
 if [ "$state" = "CLOSED" ]; then
@@ -23,3 +18,9 @@ if [ "$state" = "CLOSED" ]; then
 else
   echo "Issue #$ISSUE marcado changes-requested."
 fi
+
+# Se publica DESPUES del reopen: si este comentario falla, el issue ya quedo reabierto.
+# Marcador legible por maquina que resolve-tier.sh cuenta para escalar el modelo (Issue #352).
+# Debe coincidir con REJECT_MARKER de resolve-tier.sh.
+gh issue comment "$ISSUE" --repo "$REPO" --body "<!-- aura:verifier-reject -->
+Rechazo del verifier registrado (el detalle de los hallazgos va en el comentario del veredicto)."

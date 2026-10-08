@@ -267,7 +267,21 @@ Describe 'Get-SessionEndGatherResult - orquestación completa' {
 Describe 'session-end-gather.ps1 - entry point emite JSON válido' {
 
     It 'al ejecutarse directamente imprime un JSON parseable con los campos esperados' {
-        $raw = & pwsh -NonInteractive -File $hookPath 2>$null
+        $marker = Join-Path ([System.IO.Path]::GetTempPath()) ("gather-marker-" + [guid]::NewGuid().ToString('N'))
+        $fixture = Join-Path ([System.IO.Path]::GetTempPath()) ("gather-stack-" + [guid]::NewGuid().ToString('N') + '.json')
+        $markerBash = $marker.Replace([string][char]92, '/')
+        $stackJson = @{ stack = 'fixture'; lint = ''; test = "echo ran > '$markerBash'" } | ConvertTo-Json
+        Set-Content -Path $fixture -Value $stackJson -Encoding UTF8
+        $env:AURA_SESSION_STACK_FILE = $fixture
+        try {
+            $raw = & pwsh -NonInteractive -File $hookPath 2>$null
+        } finally {
+            Remove-Item Env:\AURA_SESSION_STACK_FILE -ErrorAction SilentlyContinue
+            Remove-Item $fixture -ErrorAction SilentlyContinue
+        }
+        $ranReal = Test-Path $marker
+        Remove-Item $marker -ErrorAction SilentlyContinue
+        $ranReal | Should Be $true
         $json = ($raw -join "`n") | ConvertFrom-Json
         $names = @($json.PSObject.Properties.Name)
         $expectedFields = @(

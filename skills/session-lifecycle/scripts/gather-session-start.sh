@@ -300,7 +300,7 @@ declare -a json_keys=(
 printf '{\n'
 first=true
 for key in "${json_keys[@]}"; do
-  if [ -n "${data[$key]:-}" ]; then
+  if [ -v "data[$key]" ]; then
     if [ "$first" = true ]; then
       first=false
     else

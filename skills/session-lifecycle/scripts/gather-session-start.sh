@@ -136,8 +136,10 @@ else
 fi
 
 # 8. Salud de ramas
-git fetch origin develop --quiet 2>/dev/null || true
-merged_local=$(git branch --merged origin/develop --format='%(refname:short)' 2>/dev/null | grep -v '^\*\|main\|develop' | xargs || echo "")
+GIT_TERMINAL_PROMPT=0 timeout 10 git fetch origin develop --quiet 2>/dev/null || true
+base_ref=develop
+git rev-parse --verify -q origin/develop >/dev/null 2>&1 && base_ref=origin/develop
+merged_local=$(git branch --merged "$base_ref" --format='%(refname:short)' 2>/dev/null | grep -v '^\*\|main\|develop' | xargs || echo "")
 merged_remote=$(git branch -r --merged origin/develop --format='%(refname:short)' 2>/dev/null | grep -v 'origin/HEAD\|origin/main\|origin/develop' | xargs || echo "")
 gone_branches=$(git branch -vv 2>/dev/null | grep ': gone]' | awk '{print $1}' | xargs || echo "")
 

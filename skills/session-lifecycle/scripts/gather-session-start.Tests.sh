@@ -82,6 +82,19 @@ work=$(setup_repo stale)
 out=$(run_script "$work")
 printf '%s' "$out" | grep -q '"branches_merged_local": "feat-x"'; check "branches_merged_local usa origin/develop actualizado por fetch" "$?"
 
+# --- Punto 2: sin origin/develop, cae al develop local
+work="$FIXTURE/sin-origin"
+git init -q "$work"
+(
+    cd "$work"
+    git config user.email t@t; git config user.name t; git config commit.gpgsign false
+    git checkout -q -b develop
+    git commit -q --allow-empty -m "c1"
+    git branch feat-y
+)
+out=$(run_script "$work")
+printf '%s' "$out" | grep -q '"branches_merged_local": "feat-y"'; check "sin origin/develop, branches_merged_local usa develop local" "$?"
+
 echo ""
 echo "Total: $test_count  Pass: $pass_count  Fail: $fail_count"
 [ $fail_count -eq 0 ]

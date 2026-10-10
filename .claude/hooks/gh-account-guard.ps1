@@ -95,9 +95,9 @@ function Remove-QuotedContent {
     $blank = {
         param($m)
         if ($m.Groups['q'].Value -match '^"(?s:.*)(\$\(|`)') { return $m.Value }
-        if ($m.Groups['pre'].Value -match '^-[bt]\s') {
+        if ($m.Groups['pre'].Value -match '^-[a-z]') {
             $segment = ($Command.Substring(0, $m.Index) -split '&&|\|\||[;&|]')[-1]
-            if ($segment -notmatch '^\s*gh\s') { return $m.Value }
+            if ($segment -notmatch '^\s*(?:git|gh)\s') { return $m.Value }
         }
         return $m.Groups['pre'].Value + '""'
     }

@@ -178,6 +178,20 @@ Describe 'Test-GhAccountGuard - comandos entre comillas que si se ejecutan (Issu
         $result.decision | Should Be 'block'
     }
 
+    It 'bloquea git push dentro de bash -xt "..." (flag corto fuera de -m/-b/-t)' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'bash -xt "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git push dentro de sudo -m "..." (-m de un comando que no es git/gh)' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'sudo -m "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
     It 'sigue sin bloquear git commit -am con git push como texto plano' {
         Mock Get-ExpectedGhAccount { 'diegosvart' }
         Mock Get-ActiveGhAccount { 'ServiciosTIebi' }

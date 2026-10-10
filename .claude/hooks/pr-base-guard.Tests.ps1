@@ -179,6 +179,16 @@ Describe 'Test-PrBaseGuard - flags cortos de terceros no vacian payload (review 
         $result.decision | Should Be 'block'
     }
 
+    It 'bloquea bash -xt con el comando real (flag corto fuera de -m/-b/-t)' {
+        $result = Test-PrBaseGuard -Command 'bash -xt "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo -m con el comando real' {
+        $result = Test-PrBaseGuard -Command 'sudo -m "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
     It 'sigue sin bloquear git commit -am con el comando como texto' {
         $result = Test-PrBaseGuard -Command 'git commit -am "docs: explica gh pr create sin base"'
         $result | Should Be $null

@@ -23,7 +23,7 @@ function Split-ShellSegments {
                 $i += 2
                 continue
             }
-            if ($ch -eq ';' -or $ch -eq '|') {
+            if ($ch -eq ';' -or $ch -eq '|' -or $ch -eq '&' -or $ch -eq "`n" -or $ch -eq "`r") {
                 $segments.Add($current.ToString()) | Out-Null
                 [void]$current.Clear()
                 $i += 1

@@ -213,6 +213,19 @@ Describe 'Test-PrBaseGuard - echo/printf con flags y varios argumentos (review P
     }
 }
 
+Describe 'Test-PrBaseGuard - separadores & y salto de linea (review 2 PR #366)' {
+
+    It 'bloquea sudo -b con el comando real tras git status & (background)' {
+        $result = Test-PrBaseGuard -Command 'git status & sudo -b "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo -b con el comando real tras git status y salto de linea' {
+        $result = Test-PrBaseGuard -Command ("git status`n" + 'sudo -b "gh pr create --base main --title x"')
+        $result.decision | Should Be 'block'
+    }
+}
+
 Describe 'pr-base-guard.ps1 - entry point (fail-open)' {
 
     It 'input no parseable como JSON: no bloquea y queda logueado' {

@@ -248,6 +248,24 @@ Describe 'Test-GhAccountGuard - prefijos y segmentos con comillas (review PR #36
     }
 }
 
+Describe 'Test-GhAccountGuard - separadores & y salto de linea (review 2 PR #366)' {
+
+    BeforeEach {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+    }
+
+    It 'bloquea sudo -b con git push real tras git status & (background)' {
+        $result = Test-GhAccountGuard -Command 'git status & sudo -b "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo -b con git push real tras git status y salto de linea' {
+        $result = Test-GhAccountGuard -Command ("git status`n" + 'sudo -b "git push origin x"')
+        $result.decision | Should Be 'block'
+    }
+}
+
 Describe 'gh-account-guard.ps1 - entry point (fail-open)' {
 
     It 'input no parseable como JSON: exit code 0 (fail-open)' {

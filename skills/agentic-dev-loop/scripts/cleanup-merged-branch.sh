@@ -77,7 +77,20 @@ if [ "$MODE" == "--delete" ]; then
       echo "AVISO: no se pudo dejar el checkout en la rama 'develop' (probablemente está activa en otro worktree) — quedaste en detached HEAD sobre origin/develop. Corré 'git checkout develop' manualmente cuando ese worktree la libere." >&2
     fi
   fi
-  git branch -d "$branch"
+  # `git branch -d` compara ancestría y rechaza una rama squash-mergeada aunque la validación de
+  # contenido de arriba ya la certificó (Issue #353). -D solo para ese caso exacto: no es
+  # ancestro de origin/develop y su contenido ya está idéntico en develop. Cualquier otro fallo
+  # de -d se propaga sin borrar.
+  if ! git branch -d "$branch"; then
+    if ! git merge-base --is-ancestor "$branch" origin/develop \
+        && { [ ${#changed_files[@]} -eq 0 ] || git diff --quiet origin/develop "$branch" -- "${changed_files[@]}"; }; then
+      branch_sha=$(git rev-parse "$branch")
+      echo "AVISO: rama squash-mergeada (no es ancestro de develop pero su contenido ya está incorporado) — borrando con -D. SHA original: $branch_sha (recuperable con: git branch $branch $branch_sha)." >&2
+      git branch -D "$branch"
+    else
+      exit 1
+    fi
+  fi
   echo "Rama local '$branch' borrada (PR #$PR mergeado a develop)."
 else
   echo "Rama local '$branch' está mergeada en develop y lista para borrar."

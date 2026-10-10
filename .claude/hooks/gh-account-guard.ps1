@@ -84,14 +84,36 @@ function Get-ActiveGhAccount {
     return $null
 }
 
+# Vacia solo el texto entre comillas que es dato (valor de flags de texto libre, argumento de
+# echo/printf) para que un --body "git push" no dispare un bloqueo falso. Las comillas que son
+# carga ejecutable (bash -c "...", pwsh -Command "...") se conservan: vaciarlas dejaria pasar un
+# git push real. Contenido con $( o backtick no se vacia (se ejecuta). Limite conocido: heredocs y
+# comillas escapadas dentro de un valor quedan fuera de scope.
+function Remove-QuotedContent {
+    param([string]$Command)
+    $quoted = '"[^"]*"|''[^'']*'''
+    $blank = {
+        param($m)
+        if ($m.Groups['q'].Value -match '^"(?s:.*)(\$\(|`)') { return $m.Value }
+        if ($m.Groups['pre'].Value -match '^-[bt]\s') {
+            $segment = ($Command.Substring(0, $m.Index) -split '&&|\|\||[;&|]')[-1]
+            if ($segment -notmatch '^\s*gh\s') { return $m.Value }
+        }
+        return $m.Groups['pre'].Value + '""'
+    }
+    $freeTextFlag = '(?<![\w-])(?<pre>(?:--(?:body|title|message|notes|description|comment|subject)|-(?:a?m|b|t))(?:\s+|=))(?<q>' + $quoted + ')'
+    $result = [regex]::Replace($Command, $freeTextFlag, $blank)
+    $echoLike = '(?<![\w-])(?<pre>(?:echo|printf)\s+)(?<q>' + $quoted + ')'
+    return [regex]::Replace($result, $echoLike, $blank)
+}
+
 function Test-GhAccountGuard {
     param([string]$Command)
 
-    # Determinar si el comando es una operación de escritura remota
-    $isWriteOperation = $false
-    if ($Command -match '\bgit\s+push\b') { $isWriteOperation = $true }
-    if ($Command -match '\bgh\s+pr\s+create\b') { $isWriteOperation = $true }
-    if ($Command -match '\bgh\s+repo\s+edit\b') { $isWriteOperation = $true }
+    $bare = Remove-QuotedContent -Command $Command
+    $isWriteOperation = ($bare -match '\bgit\s+push\b') -or
+        ($bare -match '\bgh\s+pr\s+create\b') -or
+        ($bare -match '\bgh\s+repo\s+edit\b')
 
     if (-not $isWriteOperation) {
         return $null

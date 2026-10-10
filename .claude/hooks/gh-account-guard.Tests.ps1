@@ -68,6 +68,124 @@ Describe 'Test-GhAccountGuard - cambio de cuenta en medio de sesion (Issue #323,
     }
 }
 
+Describe 'Test-GhAccountGuard - segmentacion y texto entre comillas (Issue #346)' {
+
+    It 'no bloquea cuando "git push" aparece solo como texto dentro de --body' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'gh issue create --title x --body "ejemplo: git push origin x"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea cuando "gh pr create" aparece solo como texto entre comillas simples' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command "echo 'gh pr create' && ls"
+        $result | Should Be $null
+    }
+
+    It 'sigue bloqueando un git push real encadenado tras otro comando' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'echo ok && git push origin x'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'sigue bloqueando un git push real aunque otro segmento tenga texto entre comillas' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'echo "hola" ; git push origin x'
+        $result.decision | Should Be 'block'
+    }
+}
+
+Describe 'Test-GhAccountGuard - comandos entre comillas que si se ejecutan (Issue #346, hallazgo de review)' {
+
+    It 'bloquea git push dentro de bash -c "..."' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'bash -c "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea gh pr create dentro de pwsh -Command "..."' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'pwsh -Command "gh pr create --fill"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git push dentro de sh -c con comillas simples' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command "sh -c 'git push origin x'"
+        $result.decision | Should Be 'block'
+    }
+
+    It 'no bloquea git commit -am con "git push" como texto del mensaje' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'git commit -am "fix: no git push aqui"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea gh issue close --comment con "git push" como texto' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'gh issue close 5 --comment "ya hice git push"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea git commit -m con "git push" como texto del mensaje' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'git commit -m "docs: explica git push"'
+        $result | Should Be $null
+    }
+
+    It 'bloquea git push dentro de pwsh -Comm "..." (abreviatura de -Command)' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'pwsh -Comm "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git push dentro de pwsh -com "..." (abreviatura en minuscula)' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'pwsh -com "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git push dentro de sudo -b "..." (flag corto no free-text)' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'sudo -b "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git push dentro de $(...) en el mensaje de git commit -m' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'git commit -m "$(git push origin x)"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git push dentro de backticks en el mensaje de git commit -m' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'git commit -m "`git push origin x`"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'sigue sin bloquear git commit -am con git push como texto plano' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'git commit -am "docs: git push"'
+        $result | Should Be $null
+    }
+}
+
 Describe 'gh-account-guard.ps1 - entry point (fail-open)' {
 
     It 'input no parseable como JSON: exit code 0 (fail-open)' {

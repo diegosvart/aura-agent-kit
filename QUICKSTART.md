@@ -193,7 +193,7 @@ git submodule deinit -f .aura
 git rm -f .aura
 rm -rf .git/modules/.aura
 # Eliminar bloque <!-- aura:begin --> ... <!-- aura:end --> de CLAUDE.md
-rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1 .claude/hooks/sensitive-data-guard.ps1 .claude/hooks/pr-base-guard.ps1
+rm .claude/hooks/session-start.ps1 .claude/hooks/session-resume.ps1 .claude/hooks/session-end.ps1 .claude/hooks/git-guard.ps1 .claude/hooks/context-guard.ps1 .claude/hooks/sensitive-data-guard.ps1 .claude/hooks/pr-base-guard.ps1 .claude/hooks/shell-quoting.ps1
 ```
 
 **Opción C (solo plugin):**

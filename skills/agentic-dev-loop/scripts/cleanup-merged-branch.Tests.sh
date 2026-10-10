@@ -397,6 +397,138 @@ else
 fi
 
 echo ""
+echo "--- Issue #353 (endurecimiento): un PR cuya rama head es develop o main nunca se borra ---"
+for protected in develop main; do
+    test_count=$((test_count + 1))
+    fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-issue353-protected-$protected-$$"
+    mkdir -p "$fixture_dir/bin" "$fixture_dir/repo"
+    setup_fake_gh "$fixture_dir/bin" "$protected"
+    (
+        cd "$fixture_dir/repo"
+        git init -q
+        git config user.email "test@example.com"
+        git config user.name "Test User"
+        echo base > base.txt
+        git add base.txt
+        git commit -q -m base
+        git branch -q -M "$protected"
+        PATH="$fixture_dir/bin:$PATH" "$SCRIPT_PATH" "fake/repo" "8" --delete
+        echo "EXIT=$?"
+        if git show-ref --verify --quiet "refs/heads/$protected"; then echo "BRANCH_EXISTS=yes"; else echo "BRANCH_EXISTS=no"; fi
+    ) > "$fixture_dir/output.txt" 2>&1
+    output=$(cat "$fixture_dir/output.txt")
+    rm -rf "$fixture_dir"
+
+    if echo "$output" | grep -q "BRANCH_EXISTS=yes" \
+        && ! echo "$output" | grep -q "EXIT=0" \
+        && echo "$output" | grep -q "rama protegida"; then
+        echo -e "${GREEN}✓ PASS${NC} — head '$protected': rechazada con 'rama protegida', la rama sigue existiendo"
+        pass_count=$((pass_count + 1))
+    else
+        echo -e "${RED}✗ FAIL${NC} — head '$protected': rechazada con 'rama protegida', la rama sigue existiendo"
+        echo "  Expected: BRANCH_EXISTS=yes, exit distinto de 0 y mensaje 'rama protegida'"
+        echo "  Got:      $output"
+        fail_count=$((fail_count + 1))
+    fi
+done
+
+echo ""
+echo "--- Issue #353 (endurecimiento): un rename no incorporado en develop no se confunde con contenido idéntico ---"
+test_count=$((test_count + 1))
+fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-issue353-rename-$$"
+mkdir -p "$fixture_dir/bin" "$fixture_dir/origin"
+setup_fake_gh "$fixture_dir/bin" "feature-rename-353"
+(
+    set -e
+    cd "$fixture_dir/origin"
+    git init -q
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git config core.autocrlf false
+    printf 'linea 1\nlinea 2\nlinea 3\nlinea 4\n' > a.txt
+    git add a.txt
+    git commit -q -m base
+    git branch -q -M develop
+    git checkout -q -b feature-rename-353
+    git mv a.txt b.txt
+    git commit -q -m "rename a -> b"
+    git checkout -q develop
+    cp a.txt b.txt
+    git add b.txt
+    git commit -q -m "develop copia b pero conserva a"
+    cd "$fixture_dir"
+    git clone -q "$fixture_dir/origin" local
+    cd "$fixture_dir/local"
+    git config user.email "test@example.com"
+    git config user.name "Test User"
+    git checkout -q -b feature-rename-353 origin/feature-rename-353
+    git checkout -q develop
+    PATH="$fixture_dir/bin:$PATH" "$SCRIPT_PATH" "fake/repo" "9"
+) > "$fixture_dir/output.txt" 2>&1
+output=$(cat "$fixture_dir/output.txt")
+rm -rf "$fixture_dir"
+
+if echo "$output" | grep -q "NO aparece como mergeada"; then
+    echo -e "${GREEN}✓ PASS${NC} — rename sin borrar el original en develop se detecta como NO mergeado"
+    pass_count=$((pass_count + 1))
+else
+    echo -e "${RED}✗ FAIL${NC} — rename sin borrar el original en develop se detecta como NO mergeado"
+    echo "  Expected: salida que contenga 'NO aparece como mergeada'"
+    echo "  Got:      $output"
+    fail_count=$((fail_count + 1))
+fi
+
+echo ""
+echo "--- Issue #353 (endurecimiento): si git fetch falla, el script avisa en vez de seguir en silencio ---"
+test_count=$((test_count + 1))
+fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-issue353-fetchfail-$$"
+build_353_fixture "$fixture_dir" "feature-fetchfail-353" "merge" > "$fixture_dir.setup.txt" 2>&1
+(
+    cd "$fixture_dir/local"
+    git remote set-url origin "$fixture_dir/no-existe"
+    PATH="$fixture_dir/bin:$PATH" "$SCRIPT_PATH" "fake/repo" "10"
+) > "$fixture_dir/output.txt" 2>&1
+output=$(cat "$fixture_dir/output.txt")
+rm -rf "$fixture_dir" "$fixture_dir.setup.txt"
+
+if echo "$output" | grep -q "AVISO: no se pudo actualizar origin/develop"; then
+    echo -e "${GREEN}✓ PASS${NC} — fallo de git fetch se reporta con AVISO"
+    pass_count=$((pass_count + 1))
+else
+    echo -e "${RED}✗ FAIL${NC} — fallo de git fetch se reporta con AVISO"
+    echo "  Expected: salida que contenga 'AVISO: no se pudo actualizar origin/develop'"
+    echo "  Got:      $output"
+    fail_count=$((fail_count + 1))
+fi
+
+echo ""
+echo "--- Issue #353 (endurecimiento): si -d falla en una rama que SÍ es ancestro, nunca se escala a -D ---"
+test_count=$((test_count + 1))
+fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-issue353-nodescalate-$$"
+build_353_fixture "$fixture_dir" "feature-noescalate-353" "merge" > "$fixture_dir.setup.txt" 2>&1
+(
+    cd "$fixture_dir/local"
+    git worktree add -q "$fixture_dir/otro-worktree" feature-noescalate-353
+    PATH="$fixture_dir/bin:$PATH" "$SCRIPT_PATH" "fake/repo" "11" --delete
+    echo "EXIT=$?"
+    if git show-ref --verify --quiet "refs/heads/feature-noescalate-353"; then echo "BRANCH_EXISTS=yes"; else echo "BRANCH_EXISTS=no"; fi
+) > "$fixture_dir/output.txt" 2>&1
+output=$(cat "$fixture_dir/output.txt")
+rm -rf "$fixture_dir" "$fixture_dir.setup.txt"
+
+if echo "$output" | grep -q "BRANCH_EXISTS=yes" \
+    && ! echo "$output" | grep -q "EXIT=0" \
+    && ! echo "$output" | grep -q "AVISO: rama squash-mergeada"; then
+    echo -e "${GREEN}✓ PASS${NC} — rama ancestro con -d fallido: sigue existiendo, sin escalar a -D"
+    pass_count=$((pass_count + 1))
+else
+    echo -e "${RED}✗ FAIL${NC} — rama ancestro con -d fallido: sigue existiendo, sin escalar a -D"
+    echo "  Expected: BRANCH_EXISTS=yes, exit distinto de 0 y sin 'AVISO: rama squash-mergeada'"
+    echo "  Got:      $output"
+    fail_count=$((fail_count + 1))
+fi
+
+echo ""
 echo "=== Resumen de tests ==="
 echo "Total: $test_count"
 echo -e "${GREEN}Pass: $pass_count${NC}"

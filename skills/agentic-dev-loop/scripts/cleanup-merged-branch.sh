@@ -24,6 +24,13 @@ if [ "$pr_state" != "MERGED" ]; then
   exit 1
 fi
 
+case "$branch" in
+  develop|main)
+    echo "PR #$PR tiene como rama head '$branch' (rama protegida) — nunca se borra." >&2
+    exit 1
+    ;;
+esac
+
 if [ "$pr_base" != "develop" ]; then
   echo "PR #$PR fue mergeado hacia '$pr_base', no hacia 'develop' — no se asume que la rama esté segura para borrar." >&2
   exit 1
@@ -34,13 +41,15 @@ if ! git show-ref --verify --quiet "refs/heads/$branch"; then
   exit 0
 fi
 
-git fetch origin develop --quiet || true
+if ! git fetch origin develop --quiet; then
+  echo "AVISO: no se pudo actualizar origin/develop (git fetch falló) — la validación usa la última copia local, posiblemente desactualizada." >&2
+fi
 
 merge_base=$(git merge-base origin/develop "$branch") || {
   echo "No se pudo calcular el merge-base entre 'develop' y '$branch'." >&2
   exit 1
 }
-mapfile -t changed_files < <(git diff --name-only "$merge_base" "$branch")
+mapfile -t changed_files < <(git diff --name-only --no-renames "$merge_base" "$branch")
 
 # Ancestría real (merge normal) O contenido idéntico en los archivos que la rama tocó (cubre
 # squash-merge, donde el commit local nunca queda como ancestro de develop pero el contenido

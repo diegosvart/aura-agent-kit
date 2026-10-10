@@ -131,9 +131,24 @@ function Get-MergeTarget {
     return $null
 }
 
+# Vacia solo el texto entre comillas que es dato (valor de flags de texto libre, argumento de
+# echo/printf) para que un --body "gh pr create" no dispare un bloqueo falso, ni un
+# --body "--base develop" falsee la base. Las comillas que son carga ejecutable (bash -c "...",
+# pwsh -Command "...") se conservan: vaciarlas dejaria pasar un comando real. Limite conocido
+# (Issue #340 punto 9): heredocs y $(...) quedan fuera de scope.
+function Remove-QuotedContent {
+    param([string]$Command)
+    $quoted = '"[^"]*"|''[^'']*'''
+    $freeTextFlag = '(?<![\w-])(?<f>--(?:body|title|message|notes|description|comment|subject)|-[a-zA-Z]*[mbt])(?<sep>\s+|=)(?:' + $quoted + ')'
+    $result = [regex]::Replace($Command, $freeTextFlag, '${f}${sep}""')
+    $echoLike = '(?<![\w-])(?<c>echo|printf)(?<sep>\s+)(?:' + $quoted + ')'
+    return [regex]::Replace($result, $echoLike, '${c}${sep}""')
+}
+
 function Test-PrBaseGuardSegment {
     param([string]$Command)
 
+    $Command = Remove-QuotedContent -Command $Command
     if ($Command -notmatch '\bgh\s+pr\s+(create|edit|merge)\b') { return $null }
     $subcommand = $Matches[1]
 

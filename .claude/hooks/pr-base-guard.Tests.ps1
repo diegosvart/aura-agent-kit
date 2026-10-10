@@ -96,6 +96,54 @@ Describe 'Test-PrBaseGuard - gh pr merge con flag antes del target (code-review 
     }
 }
 
+Describe 'Test-PrBaseGuard - texto entre comillas que es dato (Issue #361)' {
+
+    It 'no bloquea --body que menciona el comando de crear PR' {
+        $result = Test-PrBaseGuard -Command 'gh issue create --title x --body "ejecutar gh pr create sin base"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea --comment que menciona el comando de crear PR' {
+        $result = Test-PrBaseGuard -Command "gh issue comment 5 --comment 'usar gh pr create --base main'"
+        $result | Should Be $null
+    }
+
+    It 'no bloquea git commit -m que menciona el comando de crear PR' {
+        $result = Test-PrBaseGuard -Command 'git commit -m "docs: explica gh pr create sin base"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea echo con el comando de crear PR como texto' {
+        $result = Test-PrBaseGuard -Command 'echo "gh pr create --base main"'
+        $result | Should Be $null
+    }
+
+    It 'bloquea bash -c con el comando real' {
+        $result = Test-PrBaseGuard -Command 'bash -c "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sh -c con el comando real' {
+        $result = Test-PrBaseGuard -Command "sh -c 'gh pr create --title x'"
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea pwsh -Command con el comando real' {
+        $result = Test-PrBaseGuard -Command 'pwsh -Command "gh pr create --base staging"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'sigue bloqueando el comando real con --body que menciona --base develop' {
+        $result = Test-PrBaseGuard -Command 'gh pr create --base main --body "usar --base develop"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'no toma --base develop del texto de --body como base real' {
+        $result = Test-PrBaseGuard -Command 'gh pr create --body "--base develop" --title x'
+        $result.decision | Should Be 'block'
+    }
+}
+
 Describe 'pr-base-guard.ps1 - entry point (fail-open)' {
 
     It 'input no parseable como JSON: no bloquea y queda logueado' {

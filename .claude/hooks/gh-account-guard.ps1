@@ -118,11 +118,17 @@ function Split-ShellSegments {
     return $segments
 }
 
-# Segment-aware no alcanza: un --body "git push" queda dentro de un solo segmento, asi que
-# ademas se vacia el texto entre comillas antes de buscar el comando.
+# Segmentar no alcanza: un --body "git push" queda dentro de un solo segmento. Se vacia solo el
+# texto entre comillas que es dato (valor de flags de texto libre, argumento de echo/printf).
+# Las comillas que son carga ejecutable (bash -c "...", pwsh -Command "...") se conservan:
+# vaciarlas dejaria pasar un git push real (hallazgo de review, Issue #346).
 function Remove-QuotedContent {
     param([string]$Segment)
-    return [regex]::Replace($Segment, '"[^"]*"|''[^'']*''', '""')
+    $quoted = '"[^"]*"|''[^'']*'''
+    $freeTextFlag = '(?<![\w-])(?<f>--(?:body|title|message|notes|description)|-[mbt])(?<sep>\s+|=)(?:' + $quoted + ')'
+    $result = [regex]::Replace($Segment, $freeTextFlag, '${f}${sep}""')
+    $echoLike = '(?<![\w-])(?<c>echo|printf)(?<sep>\s+)(?:' + $quoted + ')'
+    return [regex]::Replace($result, $echoLike, '${c}${sep}""')
 }
 
 function Test-GhAccountGuard {

@@ -99,6 +99,37 @@ Describe 'Test-GhAccountGuard - segmentacion y texto entre comillas (Issue #346)
     }
 }
 
+Describe 'Test-GhAccountGuard - comandos entre comillas que si se ejecutan (Issue #346, hallazgo de review)' {
+
+    It 'bloquea git push dentro de bash -c "..."' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'bash -c "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea gh pr create dentro de pwsh -Command "..."' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'pwsh -Command "gh pr create --fill"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git push dentro de sh -c con comillas simples' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command "sh -c 'git push origin x'"
+        $result.decision | Should Be 'block'
+    }
+
+    It 'no bloquea git commit -m con "git push" como texto del mensaje' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'git commit -m "docs: explica git push"'
+        $result | Should Be $null
+    }
+}
+
 Describe 'gh-account-guard.ps1 - entry point (fail-open)' {
 
     It 'input no parseable como JSON: exit code 0 (fail-open)' {

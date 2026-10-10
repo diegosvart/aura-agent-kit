@@ -84,49 +84,15 @@ function Get-ActiveGhAccount {
     return $null
 }
 
-# Copia de Split-ShellSegments de pr-base-guard.ps1 (no se dot-sourcea: ese script tiene un
-# punto de entrada que lee stdin). Divide por &&, ||, ; y | respetando comillas.
-function Split-ShellSegments {
-    param([string]$Command)
-    $segments = New-Object System.Collections.Generic.List[string]
-    $current = New-Object System.Text.StringBuilder
-    $inSingle = $false
-    $inDouble = $false
-    $i = 0
-    while ($i -lt $Command.Length) {
-        $ch = $Command[$i]
-        if ($ch -eq "'" -and -not $inDouble) { $inSingle = -not $inSingle; [void]$current.Append($ch); $i++; continue }
-        if ($ch -eq '"' -and -not $inSingle) { $inDouble = -not $inDouble; [void]$current.Append($ch); $i++; continue }
-        if (-not $inSingle -and -not $inDouble) {
-            if (($i + 1) -lt $Command.Length -and $Command.Substring($i, 2) -in @('&&', '||')) {
-                $segments.Add($current.ToString()) | Out-Null
-                [void]$current.Clear()
-                $i += 2
-                continue
-            }
-            if ($ch -eq ';' -or $ch -eq '|') {
-                $segments.Add($current.ToString()) | Out-Null
-                [void]$current.Clear()
-                $i += 1
-                continue
-            }
-        }
-        [void]$current.Append($ch)
-        $i++
-    }
-    $segments.Add($current.ToString()) | Out-Null
-    return $segments
-}
-
-# Segmentar no alcanza: un --body "git push" queda dentro de un solo segmento. Se vacia solo el
-# texto entre comillas que es dato (valor de flags de texto libre, argumento de echo/printf).
-# Las comillas que son carga ejecutable (bash -c "...", pwsh -Command "...") se conservan:
-# vaciarlas dejaria pasar un git push real (hallazgo de review, Issue #346).
+# Vacia solo el texto entre comillas que es dato (valor de flags de texto libre, argumento de
+# echo/printf) para que un --body "git push" no dispare un bloqueo falso. Las comillas que son
+# carga ejecutable (bash -c "...", pwsh -Command "...") se conservan: vaciarlas dejaria pasar un
+# git push real. Limite conocido: heredocs y $(...) dentro de comillas quedan fuera de scope.
 function Remove-QuotedContent {
-    param([string]$Segment)
+    param([string]$Command)
     $quoted = '"[^"]*"|''[^'']*'''
-    $freeTextFlag = '(?<![\w-])(?<f>--(?:body|title|message|notes|description)|-[mbt])(?<sep>\s+|=)(?:' + $quoted + ')'
-    $result = [regex]::Replace($Segment, $freeTextFlag, '${f}${sep}""')
+    $freeTextFlag = '(?<![\w-])(?<f>--(?:body|title|message|notes|description|comment|subject)|-[a-zA-Z]*[mbt])(?<sep>\s+|=)(?:' + $quoted + ')'
+    $result = [regex]::Replace($Command, $freeTextFlag, '${f}${sep}""')
     $echoLike = '(?<![\w-])(?<c>echo|printf)(?<sep>\s+)(?:' + $quoted + ')'
     return [regex]::Replace($result, $echoLike, '${c}${sep}""')
 }
@@ -134,13 +100,10 @@ function Remove-QuotedContent {
 function Test-GhAccountGuard {
     param([string]$Command)
 
-    $isWriteOperation = $false
-    foreach ($segment in (Split-ShellSegments -Command $Command)) {
-        $bare = Remove-QuotedContent -Segment $segment
-        if ($bare -match '\bgit\s+push\b') { $isWriteOperation = $true }
-        if ($bare -match '\bgh\s+pr\s+create\b') { $isWriteOperation = $true }
-        if ($bare -match '\bgh\s+repo\s+edit\b') { $isWriteOperation = $true }
-    }
+    $bare = Remove-QuotedContent -Command $Command
+    $isWriteOperation = ($bare -match '\bgit\s+push\b') -or
+        ($bare -match '\bgh\s+pr\s+create\b') -or
+        ($bare -match '\bgh\s+repo\s+edit\b')
 
     if (-not $isWriteOperation) {
         return $null

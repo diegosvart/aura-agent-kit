@@ -122,6 +122,20 @@ Describe 'Test-GhAccountGuard - comandos entre comillas que si se ejecutan (Issu
         $result.decision | Should Be 'block'
     }
 
+    It 'no bloquea git commit -am con "git push" como texto del mensaje' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'git commit -am "fix: no git push aqui"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea gh issue close --comment con "git push" como texto' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'gh issue close 5 --comment "ya hice git push"'
+        $result | Should Be $null
+    }
+
     It 'no bloquea git commit -m con "git push" como texto del mensaje' {
         Mock Get-ExpectedGhAccount { 'diegosvart' }
         Mock Get-ActiveGhAccount { 'ServiciosTIebi' }

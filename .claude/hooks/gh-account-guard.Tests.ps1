@@ -68,6 +68,37 @@ Describe 'Test-GhAccountGuard - cambio de cuenta en medio de sesion (Issue #323,
     }
 }
 
+Describe 'Test-GhAccountGuard - segmentacion y texto entre comillas (Issue #346)' {
+
+    It 'no bloquea cuando "git push" aparece solo como texto dentro de --body' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'gh issue create --title x --body "ejemplo: git push origin x"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea cuando "gh pr create" aparece solo como texto entre comillas simples' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command "echo 'gh pr create' && ls"
+        $result | Should Be $null
+    }
+
+    It 'sigue bloqueando un git push real encadenado tras otro comando' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'echo ok && git push origin x'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'sigue bloqueando un git push real aunque otro segmento tenga texto entre comillas' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'echo "hola" ; git push origin x'
+        $result.decision | Should Be 'block'
+    }
+}
+
 Describe 'gh-account-guard.ps1 - entry point (fail-open)' {
 
     It 'input no parseable como JSON: exit code 0 (fail-open)' {

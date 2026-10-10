@@ -142,6 +142,48 @@ Describe 'Test-GhAccountGuard - comandos entre comillas que si se ejecutan (Issu
         $result = Test-GhAccountGuard -Command 'git commit -m "docs: explica git push"'
         $result | Should Be $null
     }
+
+    It 'bloquea git push dentro de pwsh -Comm "..." (abreviatura de -Command)' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'pwsh -Comm "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git push dentro de pwsh -com "..." (abreviatura en minuscula)' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'pwsh -com "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git push dentro de sudo -b "..." (flag corto no free-text)' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'sudo -b "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git push dentro de $(...) en el mensaje de git commit -m' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'git commit -m "$(git push origin x)"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git push dentro de backticks en el mensaje de git commit -m' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'git commit -m "`git push origin x`"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'sigue sin bloquear git commit -am con git push como texto plano' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'git commit -am "docs: git push"'
+        $result | Should Be $null
+    }
 }
 
 Describe 'gh-account-guard.ps1 - entry point (fail-open)' {

@@ -77,7 +77,7 @@ su output directo** — no le pide a un agente que "razone" estos pasos. Esto es
 | `close-cycle.sh <owner>/<repo> <issue>` | Fase 1, Paso 5 | aplica `review` si hay PR abierto con `Closes #N`, `ready` si no hay PR (ni abierto ni mergeado); si el único PR encontrado ya está mergeado, no toca ningún label (issue ya resuelto) |
 | `find-review-candidates.sh <owner>/<repo>` | Fase 2, Paso 1 | stdout = JSON de issues `review` |
 | `find-pr-for-issue.sh <owner>/<repo> <issue>` | Fase 2, Paso 2 | stdout = número de PR, abierto o mergeado (exit 1 si no hay ninguno) |
-| `reject-review.sh <owner>/<repo> <issue>` | Fase 2, Paso 4 (veredicto "No pasa") | quita `review`, agrega `changes-requested`, reabre el issue si estaba `CLOSED`; el comentario con los hallazgos se publica antes, por separado (juicio del agente) |
+| `reject-review.sh <owner>/<repo> <issue>` | Fase 2, Paso 4 (veredicto "No pasa") | quita `review`, agrega `changes-requested`, reabre el issue si estaba `CLOSED`, y publica el comentario-marcador `<!-- aura:verifier-reject -->` que `resolve-tier.sh` cuenta para escalar el modelo (no reemplazar ni rechazar a mano sin el marcador); el comentario con los hallazgos se publica antes, por separado (juicio del agente) |
 | `verify.sh` | corridas sueltas de lint/typecheck/test | resumen corto pass/fail; solo muestra el fragmento de error si algo falla — nunca vuelca output crudo completo en éxito |
 
 **Nota de diseño importante (descubierta validando `pick-next-issue.sh` contra un repo real):**

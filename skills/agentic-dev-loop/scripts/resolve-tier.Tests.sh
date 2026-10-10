@@ -21,9 +21,9 @@ SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/resolve-tier.sh"
 
 # write_fake_gh -- fake de "gh" para resolve-tier.sh. Reconoce:
 #   - "gh issue view <N> --repo <R> --json body --jq .body" -> imprime $FAKE_BODY
-#   - "gh issue view <N> --repo <R> --json comments --jq ..." -> imprime $FAKE_FAIL_COMMENTS
-#     (cantidad de comentarios de fallo/bloqueo, ya resuelta -- el jq real filtra y cuenta,
-#     el fake devuelve directamente el numero esperado)
+#   - "gh issue view <N> --repo <R> --json comments --jq ..." -> imprime $FAKE_COMMENT_BODIES
+#     (los cuerpos de los comentarios, uno tras otro, como los emitiria '.comments[].body';
+#     la deteccion del marcador la hace resolve-tier.sh, no el fake)
 # Cualquier otra invocacion falla con exit 1 + mensaje a stderr.
 write_fake_gh() {
     local target="$1"
@@ -69,7 +69,8 @@ if [ "$1" = "issue" ] && [ "$2" = "view" ]; then
             printf '%s' "$FAKE_BODY"
             ;;
         comments)
-            printf '%s' "$FAKE_FAIL_COMMENTS"
+            printf '%s
+' "$FAKE_COMMENT_BODIES"
             ;;
         *)
             fail "gh issue view con --json inesperado: '$json_field'"
@@ -105,7 +106,7 @@ export FAKE_BODY='## Descripcion
 **Complejidad:** alta
 
 algo mas'
-export FAKE_FAIL_COMMENTS="0"
+export FAKE_COMMENT_BODIES=""
 actual=$(run_resolve_tier "$fixture_dir" 2>"$fixture_dir/stderr.txt")
 actual_exit=$?
 stderr_out=$(cat "$fixture_dir/stderr.txt" 2>/dev/null || echo "")
@@ -130,7 +131,7 @@ export FAKE_BODY='## Descripcion
 **Complejidad:** media
 
 algo mas'
-export FAKE_FAIL_COMMENTS="0"
+export FAKE_COMMENT_BODIES=""
 actual=$(run_resolve_tier "$fixture_dir" 2>"$fixture_dir/stderr.txt")
 actual_exit=$?
 stderr_out=$(cat "$fixture_dir/stderr.txt" 2>/dev/null || echo "")
@@ -153,7 +154,7 @@ mkdir -p "$fixture_dir"
 export FAKE_BODY='## Descripcion
 
 sin campo de complejidad'
-export FAKE_FAIL_COMMENTS="0"
+export FAKE_COMMENT_BODIES=""
 actual=$(run_resolve_tier "$fixture_dir" 2>"$fixture_dir/stderr.txt")
 actual_exit=$?
 stderr_out=$(cat "$fixture_dir/stderr.txt" 2>/dev/null || echo "")
@@ -176,7 +177,11 @@ mkdir -p "$fixture_dir"
 export FAKE_BODY='## Descripcion
 
 sin campo de complejidad'
-export FAKE_FAIL_COMMENTS="2"
+export FAKE_COMMENT_BODIES="<!-- aura:verifier-reject -->
+Rechazo 1
+texto intermedio
+<!-- aura:verifier-reject -->
+Rechazo 2"
 actual=$(run_resolve_tier "$fixture_dir" 2>"$fixture_dir/stderr.txt")
 actual_exit=$?
 stderr_out=$(cat "$fixture_dir/stderr.txt" 2>/dev/null || echo "")
@@ -190,6 +195,43 @@ else
     echo "  Got: '$actual', exit $actual_exit, stderr: $stderr_out"
     fail_count=$((fail_count + 1))
 fi
+
+run_case() {
+    # run_case <nombre> <body> <comment_bodies> <esperado>
+    local name="$1" body="$2" bodies="$3" expected="$4"
+    test_count=$((test_count + 1))
+    echo ""
+    echo "--- $name ---"
+    local fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-resolvetier-case-$$"
+    mkdir -p "$fixture_dir"
+    export FAKE_BODY="$body"
+    export FAKE_COMMENT_BODIES="$bodies"
+    local actual actual_exit
+    actual=$(run_resolve_tier "$fixture_dir" 2>"$fixture_dir/stderr.txt")
+    actual_exit=$?
+    rm -rf "$fixture_dir"
+    if [ "$actual" = "$expected" ] && [ "$actual_exit" -eq 0 ]; then
+        echo -e "${GREEN}✓ PASS${NC} — $name"
+        pass_count=$((pass_count + 1))
+    else
+        echo -e "${RED}✗ FAIL${NC} — $name"
+        echo "  Expected: $expected, exit 0"
+        echo "  Got: '$actual', exit $actual_exit"
+        fail_count=$((fail_count + 1))
+    fi
+}
+
+MARKER='<!-- aura:verifier-reject -->'
+run_case "1 rechazo del verifier (marcador) -> sonnet" "sin campo de complejidad" "$MARKER
+Rechazo del verifier registrado." "sonnet"
+run_case "Prosa del verifier (BLOQUEANTE / NO PASA) sin marcador NO escala -> haiku" "sin campo de complejidad" "**BLOQUEANTE** NO PASA: nunca puede fallar, falla con error, bloqueado, fallo" "haiku"
+run_case "Marcador citado en medio de una linea (no al inicio) NO cuenta -> haiku" "sin campo de complejidad" "El verifier uso $MARKER en su texto
+y tambien > $MARKER citado" "haiku"
+run_case "Complejidad media + 0 rechazos -> sonnet" "**Complejidad:** media" "" "sonnet"
+run_case "Complejidad media + rechazos -> sonnet (la declaracion inicial manda, sin cambiar umbrales)" "**Complejidad:** media" "$MARKER
+x
+$MARKER
+y" "sonnet"
 
 echo ""
 echo "=== Resumen de tests ==="

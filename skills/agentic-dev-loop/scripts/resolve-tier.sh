@@ -18,8 +18,16 @@ if echo "$body" | grep -qi '\*\*Complejidad:\*\* media'; then
   exit 0
 fi
 
-fail_comments=$(gh issue view "$ISSUE" --repo "$REPO" --json comments \
-  --jq '[.comments[] | select(.body | test("(?i)bloqueado|fall[oó]"))] | length')
+# Escalamiento reactivo (Issue #352): se cuenta el marcador que reject-review.sh publica en cada
+# rechazo del verifier -- NO se interpreta prosa libre. Una regex sobre el vocabulario del
+# verifier ("bloqueado|fallo", etc.) nunca matcheo "BLOQUEANTE"/"NO PASA", y cualquier
+# vocabulario fijo vuelve a romperse con el siguiente texto que genere el LLM. El contrato es
+# explicito entre los dos scripts; no "simplificar" de vuelta a matchear prosa.
+REJECT_MARKER='<!-- aura:verifier-reject -->'
+
+comment_bodies=$(gh issue view "$ISSUE" --repo "$REPO" --json comments --jq '.comments[].body')
+fail_comments=$(printf '%s
+' "$comment_bodies" | grep -c "^$REJECT_MARKER" || true)
 
 if [ "$fail_comments" -ge 2 ]; then
   echo "opus"

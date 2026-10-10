@@ -79,6 +79,7 @@ su output directo** — no le pide a un agente que "razone" estos pasos. Esto es
 | `find-pr-for-issue.sh <owner>/<repo> <issue>` | Fase 2, Paso 2 | stdout = número de PR, abierto o mergeado (exit 1 si no hay ninguno) |
 | `reject-review.sh <owner>/<repo> <issue>` | Fase 2, Paso 4 (veredicto "No pasa") | quita `review`, agrega `changes-requested`, reabre el issue si estaba `CLOSED`, y publica el comentario-marcador `<!-- aura:verifier-reject -->` que `resolve-tier.sh` cuenta para escalar el modelo (no reemplazar ni rechazar a mano sin el marcador); el comentario con los hallazgos se publica antes, por separado (juicio del agente) |
 | `verify.sh` | corridas sueltas de lint/typecheck/test | resumen corto pass/fail; solo muestra el fragmento de error si algo falla — nunca vuelca output crudo completo en éxito |
+| `save-plan.sh <fecha> <slug> <issue> <archivo>` | Utilidad: guardar plan aprobado al ledger | stdout = ruta creada; fecha `YYYY-MM-DD`, slug `[a-z0-9][a-z0-9-]*`, issue numérico; crea `.agent/memory/plans/<fecha>-<slug>.md` con frontmatter (`status`, `issue`, `date`); falla si ya existe (nunca sobreescribe) |
 
 **Nota de diseño importante (descubierta validando `pick-next-issue.sh` contra un repo real):**
 si el *default branch* del repo (el que dispara el autocierre de `Closes #N`) es distinto de la

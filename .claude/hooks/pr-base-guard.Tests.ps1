@@ -144,6 +144,65 @@ Describe 'Test-PrBaseGuard - texto entre comillas que es dato (Issue #361)' {
     }
 }
 
+Describe 'Test-PrBaseGuard - comillas con sustitucion ejecutable (review PR #363)' {
+
+    It 'bloquea git commit -m con $(...) que ejecuta el comando real' {
+        $result = Test-PrBaseGuard -Command 'git commit -m "$(gh pr create --base main --title x)"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git commit -m con backticks que ejecutan el comando real' {
+        $result = Test-PrBaseGuard -Command 'git commit -m "`gh pr create --base main --title x`"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea --body con $(...) que ejecuta el comando real' {
+        $result = Test-PrBaseGuard -Command 'gh issue create --title x --body "$(gh pr create --base main)"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea echo con $(...) que ejecuta el comando real' {
+        $result = Test-PrBaseGuard -Command 'echo "$(gh pr create --base main)"'
+        $result.decision | Should Be 'block'
+    }
+}
+
+Describe 'Test-PrBaseGuard - flags cortos de terceros no vacian payload (review PR #363)' {
+
+    It 'bloquea sudo -b con el comando real' {
+        $result = Test-PrBaseGuard -Command 'sudo -b "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea watch -t con el comando real' {
+        $result = Test-PrBaseGuard -Command 'watch -t "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'sigue sin bloquear git commit -am con el comando como texto' {
+        $result = Test-PrBaseGuard -Command 'git commit -am "docs: explica gh pr create sin base"'
+        $result | Should Be $null
+    }
+
+    It 'sigue sin bloquear gh issue create -b con el comando como texto' {
+        $result = Test-PrBaseGuard -Command 'gh issue create -t x -b "usar gh pr create --base main"'
+        $result | Should Be $null
+    }
+}
+
+Describe 'Test-PrBaseGuard - echo/printf con flags y varios argumentos (review PR #363)' {
+
+    It 'no bloquea echo -e con el comando de crear PR como texto' {
+        $result = Test-PrBaseGuard -Command 'echo -e "gh pr create --base main\n"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea printf con formato y argumento posterior' {
+        $result = Test-PrBaseGuard -Command 'printf "%s\n" "gh pr create --base main"'
+        $result | Should Be $null
+    }
+}
+
 Describe 'pr-base-guard.ps1 - entry point (fail-open)' {
 
     It 'input no parseable como JSON: no bloquea y queda logueado' {

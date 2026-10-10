@@ -179,6 +179,16 @@ Describe 'Test-PrBaseGuard - flags cortos de terceros no vacian payload (review 
         $result.decision | Should Be 'block'
     }
 
+    It 'bloquea bash -xt con el comando real (flag corto fuera de -m/-b/-t)' {
+        $result = Test-PrBaseGuard -Command 'bash -xt "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo -m con el comando real' {
+        $result = Test-PrBaseGuard -Command 'sudo -m "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
     It 'sigue sin bloquear git commit -am con el comando como texto' {
         $result = Test-PrBaseGuard -Command 'git commit -am "docs: explica gh pr create sin base"'
         $result | Should Be $null
@@ -200,6 +210,19 @@ Describe 'Test-PrBaseGuard - echo/printf con flags y varios argumentos (review P
     It 'no bloquea printf con formato y argumento posterior' {
         $result = Test-PrBaseGuard -Command 'printf "%s\n" "gh pr create --base main"'
         $result | Should Be $null
+    }
+}
+
+Describe 'Test-PrBaseGuard - separadores & y salto de linea (review 2 PR #366)' {
+
+    It 'bloquea sudo -b con el comando real tras git status & (background)' {
+        $result = Test-PrBaseGuard -Command 'git status & sudo -b "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo -b con el comando real tras git status y salto de linea' {
+        $result = Test-PrBaseGuard -Command ("git status`n" + 'sudo -b "gh pr create --base main --title x"')
+        $result.decision | Should Be 'block'
     }
 }
 

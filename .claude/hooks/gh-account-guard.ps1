@@ -20,6 +20,8 @@
 # Get-ExpectedGhAccount/Get-ActiveGhAccount) + un punto de entrada al final que solo corre
 # cuando el script se invoca directamente, no al dot-source.
 
+. (Join-Path $PSScriptRoot 'shell-quoting.ps1')
+
 function Write-GuardLog {
     param([string]$Reason)
     try {
@@ -84,36 +86,19 @@ function Get-ActiveGhAccount {
     return $null
 }
 
-# Vacia solo el texto entre comillas que es dato (valor de flags de texto libre, argumento de
-# echo/printf) para que un --body "git push" no dispare un bloqueo falso. Las comillas que son
-# carga ejecutable (bash -c "...", pwsh -Command "...") se conservan: vaciarlas dejaria pasar un
-# git push real. Contenido con $( o backtick no se vacia (se ejecuta). Limite conocido: heredocs y
-# comillas escapadas dentro de un valor quedan fuera de scope.
-function Remove-QuotedContent {
-    param([string]$Command)
-    $quoted = '"[^"]*"|''[^'']*'''
-    $blank = {
-        param($m)
-        if ($m.Groups['q'].Value -match '^"(?s:.*)(\$\(|`)') { return $m.Value }
-        if ($m.Groups['pre'].Value -match '^-[bt]\s') {
-            $segment = ($Command.Substring(0, $m.Index) -split '&&|\|\||[;&|]')[-1]
-            if ($segment -notmatch '^\s*gh\s') { return $m.Value }
-        }
-        return $m.Groups['pre'].Value + '""'
-    }
-    $freeTextFlag = '(?<![\w-])(?<pre>(?:--(?:body|title|message|notes|description|comment|subject)|-(?:a?m|b|t))(?:\s+|=))(?<q>' + $quoted + ')'
-    $result = [regex]::Replace($Command, $freeTextFlag, $blank)
-    $echoLike = '(?<![\w-])(?<pre>(?:echo|printf)\s+)(?<q>' + $quoted + ')'
-    return [regex]::Replace($result, $echoLike, $blank)
-}
-
 function Test-GhAccountGuard {
     param([string]$Command)
 
-    $bare = Remove-QuotedContent -Command $Command
-    $isWriteOperation = ($bare -match '\bgit\s+push\b') -or
-        ($bare -match '\bgh\s+pr\s+create\b') -or
-        ($bare -match '\bgh\s+repo\s+edit\b')
+    $isWriteOperation = $false
+    foreach ($segment in (Split-ShellSegments -Command $Command)) {
+        $bare = Remove-QuotedContent -Command $segment
+        if (($bare -match '\bgit\s+push\b') -or
+            ($bare -match '\bgh\s+pr\s+create\b') -or
+            ($bare -match '\bgh\s+repo\s+edit\b')) {
+            $isWriteOperation = $true
+            break
+        }
+    }
 
     if (-not $isWriteOperation) {
         return $null

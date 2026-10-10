@@ -178,11 +178,91 @@ Describe 'Test-GhAccountGuard - comandos entre comillas que si se ejecutan (Issu
         $result.decision | Should Be 'block'
     }
 
+    It 'bloquea git push dentro de bash -xt "..." (flag corto fuera de -m/-b/-t)' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'bash -xt "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git push dentro de sudo -m "..." (-m de un comando que no es git/gh)' {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $result = Test-GhAccountGuard -Command 'sudo -m "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
     It 'sigue sin bloquear git commit -am con git push como texto plano' {
         Mock Get-ExpectedGhAccount { 'diegosvart' }
         Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
         $result = Test-GhAccountGuard -Command 'git commit -am "docs: git push"'
         $result | Should Be $null
+    }
+}
+
+Describe 'Test-GhAccountGuard - prefijos y segmentos con comillas (review PR #366)' {
+
+    BeforeEach {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+    }
+
+    It 'no bloquea VAR=x git commit -m con git push como texto' {
+        $result = Test-GhAccountGuard -Command 'GIT_AUTHOR_NAME=x git commit -m "docs: git push"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea sudo git commit -m con git push como texto' {
+        $result = Test-GhAccountGuard -Command 'sudo git commit -m "docs: git push"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea env git commit -m con git push como texto' {
+        $result = Test-GhAccountGuard -Command 'env git commit -m "docs: git push"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea git commit -m con ; dentro de las comillas y git push como texto' {
+        $result = Test-GhAccountGuard -Command 'git commit -m "a; b" -m "git push"'
+        $result | Should Be $null
+    }
+
+    It 'bloquea un git push real tras un git commit con ; dentro de las comillas' {
+        $result = Test-GhAccountGuard -Command 'git commit -m "a; b" && git push origin x'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'no bloquea git commit -m con git push como texto en un segundo segmento tras otro comando' {
+        $result = Test-GhAccountGuard -Command 'ls && git commit -m "docs: git push"'
+        $result | Should Be $null
+    }
+
+    It 'bloquea sudo -b con git push real aunque un segmento previo sea git' {
+        $result = Test-GhAccountGuard -Command 'git status && sudo -b "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo con ; dentro de comillas seguido de -b con git push real' {
+        $result = Test-GhAccountGuard -Command "sudo 'a; git x' -b ""git push origin x"""
+        $result.decision | Should Be 'block'
+    }
+}
+
+Describe 'Test-GhAccountGuard - separadores & y salto de linea (review 2 PR #366)' {
+
+    BeforeEach {
+        Mock Get-ExpectedGhAccount { 'diegosvart' }
+        Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+    }
+
+    It 'bloquea sudo -b con git push real tras git status & (background)' {
+        $result = Test-GhAccountGuard -Command 'git status & sudo -b "git push origin x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo -b con git push real tras git status y salto de linea' {
+        $result = Test-GhAccountGuard -Command ("git status`n" + 'sudo -b "git push origin x"')
+        $result.decision | Should Be 'block'
     }
 }
 

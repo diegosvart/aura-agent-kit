@@ -136,7 +136,10 @@ else
 fi
 
 # 8. Salud de ramas
-merged_local=$(git branch --merged develop --format='%(refname:short)' 2>/dev/null | grep -v '^\*\|main\|develop' | xargs || echo "")
+GIT_TERMINAL_PROMPT=0 timeout 10 git fetch origin develop --quiet 2>/dev/null || true
+base_ref=develop
+git rev-parse --verify -q origin/develop >/dev/null 2>&1 && base_ref=origin/develop
+merged_local=$(git branch --merged "$base_ref" --format='%(refname:short)' 2>/dev/null | grep -v '^\*\|main\|develop' | xargs || echo "")
 merged_remote=$(git branch -r --merged origin/develop --format='%(refname:short)' 2>/dev/null | grep -v 'origin/HEAD\|origin/main\|origin/develop' | xargs || echo "")
 gone_branches=$(git branch -vv 2>/dev/null | grep ': gone]' | awk '{print $1}' | xargs || echo "")
 
@@ -234,8 +237,8 @@ data[stranded_candidates]="$stranded_json"
 
 # 15. Ideas en backlog
 ideas_count=0
-if [ -f ideas.md ]; then
-  ideas_count=$(grep -c '^## \[' ideas.md || echo 0)
+if [ -f .agent/memory/ideas.md ]; then
+  ideas_count=$(grep -c '^## \[' .agent/memory/ideas.md || true)
 fi
 data[ideas_count]="$ideas_count"
 
@@ -300,7 +303,7 @@ declare -a json_keys=(
 printf '{\n'
 first=true
 for key in "${json_keys[@]}"; do
-  if [ -n "${data[$key]:-}" ]; then
+  if [ -v "data[$key]" ]; then
     if [ "$first" = true ]; then
       first=false
     else

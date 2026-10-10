@@ -234,8 +234,8 @@ data[stranded_candidates]="$stranded_json"
 
 # 15. Ideas en backlog
 ideas_count=0
-if [ -f ideas.md ]; then
-  ideas_count=$(grep -c '^## \[' ideas.md || echo 0)
+if [ -f .agent/memory/ideas.md ]; then
+  ideas_count=$(grep -c '^## \[' .agent/memory/ideas.md || true)
 fi
 data[ideas_count]="$ideas_count"
 

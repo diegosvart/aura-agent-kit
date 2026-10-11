@@ -178,7 +178,9 @@ Prompt autocontenido (el agente parte de cero — sin memoria de esta sesión):
      `open-pr.sh` ya antepone `Closes #N`, así que el resumen que arma el dev-runner empieza
      directo en `# <Título del PR>` seguido de `## Qué` / `## Beneficio` / `## Por qué` /
      `## Cómo` / `## Criterios de Aceptación` / `## Testing` / `## Notas para el reviewer`
-     (esta última opcional). `## Testing` lleva el output real de `verify.sh` (Paso 4, sub-paso
+     (esta última opcional). `open-pr.sh` valida estructuralmente (Issue #301) que estén
+     `## Qué`, `## Beneficio`, `## Por qué`, `## Cómo` y `## Testing`, y rechaza el body si
+     falta alguna. `## Testing` lleva el output real de `verify.sh` (Paso 4, sub-paso
      3), no una afirmación sin evidencia — mismo criterio que
      `.aura/rules/harness-core.md` aplica a cualquier estado verificable.
   6. Si en algún punto queda bloqueado (dependencia no resuelta que no se había detectado,

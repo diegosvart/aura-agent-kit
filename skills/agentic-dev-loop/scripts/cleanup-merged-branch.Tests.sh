@@ -478,16 +478,44 @@ else
     fail_count=$((fail_count + 1))
 fi
 
+# Issue #377: set-url corre sobre el repo de la cwd; si el fixture no se armo, un cd sin guarda dejaba
+# el set-url actuando sobre el repo real y rompia remote.origin.url del .git/config compartido.
+run_fetchfail_case() {
+    local fixture_dir=$1
+    (
+        cd "$fixture_dir/local" || exit 1
+        git remote set-url origin "$fixture_dir/no-existe"
+        PATH="$fixture_dir/bin:$PATH" "$SCRIPT_PATH" "fake/repo" "10"
+    )
+}
+
+echo ""
+echo "--- Issue #377: si el fixture de fetchfail no se armo, remote.origin.url del repo en cwd no se toca ---"
+test_count=$((test_count + 1))
+guard_dir="$(mktemp -d)"
+(
+    cd "$guard_dir" && git init -q && git remote add origin "https://example.invalid/original.git"
+    mkdir -p "$guard_dir/fixture-sin-local"
+    run_fetchfail_case "$guard_dir/fixture-sin-local" > /dev/null 2>&1
+)
+guard_url=$(git -C "$guard_dir" config remote.origin.url)
+rm -rf "$guard_dir"
+if [ "$guard_url" = "https://example.invalid/original.git" ]; then
+    echo -e "${GREEN}✓ PASS${NC} — remote.origin.url intacto cuando el fixture no existe"
+    pass_count=$((pass_count + 1))
+else
+    echo -e "${RED}✗ FAIL${NC} — remote.origin.url intacto cuando el fixture no existe"
+    echo "  Expected: https://example.invalid/original.git"
+    echo "  Got:      $guard_url"
+    fail_count=$((fail_count + 1))
+fi
+
 echo ""
 echo "--- Issue #353 (endurecimiento): si git fetch falla, el script avisa en vez de seguir en silencio ---"
 test_count=$((test_count + 1))
 fixture_dir="$(dirname "$SCRIPT_PATH")/.tmp-test-issue353-fetchfail-$$"
 build_353_fixture "$fixture_dir" "feature-fetchfail-353" "merge" > "$fixture_dir.setup.txt" 2>&1
-(
-    cd "$fixture_dir/local"
-    git remote set-url origin "$fixture_dir/no-existe"
-    PATH="$fixture_dir/bin:$PATH" "$SCRIPT_PATH" "fake/repo" "10"
-) > "$fixture_dir/output.txt" 2>&1
+run_fetchfail_case "$fixture_dir" > "$fixture_dir/output.txt" 2>&1
 output=$(cat "$fixture_dir/output.txt")
 rm -rf "$fixture_dir" "$fixture_dir.setup.txt"
 

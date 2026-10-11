@@ -32,6 +32,8 @@
 # todavia no corrio cuando el hook evalua). Fix: sumar el texto crudo del comando al contenido
 # inspeccionado, no confiar solo en `git diff --cached`.
 
+. (Join-Path $PSScriptRoot 'repo-classification.ps1')
+
 function Write-GuardLog {
     param([string]$Reason)
     try {
@@ -65,18 +67,6 @@ function Get-DenylistPath {
     param([string]$RepoRoot)
     if (-not $RepoRoot) { return $null }
     return (Join-Path $RepoRoot ".claude/sensitive-terms.local.txt")
-}
-
-function Get-RepoClassification {
-    param([string]$RepoRoot)
-    if (-not $RepoRoot) { return $null }
-    $path = Join-Path $RepoRoot ".agent/memory/repo-classification.json"
-    if (-not (Test-Path $path)) { return $null }
-    try {
-        return (Get-Content $path -Raw | ConvertFrom-Json)
-    } catch {
-        return $null
-    }
 }
 
 # Chequeo de contenido compartido entre el path de `git commit` y el de `mem_save` — misma

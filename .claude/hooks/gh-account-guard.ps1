@@ -21,6 +21,7 @@
 # cuando el script se invoca directamente, no al dot-source.
 
 . (Join-Path $PSScriptRoot 'shell-quoting.ps1')
+. (Join-Path $PSScriptRoot 'repo-classification.ps1')
 
 function Write-GuardLog {
     param([string]$Reason)
@@ -36,20 +37,6 @@ function Write-GuardLog {
 function Get-ProjectRoot {
     try {
         return (git rev-parse --show-toplevel 2>$null).Trim()
-    } catch {
-        return $null
-    }
-}
-
-function Get-RepoClassification {
-    param([string]$ProjectRoot)
-    $classificationPath = Join-Path $ProjectRoot ".agent/memory/repo-classification.json"
-    if (-not (Test-Path $classificationPath)) {
-        return $null
-    }
-    try {
-        $content = Get-Content -Path $classificationPath -Raw
-        return $content | ConvertFrom-Json
     } catch {
         return $null
     }

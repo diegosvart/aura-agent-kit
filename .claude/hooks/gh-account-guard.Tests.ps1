@@ -386,3 +386,28 @@ Describe 'Test-GhAccountGuard - matriz prefijo x wrapper x cola (Issue #370, gru
         ($violations | Select-Object -First 10) -join "`n" | Should Be ''
     }
 }
+
+Describe 'Get-ExpectedGhAccount - lectura real de repo-classification.json (caracterizacion, Issue #347)' {
+
+    function New-ClassRepo {
+        param([string]$Json)
+        $root = Join-Path ([System.IO.Path]::GetTempPath()) ("ghacct-" + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path (Join-Path $root '.agent/memory') -Force | Out-Null
+        if ($null -ne $Json) { Set-Content -Path (Join-Path $root '.agent/memory/repo-classification.json') -Value $Json }
+        return $root
+    }
+
+    It 'devuelve expected_gh_account cuando esta declarado' {
+        $root = New-ClassRepo '{"repo_type":"personal","expected_gh_account":"diegosvart"}'
+        try { Get-ExpectedGhAccount -ProjectRoot $root | Should Be 'diegosvart' }
+        finally { Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+
+    It 'devuelve $null (fail-open) si falta el campo, el archivo, o el JSON esta corrupto' {
+        foreach ($json in @('{"repo_type":"personal"}', $null, '{ roto')) {
+            $root = New-ClassRepo $json
+            try { Get-ExpectedGhAccount -ProjectRoot $root | Should BeNullOrEmpty }
+            finally { Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue }
+        }
+    }
+}

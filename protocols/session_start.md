@@ -103,12 +103,12 @@ en sesiones con hooks disponibles (para recolectar datos de comparación de cont
 ---
 
 El hook `.claude/hooks/session-start.ps1` corre en los matchers `startup`/`resume`/`clear` y
-emite un único JSON cubriendo los ítems 1-16 de la tabla siguiente. El ítem 17
-(clasificación de repo) **todavía no está wireado al hook** — pese a documentarse acá como
-parte del gathering automático, `session-start.ps1` no lo emite (confirmado por `git diff`:
-el hook no tiene ninguna referencia a `repo-classification.json`, hallazgo del code-review de
-PR #307). Hasta que se implemente, este ítem se resuelve **siempre** con el comando manual de
-más abajo — no asumir que llega en el JSON del hook:
+emite un único JSON cubriendo los ítems 1-17 de la tabla siguiente. El ítem 17
+(clasificación de repo, Issue #308) llega como `repo_classification` con `status`
+`ok` | `missing` | `corrupt` | `invalid`: cualquier valor distinto de `ok` trae `repo_type: null`
+y un `error` — es fail-closed, tratarlo como el caso de mayor riesgo en el Gate de
+Clasificación de Repo (Paso 3), nunca inferir un tipo. El comando manual de más abajo solo
+aplica si el JSON del hook no llegó:
 
 | # | Tarea | Mecanismo interno |
 |---|-------|---------|
@@ -128,7 +128,7 @@ más abajo — no asumir que llega en el JSON del hook:
 | 14 | Candidatos a trabajo stranded | ramas ahead de `develop` con commits `Closes/Fixes/Resolves #N` |
 | 15 | Ideas en backlog | cuenta `## [` en `ideas.md` |
 | 16 | Update del harness disponible | compara tag local de `.aura` vs. remoto (caché 30 min) o versión de plugin instalada vs. marketplace |
-| 17 | Clasificación de repo (Issue #303, D1) — **NO implementado en el hook, ver nota arriba** | comando manual (`cat .agent/memory/repo-classification.json`, más abajo); alimenta el Gate de Clasificación de Repo (Paso 3) |
+| 17 | Clasificación de repo (Issue #303, D1; hook: Issue #308) | lee `.agent/memory/repo-classification.json` → `repo_classification{status,repo_type,...}`; `missing`/`corrupt`/`invalid` se reportan explícitos; alimenta el Gate de Clasificación de Repo (Paso 3) |
 
 ### Si el JSON del hook ya está disponible en el contexto
 
@@ -237,7 +237,7 @@ Mediciones reales solo ocurren en sesiones siguientes donde se active efectivame
 
 Usar el dato del ítem 17 del Paso 2 (`.agent/memory/repo-classification.json`).
 
-Si el archivo **no existe** (`repo_classification: null`) → **DETENER aquí**. No mostrar el
+Si el archivo **no existe** (`repo_classification.status = "missing"` del hook, o `repo_classification: null` en modo manual) → **DETENER aquí**. No mostrar el
 Resumen Ejecutivo (Paso 4) ni el Capability Menu (Paso 6) hasta que el usuario responda.
 Preguntar textualmente:
 
@@ -256,9 +256,12 @@ Con la respuesta, crear el archivo:
 }
 ```
 
+Si `status` es `corrupt` o `invalid` → mismo bloqueo, pero mostrar el `error` del hook y pedir
+corregir/reescribir el archivo (no pisarlo sin confirmar).
+
 No asumir un default ni inferir por heurística — ver D1 en
 `docs/aura/specs/2026-09-17-memoria-clasificacion-repos-design.md`. Si el archivo **sí
-existe**, continuar sin preguntar y mostrar `repo_type` en la sección "Estado real — mío" del
+existe** con `status = "ok"`, continuar sin preguntar y mostrar `repo_type` en la sección "Estado real — mío" del
 Resumen Ejecutivo (Paso 4).
 
 `repo_type` alimenta además la política de qué puede guardar `mem_save` en este repo — ver

@@ -74,4 +74,38 @@ Describe 'session-start.ps1 - item 17: repo_classification' {
         $out.repo_classification.status | Should Be 'invalid'
         Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue
     }
+
+    It 'reporta status invalid para repo_type con distinta capitalizacion (Cliente)' {
+        $dir = New-TempRepo
+        Set-Content -Path (Join-Path $dir '.agent\memory\repo-classification.json') -Value '{"repo_type":"Cliente"}' -Encoding utf8
+        $out = Invoke-SessionStartHook -RepoDir $dir
+        $out.repo_classification.status | Should Be 'invalid'
+        Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'reporta status invalid para archivo vacio' {
+        $dir = New-TempRepo
+        Set-Content -Path (Join-Path $dir '.agent\memory\repo-classification.json') -Value '' -Encoding utf8
+        $out = Invoke-SessionStartHook -RepoDir $dir
+        $out.repo_classification.status | Should Be 'invalid'
+        Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'degrada a status corrupt sin romper el JSON si falta repo-classification.ps1' {
+        $dir = New-TempRepo
+        $hookDir = Join-Path $env:TEMP "session-start-hook-$([guid]::NewGuid())"
+        New-Item -ItemType Directory -Path $hookDir -Force | Out-Null
+        Copy-Item $hookPath (Join-Path $hookDir 'session-start.ps1')
+        @{ repo_type = 'harness' } | ConvertTo-Json |
+            Set-Content -Path (Join-Path $dir '.agent\memory\repo-classification.json') -Encoding utf8
+        Push-Location $dir
+        try {
+            $raw = & pwsh -NoProfile -File (Join-Path $hookDir 'session-start.ps1') 2>$null
+            $out = (($raw -join "`n") | ConvertFrom-Json)
+        } finally { Pop-Location }
+        $out.repo_classification.status | Should Be 'corrupt'
+        $out.repo_classification.repo_type | Should Be $null
+        $out.repo_classification.error | Should Not BeNullOrEmpty
+        Remove-Item $dir, $hookDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }

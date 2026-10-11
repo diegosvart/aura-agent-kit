@@ -1,4 +1,4 @@
-# sensitive-data-guard.Tests.ps1 — Pester 3.4.0 (unica version disponible en este entorno)
+﻿# sensitive-data-guard.Tests.ps1 — Pester 3.4.0 (unica version disponible en este entorno)
 #
 # Primer test file para este hook (Issue #303 Paso 4). Cubre:
 # - El comportamiento YA existente para `git commit` (nunca tenia test propio antes de esto).
@@ -8,7 +8,7 @@
 #
 # Dot-sourcea el hook para invocar Test-SensitiveDataGuard / Test-MemorySaveGuard /
 # Test-ContentAgainstSensitivePatterns directamente, mockeando Get-RepoRoot / Get-StagedDiff /
-# Get-DenylistPath / Get-RepoClassification para no depender de un checkout git real ni de
+# Get-DenylistPath / Get-RepoClassificationStatus para no depender de un checkout git real ni de
 # archivos gitignored (.claude/sensitive-terms.local.txt, .agent/memory/repo-classification.json).
 
 $hookPath = Join-Path $PSScriptRoot 'sensitive-data-guard.ps1'
@@ -88,7 +88,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'repo_type cliente + contenido sensible (RUT) -> bloqueado' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'Fix bug'; content = 'RUT del admin: 12.345.678-9' }
         $result.decision | Should Be 'block'
@@ -96,7 +96,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'repo_type cliente + contenido limpio -> permitido' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'Fix bug'; content = 'decision tecnica, placeholder generico' }
         $result | Should Be $null
@@ -104,21 +104,21 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'repo_type harness -> permitido sin evaluar contenido (aunque tenga un patron sensible)' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'harness' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'harness' } }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; content = 'password=hunter2' }
         $result | Should Be $null
     }
 
     It 'repo_type personal -> permitido sin evaluar contenido' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'personal' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'personal' } }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; content = 'password=hunter2' }
         $result | Should Be $null
     }
 
     It 'repo-classification.json ausente -> fail-closed, bloqueado incondicionalmente' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { $null }
+        Mock Get-RepoClassificationStatus { @{ status = 'missing'; repo_type = $null } }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; content = 'contenido totalmente limpio' }
         $result.decision | Should Be 'block'
         $result.reason | Should Match 'repo_type'
@@ -126,21 +126,21 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'repo-classification.json corrupto (repo_type vacio) -> fail-closed, bloqueado' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = '' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'invalid'; repo_type = $null } }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; content = 'contenido limpio' }
         $result.decision | Should Be 'block'
     }
 
     It 'repo_type con typo/valor no reconocido -> fail-closed, bloqueado igual que clasificacion ausente (hallazgo code-review PR #307)' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'clientee' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'invalid'; repo_type = $null } }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; content = 'contenido totalmente limpio' }
         $result.decision | Should Be 'block'
     }
 
     It 'intercepta mem_save_prompt en repo cliente con contenido sensible (hallazgo code-review PR #307)' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save_prompt' -ToolInput @{ content = 'el RUT del cliente es 12.345.678-9' }
         $result.decision | Should Be 'block'
@@ -148,7 +148,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'intercepta mem_capture_passive en repo cliente con contenido sensible (hallazgo code-review PR #307)' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_capture_passive' -ToolInput @{ content = 'password=hunter2' }
         $result.decision | Should Be 'block'
@@ -156,7 +156,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'intercepta mem_update en repo cliente con contenido sensible (hallazgo code-review PR #307)' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_update' -ToolInput @{ id = 42; content = '192.168.1.10' }
         $result.decision | Should Be 'block'
@@ -164,7 +164,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'intercepta mem_session_summary en repo cliente con contenido sensible (mismo criterio: escribe contenido libre a Engram)' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_session_summary' -ToolInput @{ content = 'password=hunter2' }
         $result.decision | Should Be 'block'
@@ -172,7 +172,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'escanea el campo observation (alias retrocompatible de content, hallazgo code-review PR #307)' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; observation = 'RUT del cliente: 12.345.678-9' }
         $result.decision | Should Be 'block'
@@ -180,7 +180,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'escanea el campo topic_key (hallazgo code-review PR #307)' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; content = 'limpio'; topic_key = 'cliente/ACME-project-192.168.1.10' }
         $result.decision | Should Be 'block'
@@ -188,7 +188,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'escanea el campo session_id (hallazgo code-review PR #307)' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_save' -ToolInput @{ title = 'x'; content = 'limpio'; session_id = 'password=hunter2' }
         $result.decision | Should Be 'block'
@@ -196,7 +196,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'intercepta mem_session_end en repo cliente con contenido sensible (hallazgo reviewer post-merge PR #307, Issue #309)' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_session_end' -ToolInput @{ summary = 'el RUT del cliente es 12.345.678-9' }
         $result.decision | Should Be 'block'
@@ -204,7 +204,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'permite mem_session_end en repo cliente con contenido limpio' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_session_end' -ToolInput @{ summary = 'decision tecnica sin datos sensibles' }
         $result | Should Be $null
@@ -212,7 +212,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'intercepta mem_judge en repo cliente con contenido sensible en reason (hallazgo reviewer post-merge PR #307, Issue #309)' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_judge' -ToolInput @{ judgment_id = 1; reason = 'password=hunter2' }
         $result.decision | Should Be 'block'
@@ -220,7 +220,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'intercepta mem_judge en repo cliente con contenido sensible en evidence' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_judge' -ToolInput @{ judgment_id = 1; evidence = '192.168.1.10' }
         $result.decision | Should Be 'block'
@@ -228,7 +228,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'permite mem_judge en repo cliente con contenido limpio' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'cliente' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'cliente' } }
         Mock Get-DenylistPath { $null }
         $result = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_judge' -ToolInput @{ judgment_id = 1; reason = 'related, no conflict' }
         $result | Should Be $null
@@ -236,7 +236,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'mem_session_end y mem_judge respetan fail-closed ante repo-classification.json ausente' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { $null }
+        Mock Get-RepoClassificationStatus { @{ status = 'missing'; repo_type = $null } }
         $result1 = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_session_end' -ToolInput @{ summary = 'contenido limpio' }
         $result1.decision | Should Be 'block'
         $result2 = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_judge' -ToolInput @{ reason = 'contenido limpio' }
@@ -245,7 +245,7 @@ Describe 'Test-MemorySaveGuard - tools de escritura de Engram (Issue #303 Paso 4
 
     It 'mem_session_end y mem_judge permitidos sin evaluar contenido en repo harness/personal' {
         Mock Get-RepoRoot { $null }
-        Mock Get-RepoClassification { [pscustomobject]@{ repo_type = 'harness' } }
+        Mock Get-RepoClassificationStatus { @{ status = 'ok'; repo_type = 'harness' } }
         $result1 = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_session_end' -ToolInput @{ summary = 'password=hunter2' }
         $result1 | Should Be $null
         $result2 = Test-MemorySaveGuard -ToolName 'mcp__plugin_engram_engram__mem_judge' -ToolInput @{ reason = 'password=hunter2' }
@@ -360,7 +360,14 @@ Describe 'Test-MemorySaveGuard - lectura real de repo-classification.json (carac
             @{ Json = $null; Block = $true },
             @{ Json = '{ roto'; Block = $true },
             @{ Json = '{"repo_type":"clientee"}'; Block = $true },
-            @{ Json = '{}'; Block = $true }
+            @{ Json = '{}'; Block = $true },
+            @{ Json = '{"repo_type":"Cliente"}'; Block = $true },
+            @{ Json = '{"repo_type":"HARNESS"}'; Block = $true },
+            @{ Json = ''; Block = $true },
+            @{ Json = '   '; Block = $true },
+            @{ Json = '{"repo_type":["harness"]}'; Block = $true },
+            @{ Json = '{"repo_type":1}'; Block = $true },
+            @{ Json = '{"repo_type":{"a":"harness"}}'; Block = $true }
         )
         foreach ($c in $cases) {
             $root = New-ClassRepo $c.Json

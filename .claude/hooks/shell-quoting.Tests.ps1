@@ -138,4 +138,19 @@ Describe 'Remove-QuotedContent - prefijos de entorno (Issue #368)' {
         $c = 'FOO="a b" sudo -b "gh pr create --base main"'
         Remove-QuotedContent $c | Should Be $c
     }
+
+    It 'NO vacia sudo -b cuando el valor del prefijo contiene "sudo git"' {
+        $c = 'FOO="sudo git" sudo -b "gh pr create --base main"'
+        Remove-QuotedContent $c | Should Be $c
+    }
+
+    It 'NO vacia sudo -t cuando el valor del prefijo termina en git' {
+        $c = "FOO='a git' sudo -t ""gh pr create --base main"""
+        Remove-QuotedContent $c | Should Be $c
+    }
+
+    It 'NO vacia bash -c cuando el valor del prefijo termina en git' {
+        $c = 'FOO="a git" bash -c "gh pr create --base main"'
+        Remove-QuotedContent $c | Should Be $c
+    }
 }

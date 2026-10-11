@@ -189,6 +189,11 @@ Describe 'Test-PrBaseGuard - flags cortos de terceros no vacian payload (review 
         $result.decision | Should Be 'block'
     }
 
+    It 'no bloquea git commit -m con prefijo FOO="a b" y el comando como texto (Issue #368)' {
+        $result = Test-PrBaseGuard -Command 'FOO="a b" git commit -m "docs: explica gh pr create --base main"'
+        $result | Should Be $null
+    }
+
     It 'sigue sin bloquear git commit -am con el comando como texto' {
         $result = Test-PrBaseGuard -Command 'git commit -am "docs: explica gh pr create sin base"'
         $result | Should Be $null

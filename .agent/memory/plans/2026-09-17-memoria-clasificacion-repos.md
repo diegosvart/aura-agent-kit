@@ -1,5 +1,8 @@
 ---
-status: approved
+status: done
+pr: "#307"
+commit: bf38152
+completed_at: 2026-09-17
 ---
 
 # Plan — Clasificación de repos y política de memoria segura

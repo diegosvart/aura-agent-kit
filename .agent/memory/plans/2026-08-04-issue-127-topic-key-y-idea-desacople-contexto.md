@@ -1,5 +1,8 @@
 ---
-status: approved
+status: done
+pr: "#140"
+commit: 17133c1
+completed_at: 2026-08-06
 ---
 
 # Issue #127 — topic_key en Engram + registrar idea [019] desacople de contexto

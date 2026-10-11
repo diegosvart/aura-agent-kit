@@ -1,5 +1,8 @@
 ---
-status: approved
+status: done
+pr: "#149"
+commit: c91c2a0
+completed_at: 2026-08-18
 ---
 
 # Limpieza de repo + Issue #131 (check de integridad) + Release

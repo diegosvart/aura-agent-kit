@@ -1,5 +1,8 @@
 ---
-status: approved
+status: done
+pr: "#360"
+commit: cfd3f52
+completed_at: 2026-10-10
 issue: 346
 date: 2026-10-10
 ---

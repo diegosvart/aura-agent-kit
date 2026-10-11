@@ -419,6 +419,30 @@ Describe 'Get-StagedDiff - solo lineas añadidas (Issue #386)' {
         } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
     }
 
+    It 'con color.ui=always una linea añadida con patron igual se incluye y bloquea' {
+        $dir = New-TempRepo
+        try {
+            git config color.ui always
+            git config color.diff always
+            Set-Content -Path f.txt -Value @('limpio')
+            git add f.txt; git commit -q -m base 2>$null
+            Set-Content -Path f.txt -Value @('limpio', "x $pwd1")
+            git add f.txt
+            $diff = Get-StagedDiff
+            (Test-ContentAgainstSensitivePatterns -Content $diff -DenylistPath $null).decision | Should Be 'block'
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+
+    It 'el nombre de un archivo nuevo (no rename) se incluye' {
+        $dir = New-TempRepo
+        try {
+            Set-Content -Path "$pwd1.txt" -Value @('contenido limpio')
+            git add .
+            $diff = Get-StagedDiff
+            $diff -match [regex]::Escape($pwd1) | Should Be $true
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+
     It 'el nombre de un archivo añadido o renombrado se incluye' {
         $dir = New-TempRepo
         try {

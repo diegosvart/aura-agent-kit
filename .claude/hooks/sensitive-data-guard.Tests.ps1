@@ -433,6 +433,20 @@ Describe 'Get-StagedDiff - solo lineas añadidas (Issue #386)' {
         } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
     }
 
+    It 'con textconv configurado que oculta el contenido, la linea añadida igual se incluye' {
+        $dir = New-TempRepo
+        try {
+            git config diff.redact.textconv 'echo redactado'
+            Set-Content -Path .gitattributes -Value '*.txt diff=redact'
+            Set-Content -Path f.txt -Value @('limpio')
+            git add .gitattributes f.txt; git commit -q -m base 2>$null
+            Set-Content -Path f.txt -Value @('limpio', "x $pwd1")
+            git add f.txt
+            $diff = Get-StagedDiff
+            (Test-ContentAgainstSensitivePatterns -Content $diff -DenylistPath $null).decision | Should Be 'block'
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+
     It 'el nombre de un archivo nuevo (no rename) se incluye' {
         $dir = New-TempRepo
         try {

@@ -4,12 +4,6 @@ issue: 378
 date: 2026-10-11
 ---
 
----
-status: approved
-issue: 378
-date: 2026-10-11
----
-
 # Plan Issue #378 — Tests de rendimiento de shell-quoting-review estables bajo carga
 
 ## Qué

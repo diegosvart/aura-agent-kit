@@ -378,5 +378,131 @@ Describe 'Test-MemorySaveGuard - lectura real de repo-classification.json (carac
     }
 }
 
+Describe 'Get-StagedDiff - solo lineas añadidas (Issue #386)' {
+
+    $rut = '12.345.' + '678-9'
+    $pwd1 = 'pass' + 'word=x'
+
+    function New-TempRepo {
+        $dir = Join-Path $env:TEMP "sdg-386-$([guid]::NewGuid().ToString('N'))"
+        New-Item -ItemType Directory -Path $dir | Out-Null
+        Push-Location $dir
+        git init -q 2>$null
+        git config user.email t@example.com
+        git config user.name t
+        return $dir
+    }
+
+    It 'una linea de contexto con patron no se incluye' {
+        $dir = New-TempRepo
+        try {
+            Set-Content -Path f.txt -Value @("RUT $rut", 'a', 'b')
+            git add f.txt; git commit -q -m base 2>$null
+            Set-Content -Path f.txt -Value @("RUT $rut", 'a', 'cambio limpio')
+            git add f.txt
+            $diff = Get-StagedDiff
+            $diff -match [regex]::Escape($rut) | Should Be $false
+            $diff -match 'cambio limpio' | Should Be $true
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+
+    It 'una linea añadida con patron se incluye y bloquea' {
+        $dir = New-TempRepo
+        try {
+            Set-Content -Path f.txt -Value @('limpio')
+            git add f.txt; git commit -q -m base 2>$null
+            Set-Content -Path f.txt -Value @('limpio', "x $pwd1")
+            git add f.txt
+            $diff = Get-StagedDiff
+            $diff -match [regex]::Escape($pwd1) | Should Be $true
+            (Test-ContentAgainstSensitivePatterns -Content $diff -DenylistPath $null).decision | Should Be 'block'
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+
+    It 'con color.ui=always una linea añadida con patron igual se incluye y bloquea' {
+        $dir = New-TempRepo
+        try {
+            git config color.ui always
+            git config color.diff always
+            Set-Content -Path f.txt -Value @('limpio')
+            git add f.txt; git commit -q -m base 2>$null
+            Set-Content -Path f.txt -Value @('limpio', "x $pwd1")
+            git add f.txt
+            $diff = Get-StagedDiff
+            (Test-ContentAgainstSensitivePatterns -Content $diff -DenylistPath $null).decision | Should Be 'block'
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+
+    It 'con textconv configurado que oculta el contenido, la linea añadida igual se incluye' {
+        $dir = New-TempRepo
+        try {
+            git config diff.redact.textconv 'echo redactado'
+            Set-Content -Path .gitattributes -Value '*.txt diff=redact'
+            Set-Content -Path f.txt -Value @('limpio')
+            git add .gitattributes f.txt; git commit -q -m base 2>$null
+            Set-Content -Path f.txt -Value @('limpio', "x $pwd1")
+            git add f.txt
+            $diff = Get-StagedDiff
+            (Test-ContentAgainstSensitivePatterns -Content $diff -DenylistPath $null).decision | Should Be 'block'
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+
+    It 'con diff.submodule=log el cambio de submodulo igual se representa como lineas + escaneables' {
+        $dir = New-TempRepo
+        $subDir = Join-Path $env:TEMP "sdg-386-sub-$([guid]::NewGuid().ToString('N'))"
+        try {
+            New-Item -ItemType Directory -Path $subDir | Out-Null
+            git -C $subDir init -q 2>$null
+            git -C $subDir config user.email t@example.com
+            git -C $subDir config user.name t
+            Set-Content -Path (Join-Path $subDir 's.txt') -Value 'uno'
+            git -C $subDir add s.txt; git -C $subDir commit -q -m uno 2>$null
+            git -c protocol.file.allow=always submodule add -q $subDir sub 2>$null
+            git commit -q -m base 2>$null
+            git config diff.submodule log
+            Set-Content -Path (Join-Path $subDir 's.txt') -Value 'dos'
+            git -C $subDir commit -q -am dos 2>$null
+            git -C sub fetch -q 2>$null
+            git -C sub checkout -q origin/HEAD 2>$null
+            git add sub
+            $diff = Get-StagedDiff
+            $diff -match 'Subproject commit' | Should Be $true
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir, $subDir -ErrorAction SilentlyContinue }
+    }
+
+    It 'el nombre de un archivo nuevo (no rename) se incluye' {
+        $dir = New-TempRepo
+        try {
+            Set-Content -Path "$pwd1.txt" -Value @('contenido limpio')
+            git add .
+            $diff = Get-StagedDiff
+            $diff -match [regex]::Escape($pwd1) | Should Be $true
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+
+    It 'el nombre de un archivo añadido o renombrado se incluye' {
+        $dir = New-TempRepo
+        try {
+            Set-Content -Path orig.txt -Value @('contenido limpio')
+            git add orig.txt; git commit -q -m base 2>$null
+            git mv orig.txt "$pwd1.txt"
+            $diff = Get-StagedDiff
+            $diff -match [regex]::Escape($pwd1) | Should Be $true
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+
+    It 'una linea eliminada con patron no se incluye' {
+        $dir = New-TempRepo
+        try {
+            Set-Content -Path f.txt -Value @('limpio', "x $pwd1")
+            git add f.txt; git commit -q -m base 2>$null
+            Set-Content -Path f.txt -Value @('limpio')
+            git add f.txt
+            $diff = Get-StagedDiff
+            $diff -match [regex]::Escape($pwd1) | Should Be $false
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+}
+
 Write-Host ""
 Write-Host "Suite completo — ver resumen de Pester arriba (Tests: N, Passed: N, Failed: N)."

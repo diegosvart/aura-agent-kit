@@ -57,7 +57,14 @@ function Get-RepoRoot {
 
 function Get-StagedDiff {
     try {
-        return ((git diff --cached 2>$null) -join "`n")
+        $inHunk = $false
+        $added = foreach ($line in (git -c diff.submodule=short -c color.ui=never -c color.diff=never diff --cached --no-color --no-ext-diff --no-textconv 2>$null)) {
+            if ($line.StartsWith('diff --git ')) { $inHunk = $false }
+            elseif ($line.StartsWith('@@')) { $inHunk = $true }
+            elseif ($inHunk -and $line.StartsWith('+')) { $line.Substring(1) }
+        }
+        $paths = git -c diff.submodule=short -c core.quotepath=off -c color.ui=never -c color.diff=never diff --cached --no-color --name-status 2>$null
+        return ((@($paths) + @($added)) -join "`n")
     } catch {
         return ""
     }

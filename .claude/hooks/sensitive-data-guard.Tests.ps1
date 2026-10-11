@@ -447,6 +447,29 @@ Describe 'Get-StagedDiff - solo lineas añadidas (Issue #386)' {
         } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
     }
 
+    It 'con diff.submodule=log el cambio de submodulo igual se representa como lineas + escaneables' {
+        $dir = New-TempRepo
+        $subDir = Join-Path $env:TEMP "sdg-386-sub-$([guid]::NewGuid().ToString('N'))"
+        try {
+            New-Item -ItemType Directory -Path $subDir | Out-Null
+            git -C $subDir init -q 2>$null
+            git -C $subDir config user.email t@example.com
+            git -C $subDir config user.name t
+            Set-Content -Path (Join-Path $subDir 's.txt') -Value 'uno'
+            git -C $subDir add s.txt; git -C $subDir commit -q -m uno 2>$null
+            git -c protocol.file.allow=always submodule add -q $subDir sub 2>$null
+            git commit -q -m base 2>$null
+            git config diff.submodule log
+            Set-Content -Path (Join-Path $subDir 's.txt') -Value 'dos'
+            git -C $subDir commit -q -am dos 2>$null
+            git -C sub fetch -q 2>$null
+            git -C sub checkout -q origin/HEAD 2>$null
+            git add sub
+            $diff = Get-StagedDiff
+            $diff -match 'Subproject commit' | Should Be $true
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir, $subDir -ErrorAction SilentlyContinue }
+    }
+
     It 'el nombre de un archivo nuevo (no rename) se incluye' {
         $dir = New-TempRepo
         try {

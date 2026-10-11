@@ -60,7 +60,7 @@ function Remove-QuotedContent {
     # prefijos (VAR=x, sudo, env, command, time): `sudo -b "..."` y `watch -t "..."` usan -b/-t
     # para payload ejecutable, no para un mensaje (review PR #363, bloqueante 2).
     $shortFlags = '-(?:a?m|b|t)'
-    $ghInvocation = '^\s*(?:(?:\w+=(?>"[^"]*"|''[^'']*''|\S*)|sudo|env|command|time)\s+)*(?:git|gh)\b'
+    $ghInvocation = '^\s*(?:(?:\w+=(?>"[^"]*"|''[^'']*''|[^\s"''])*|sudo|env|command|time)\s+)*(?:git|gh)\b'
     $flags = if ($Command -match $ghInvocation) { "$longFlags|$shortFlags" } else { $longFlags }
 
     $freeTextFlag = '(?<![\w-])(?<f>' + $flags + ')(?<sep>\s+|=)(?<q>' + $script:QuotedLiteral + ')'

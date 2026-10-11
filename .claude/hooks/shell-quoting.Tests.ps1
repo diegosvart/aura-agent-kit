@@ -149,8 +149,22 @@ Describe 'Remove-QuotedContent - prefijos de entorno (Issue #368)' {
         Remove-QuotedContent $c | Should Be $c
     }
 
-    It 'NO vacia bash -c cuando el valor del prefijo termina en git' {
-        $c = 'FOO="a git" bash -c "gh pr create --base main"'
+    It 'NO vacia sudo -b cuando el valor mezcla texto y comilla (FOO=x"a git")' {
+        $c = 'FOO=x"a git" sudo -b "gh pr create --base main"'
         Remove-QuotedContent $c | Should Be $c
+    }
+
+    It "NO vacia sudo -b con valor mixto de comilla simple (FOO=x'a git')" {
+        $c = "FOO=x'a git' sudo -b ""gh pr create --base main"""
+        Remove-QuotedContent $c | Should Be $c
+    }
+
+    It 'NO vacia sudo -t con prefijos encadenados y valor mixto' {
+        $c = 'A=1 FOO=x"a gh" env sudo -t "gh pr create --base main"'
+        Remove-QuotedContent $c | Should Be $c
+    }
+
+    It 'reconoce git con valor mixto legitimo (VAR=x"y z" git commit -m)' {
+        Remove-QuotedContent 'VAR=x"y z" git commit -m "texto"' | Should Be 'VAR=x"y z" git commit -m ""'
     }
 }

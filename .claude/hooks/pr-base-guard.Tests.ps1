@@ -189,6 +189,26 @@ Describe 'Test-PrBaseGuard - flags cortos de terceros no vacian payload (review 
         $result.decision | Should Be 'block'
     }
 
+    It 'no bloquea git commit -m con prefijo FOO="a b" y el comando como texto (Issue #368)' {
+        $result = Test-PrBaseGuard -Command 'FOO="a b" git commit -m "docs: explica gh pr create --base main"'
+        $result | Should Be $null
+    }
+
+    It 'sigue bloqueando gh pr create sin base real con prefijo FOO="a b" (Issue #368)' {
+        $result = Test-PrBaseGuard -Command 'FOO="a b" gh pr create --base main --title x'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo -b con el comando real aunque el prefijo contenga "sudo git" (Issue #368)' {
+        $result = Test-PrBaseGuard -Command 'FOO="sudo git" sudo -b "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo -b con valor de prefijo mixto FOO=x"a git" (Issue #368, re-review)' {
+        $result = Test-PrBaseGuard -Command 'FOO=x"a git" sudo -b "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
     It 'sigue sin bloquear git commit -am con el comando como texto' {
         $result = Test-PrBaseGuard -Command 'git commit -am "docs: explica gh pr create sin base"'
         $result | Should Be $null

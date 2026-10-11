@@ -341,5 +341,42 @@ Describe 'sensitive-data-guard.ps1 - entry point (stdin parse + dispatch)' {
     }
 }
 
+Describe 'Test-MemorySaveGuard - lectura real de repo-classification.json (caracterizacion, Issue #347)' {
+
+    function New-ClassRepo {
+        param([string]$Json)
+        $root = Join-Path ([System.IO.Path]::GetTempPath()) ("sdg-" + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path (Join-Path $root '.agent/memory') -Force | Out-Null
+        if ($null -ne $Json) { Set-Content -Path (Join-Path $root '.agent/memory/repo-classification.json') -Value $Json }
+        return $root
+    }
+
+    $tool = 'mcp__plugin_engram_engram__mem_save'
+
+    It 'repo_type harness/personal permite; ausente, corrupto o invalido bloquea (fail-closed)' {
+        $cases = @(
+            @{ Json = '{"repo_type":"harness"}'; Block = $false },
+            @{ Json = '{"repo_type":"personal"}'; Block = $false },
+            @{ Json = $null; Block = $true },
+            @{ Json = '{ roto'; Block = $true },
+            @{ Json = '{"repo_type":"clientee"}'; Block = $true },
+            @{ Json = '{}'; Block = $true }
+        )
+        foreach ($c in $cases) {
+            $root = New-ClassRepo $c.Json
+            try {
+                Mock Get-RepoRoot { $root }
+                $r = Test-MemorySaveGuard -ToolName $tool -ToolInput @{ content = 'texto limpio' }
+                if ($c.Block) { $r.decision | Should Be 'block' } else { $r | Should BeNullOrEmpty }
+            } finally { Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue }
+        }
+    }
+
+    It 'raiz de repo nula bloquea (fail-closed)' {
+        Mock Get-RepoRoot { $null }
+        (Test-MemorySaveGuard -ToolName $tool -ToolInput @{ content = 'texto limpio' }).decision | Should Be 'block'
+    }
+}
+
 Write-Host ""
 Write-Host "Suite completo — ver resumen de Pester arriba (Tests: N, Passed: N, Failed: N)."

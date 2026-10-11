@@ -258,37 +258,51 @@ gh repo edit {OWNER}/{REPO} --visibility public --accept-visibility-change-conse
 
 ### Formato de PR body (obligatorio)
 
+**Fuente de verdad: template de PR body unificado (Issue #332)**, el mismo de
+`skills/agentic-dev-loop/SKILL.md` (Paso 4). Reemplaza al formato anterior de 4 secciones
+(`## Qué se hizo` / `## Por qué de este modo` / `## Tests` / `## Proceso`), que contradecía al
+template unificado (Issue #301); de los últimos 40 PRs mergeados solo 1 cumplía ese formato viejo.
+
 ```
-## Qué se hizo
+# <Título del PR>
+
+## Qué
 <resumen concreto de los cambios — no una lista de archivos tocados>
 
-## Por qué de este modo
-<la razón de la aproximación elegida; alternativas descartadas si las hubo>
+## Beneficio
+<qué gana el usuario/proyecto, en lenguaje de negocio>
 
-## Tests
-<qué se corrió y con qué resultado, específico (comandos/nombres de test) —
-nunca solo "pasan los tests". Adaptado al tamaño del cambio: un hotfix con DoD
-reducido (ver .aura/rules/coding.md) no necesita el mismo detalle que una
-feature completa>
+## Por qué
+<razón de la aproximación elegida; alternativas descartadas si las hubo>
 
-## Proceso
-<qué flujo del harness se siguió: task_start directo, o
-brainstorm → plan-work → challenger, u hotfix con DoD reducido, etc.>
+## Cómo
+<enfoque de implementación>
 
-Closes #N
+## Criterios de Aceptación        (opcional)
+## Testing
+<comandos/nombres de test y resultado real — nunca solo "pasan los tests">
+
+## Notas para el reviewer          (opcional)
+## Decisiones                      (opcional; decisiones de diseño no obvias)
 ```
 
-**Por qué existe esta regla:** ninguna regla previa de este archivo definía qué
-información debía llevar el body de un PR más allá de `Closes #N`. El resto de la
-trazabilidad del harness (`.agent/memory/plans/*.md`, `project-log.md`, Engram) vive
-en artefactos que nadie lee al momento de revisar un PR — el PR es el único punto
-donde un humano lee "qué pasó y por qué" sin tener que ir a buscarlo a otro lado.
+`Closes #N` lo inyecta `open-pr.sh`; el agente no lo escribe.
 
-**Sin enforcement automático (deliberado):** a diferencia del git flow (bloqueado por
-`.claude/hooks/git-guard.ps1`), esta regla no tiene hook — el costo de una omisión
-puntual es bajo y se nota a simple vista al revisar el PR. Si se detecta que se omite
-seguido, ahí sí correspondería evaluar un chequeo automático (ver criterio de
-`.aura/rules/subagent-dispatch.md` sobre reglas de texto vs. hooks).
+**Vía única: todo PR del harness se abre con
+`skills/agentic-dev-loop/scripts/open-pr.sh`** (nunca con la creación de PR a mano vía `gh`).
+El script fija `--base develop`, inyecta `Closes #N` y valida el body con
+`skills/agentic-dev-loop/scripts/lib/validate-pr-body.sh`: rechaza (exit 1, antes de llamar a
+`gh`) si falta alguna de `## Qué`, `## Beneficio`, `## Por qué`, `## Cómo`, `## Testing`.
+Es un chequeo de estructura de headings; no valida la calidad del contenido ni exige o
+prohíbe footers de atribución.
+
+**Por qué existe esta regla:** el PR es el único punto donde un humano lee "qué pasó y por
+qué" sin buscarlo en otro artefacto. El PR #300 salió con `## Resumen` / `## Plan de pruebas`
+y sin `Closes #N` porque la regla vivía solo en prosa (Issue #301).
+
+**Enforcement:** estructural vía `open-pr.sh` (ver arriba). Límite conocido: un PR creado o
+editado a mano con `gh` esquiva el validador; cerrar ese hueco con un hook `PreToolUse` queda
+como paso siguiente solo si la evidencia lo justifica.
 
 ### Sin atribución de IA en commits ni PRs (decisión explícita)
 

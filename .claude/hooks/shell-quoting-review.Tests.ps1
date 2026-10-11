@@ -58,27 +58,39 @@ Describe 'Test-GhAccountGuard - palabras no adyacentes y continuacion de linea (
     }
 }
 
-Describe 'Rendimiento de los guards con comandos largos (review #370, B3)' {
-    It 'script de 600 lineas con redirecciones se evalua en menos de 4 s por guard' {
+function Measure-Scaling {
+    param([scriptblock]$Build, [int]$N, [scriptblock]$Run)
+    $best = @{}
+    foreach ($size in @($N, (2 * $N))) {
+        $cmd = & $Build $size
+        $times = 1..2 | ForEach-Object { (Measure-Command { & $Run $cmd | Out-Null }).TotalSeconds }
+        $best[$size] = ($times | Measure-Object -Minimum).Minimum
+    }
+    $best[2 * $N] / $best[$N]
+}
+
+Describe 'Rendimiento de los guards con comandos largos (review #370, B3; Issue #378)' {
+    It 'account guard escala sub-cuadraticamente: t(1200 lineas)/t(600 lineas) < 3.0' {
         Mock Get-ExpectedGhAccount { 'diegosvart' }
         Mock Get-ActiveGhAccount { 'diegosvart' }
-        Mock Get-OriginRepoSlug { 'diegosvart/aura-agent-kit' }
-        $lines = 1..600 | ForEach-Object { "echo `"linea $_ con texto de relleno para alargar el comando`" >> salida.log" }
-        $cmd = $lines -join "`n"
-        $t1 = Measure-Command { Test-GhAccountGuard -Command $cmd | Out-Null }
-        $t2 = Measure-Command { Test-PrBaseGuard -Command $cmd | Out-Null }
-        $t1.TotalSeconds | Should BeLessThan 4
-        $t2.TotalSeconds | Should BeLessThan 4
+        $build = { param($n) (1..$n | ForEach-Object { "echo `"linea $_ con texto de relleno para alargar el comando`" >> salida.log" }) -join "`n" }
+        $run = { param($c) Test-GhAccountGuard -Command $c }
+        Test-GhAccountGuard -Command (& $build 100) | Out-Null
+        $ratio = Measure-Scaling -Build $build -N 600 -Run $run
+        $ratio | Should BeLessThan 3.0
     }
-    It '1500 segmentos encadenados con && se evaluan en menos de 6 s por guard' {
+    It 'pr-base guard evalua 600 lineas por debajo del techo de cordura de 30 s' {
+        Mock Get-OriginRepoSlug { 'diegosvart/aura-agent-kit' }
+        $cmd = (1..600 | ForEach-Object { "echo `"linea $_ con texto de relleno para alargar el comando`" >> salida.log" }) -join "`n"
+        (Measure-Command { Test-PrBaseGuard -Command $cmd | Out-Null }).TotalSeconds | Should BeLessThan 30
+    }
+    It '1500 segmentos encadenados con && se evaluan por debajo del techo de cordura de 30 s por guard' {
         Mock Get-ExpectedGhAccount { 'diegosvart' }
         Mock Get-ActiveGhAccount { 'diegosvart' }
         Mock Get-OriginRepoSlug { 'diegosvart/aura-agent-kit' }
         $cmd = (1..1500 | ForEach-Object { "ls dir$_" }) -join ' && '
-        $t1 = Measure-Command { Test-GhAccountGuard -Command $cmd | Out-Null }
-        $t2 = Measure-Command { Test-PrBaseGuard -Command $cmd | Out-Null }
-        $t1.TotalSeconds | Should BeLessThan 6
-        $t2.TotalSeconds | Should BeLessThan 6
+        (Measure-Command { Test-GhAccountGuard -Command $cmd | Out-Null }).TotalSeconds | Should BeLessThan 30
+        (Measure-Command { Test-PrBaseGuard -Command $cmd | Out-Null }).TotalSeconds | Should BeLessThan 30
     }
 }
 

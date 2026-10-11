@@ -38,9 +38,13 @@ function Test-IsAgentMarkdownPath {
 function Get-GitBashPath {
     $gitCmd = (Get-Command git -ErrorAction SilentlyContinue).Source
     if (-not $gitCmd) { return $null }
-    $gitRoot = Split-Path (Split-Path $gitCmd -Parent) -Parent
-    $candidate = Join-Path $gitRoot "bin\bash.exe"
-    if (Test-Path $candidate) { return $candidate }
+    # Con el PATH heredado de Git Bash, git.exe resuelve a <root>\mingw64\bin; subir hasta hallar bin\bash.exe.
+    $dir = Split-Path (Split-Path $gitCmd -Parent) -Parent
+    while ($dir) {
+        $candidate = Join-Path $dir "bin\bash.exe"
+        if (Test-Path $candidate) { return $candidate }
+        $dir = Split-Path $dir -Parent
+    }
     return $null
 }
 

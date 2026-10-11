@@ -91,10 +91,9 @@ function Test-GhAccountGuard {
 
     $isWriteOperation = $false
     foreach ($segment in (Split-ShellSegments -Command $Command)) {
-        $bare = Remove-QuotedContent -Command $segment
-        if (($bare -match '\bgit\s+push\b') -or
-            ($bare -match '\bgh\s+pr\s+create\b') -or
-            ($bare -match '\bgh\s+repo\s+edit\b')) {
+        if ((Test-SegmentInvokes -Segment $segment -Words @('git', 'push')) -or
+            (Test-SegmentInvokes -Segment $segment -Words @('gh', 'pr', 'create')) -or
+            (Test-SegmentInvokes -Segment $segment -Words @('gh', 'repo', 'edit'))) {
             $isWriteOperation = $true
             break
         }

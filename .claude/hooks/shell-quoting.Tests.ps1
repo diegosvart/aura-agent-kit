@@ -3,6 +3,7 @@
 # Suite propia de la libreria compartida por gh-account-guard.ps1 y pr-base-guard.ps1 (Issue #368).
 
 . (Join-Path $PSScriptRoot 'shell-quoting.ps1')
+. (Join-Path $PSScriptRoot 'shell-quoting.TestData.ps1')
 
 Describe 'Split-ShellSegments' {
 

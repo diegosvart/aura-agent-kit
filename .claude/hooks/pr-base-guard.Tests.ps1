@@ -268,3 +268,54 @@ Describe 'pr-base-guard.ps1 - entry point (fail-open)' {
         (Get-Content $logPath -Raw) | Should Match 'FAIL-OPEN'
     }
 }
+
+. (Join-Path $PSScriptRoot 'shell-quoting.TestData.ps1')
+
+Describe 'Test-PrBaseGuard - palabra-comando con comillas o escapes (Issue #370, grupo J)' {
+
+    $cases = @(
+        'gh pr "create" --base main'
+        'gh "pr" create --base main'
+        "gh pr cr'eate' --base main"
+        'gh pr crea\te --base main'
+        'g"h" pr create --base main'
+        '"gh" pr create --base main'
+        'FOO=1 sudo gh pr "create" --base main'
+        'gh pr create --b"ase" main'
+        'gh pr create "--base" main'
+        'gh pr create --base=ma"in"'
+        'gh pr edit 1 -B main'
+        'gh pr edit 1 --base develop --base main'
+        'gh pr create --base main --head develop --head feature/x'
+    )
+    foreach ($c in $cases) {
+        It "bloquea: $c" {
+            Mock Get-OriginRepoSlug { 'diegosvart/aura-agent-kit' }
+            (Test-PrBaseGuard -Command $c).decision | Should Be 'block'
+        }
+    }
+
+    It 'sigue permitiendo la excepcion release promote con comillas en el valor' {
+        Test-PrBaseGuard -Command 'gh pr create --base "main" --head "develop" --title x' | Should Be $null
+    }
+
+    It '--repo repetido: si algun valor es el repo local se evalua el comando' {
+        Mock Get-OriginRepoSlug { 'diegosvart/aura-agent-kit' }
+        $c = 'gh pr create --repo otro/repo --repo diegosvart/aura-agent-kit --base main'
+        (Test-PrBaseGuard -Command $c).decision | Should Be 'block'
+    }
+}
+
+Describe 'Test-PrBaseGuard - matriz prefijo x wrapper x cola (Issue #370, grupo I)' {
+
+    It 'vacia solo cuando la cola es git/gh y el prefijo es reconocible; en el resto bloquea' {
+        function Get-OriginRepoSlug { 'diegosvart/aura-agent-kit' }
+        $violations = New-Object System.Collections.Generic.List[string]
+        foreach ($case in (Get-MatrixCases -Payload 'gh pr create --base main')) {
+            $r = Test-PrBaseGuard -Command $case.Command
+            $blocked = [bool]$r
+            if ($blocked -eq $case.ExpectEmptied) { $violations.Add($case.Command) }
+        }
+        ($violations | Select-Object -First 10) -join "`n" | Should Be ''
+    }
+}

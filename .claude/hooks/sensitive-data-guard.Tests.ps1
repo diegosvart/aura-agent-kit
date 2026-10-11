@@ -419,6 +419,17 @@ Describe 'Get-StagedDiff - solo lineas añadidas (Issue #386)' {
         } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
     }
 
+    It 'el nombre de un archivo añadido o renombrado se incluye' {
+        $dir = New-TempRepo
+        try {
+            Set-Content -Path orig.txt -Value @('contenido limpio')
+            git add orig.txt; git commit -q -m base 2>$null
+            git mv orig.txt "$pwd1.txt"
+            $diff = Get-StagedDiff
+            $diff -match [regex]::Escape($pwd1) | Should Be $true
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+
     It 'una linea eliminada con patron no se incluye' {
         $dir = New-TempRepo
         try {

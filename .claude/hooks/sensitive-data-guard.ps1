@@ -63,7 +63,8 @@ function Get-StagedDiff {
             elseif ($line.StartsWith('@@')) { $inHunk = $true }
             elseif ($inHunk -and $line.StartsWith('+')) { $line.Substring(1) }
         }
-        return ($added -join "`n")
+        $paths = git -c core.quotepath=off diff --cached --name-status 2>$null
+        return ((@($paths) + @($added)) -join "`n")
     } catch {
         return ""
     }

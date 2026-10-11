@@ -32,14 +32,34 @@ function Write-GuardLog {
     }
 }
 
-function Get-CommandFlagValue {
-    param([string]$Command, [string]$FlagName)
-    if ($Command -match "--$FlagName(?:\s+|=)(""[^""]*""|'[^']*'|\S+)") {
-        return $Matches[1].Trim('"').Trim("'")
+# Devuelve TODOS los valores de un flag (--name valor, --name=valor, y el corto si existe), leidos
+# del texto depurado Y de los tokens ya sin comillas del segmento. La union es fail-closed: un valor
+# que solo ve uno de los dos caminos (ej. una carga dentro de bash -c, o un flag partido con
+# comillas) igual cuenta.
+function Get-CommandFlagValues {
+    param([string]$Command, [string]$FlagName, [string]$ShortName, [string[]]$Tokens = @())
+    $values = New-Object System.Collections.Generic.List[string]
+    foreach ($m in [regex]::Matches($Command, "--$FlagName(?:\s+|=)(""[^""]*""|'[^']*'|\S+)")) {
+        $values.Add($m.Groups[1].Value.Trim('"').Trim("'"))
     }
-    return $null
+    for ($k = 0; $k -lt $Tokens.Count; $k++) {
+        $tok = $Tokens[$k]
+        if ($tok -ceq "--$FlagName" -or ($ShortName -and $tok -ceq "-$ShortName")) {
+            if (($k + 1) -lt $Tokens.Count) { $values.Add($Tokens[$k + 1]) }
+        } elseif ($tok.StartsWith("--$FlagName=", [System.StringComparison]::Ordinal)) {
+            $values.Add($tok.Substring($FlagName.Length + 3))
+        }
+    }
+    return $values.ToArray()
 }
 
+# Fail-closed: si hay algun valor distinto de 'develop' se elige ese; si no, el primero.
+function Select-StrictFlagValue {
+    param([string[]]$Values)
+    if (-not $Values -or $Values.Count -eq 0) { return $null }
+    foreach ($v in $Values) { if ($v -ne 'develop') { return $v } }
+    return $Values[0]
+}
 function Get-OriginRepoSlug {
     try {
         $url = (git remote get-url origin 2>$null)
@@ -73,14 +93,20 @@ function Resolve-PrBaseHead {
 # actual (code-review PR #233). Solo los flags de $valueFlags consumen el token siguiente;
 # el resto (--squash, --merge, --rebase, --auto, --admin, --delete-branch, etc.) son booleanos.
 function Get-MergeTarget {
-    param([string]$Segment)
+    param([string]$Segment, [string]$BareText)
     $valueFlags = @('repo', 'subject', 'body', 'body-file', 'match-head-commit')
-    $tokenMatches = [regex]::Matches($Segment, '"[^"]*"|''[^'']*''|\S+')
-    $tokens = @($tokenMatches | ForEach-Object { $_.Value.Trim('"').Trim("'") })
+    $tokens = @((Get-SegmentCommandInfo -Segment $Segment).Argv)
 
     $mergeIdx = -1
     for ($k = 1; $k -lt $tokens.Count; $k++) {
         if ($tokens[$k] -eq 'merge' -and $tokens[$k - 1] -eq 'pr') { $mergeIdx = $k; break }
+    }
+    if ($mergeIdx -eq -1 -and $BareText) {
+        $tokenMatches = [regex]::Matches($BareText, '"[^"]*"|''[^'']*''|\S+')
+        $tokens = @($tokenMatches | ForEach-Object { $_.Value.Trim('"').Trim("'") })
+        for ($k = 1; $k -lt $tokens.Count; $k++) {
+            if ($tokens[$k] -eq 'merge' -and $tokens[$k - 1] -eq 'pr') { $mergeIdx = $k; break }
+        }
     }
     if ($mergeIdx -eq -1) { return $null }
 
@@ -96,23 +122,30 @@ function Get-MergeTarget {
     }
     return $null
 }
-
 function Test-PrBaseGuardSegment {
     param([string]$Command)
 
-    $Command = Remove-QuotedContent -Command $Command
-    if ($Command -notmatch '\bgh\s+pr\s+(create|edit|merge)\b') { return $null }
-    $subcommand = $Matches[1]
+    $found = Find-SegmentInvocation -Segment $Command -Words @('gh', 'pr', 'create|edit|merge')
+    if (-not $found) { return $null }
+    $subcommand = $found[2]
 
-    $repoFlag = Get-CommandFlagValue -Command $Command -FlagName 'repo'
+    $rawSegment = $Command
+    # Una redireccion consume su destino: `2> --base develop` NO pasa --base a gh. Tanto el texto como los
+    # tokens se leen sin redirecciones (review #370, ronda 2).
+    $Command = $script:RedirectInText.Replace((Remove-QuotedContent -Command $rawSegment), '')
+    $tokens = @((Get-SegmentCommandInfo -Segment $rawSegment).Argv)
+
+    $repoValues = @(Get-CommandFlagValues -Command $Command -FlagName 'repo' -ShortName 'R' -Tokens $tokens)
+    $repoFlag = if ($repoValues.Count -gt 0) { $repoValues[$repoValues.Count - 1] } else { $null }
     $originRepo = Get-OriginRepoSlug
-    if ($repoFlag -and $originRepo -and ($repoFlag -ne $originRepo)) {
+    $allDiffer = ($repoValues.Count -gt 0) -and -not ($repoValues -contains $originRepo)
+    if ($repoFlag -and $originRepo -and $allDiffer) {
         # --repo apunta a un repo distinto al del checkout actual -- fuera de alcance del hook.
         return $null
     }
 
     if ($subcommand -eq 'merge') {
-        $target = Get-MergeTarget -Segment $Command
+        $target = Get-MergeTarget -Segment $rawSegment -BareText $Command
         $prInfo = Resolve-PrBaseHead -Target $target -RepoSlug $repoFlag
         if (-not $prInfo) {
             Write-GuardLog "FAIL-OPEN: no se pudo resolver base/head via 'gh pr view' para: $Command"
@@ -121,8 +154,8 @@ function Test-PrBaseGuardSegment {
         $base = $prInfo.baseRefName
         $head = $prInfo.headRefName
     } else {
-        $base = Get-CommandFlagValue -Command $Command -FlagName 'base'
-        $head = Get-CommandFlagValue -Command $Command -FlagName 'head'
+        $base = Select-StrictFlagValue -Values @(Get-CommandFlagValues -Command $Command -FlagName 'base' -ShortName 'B' -Tokens $tokens)
+        $head = Select-StrictFlagValue -Values @(Get-CommandFlagValues -Command $Command -FlagName 'head' -ShortName 'H' -Tokens $tokens)
         if (-not $base) {
             if ($subcommand -eq 'create') {
                 # gh pr create sin --base cae al default branch del repo (main) -- bloquear.

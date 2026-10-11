@@ -345,3 +345,44 @@ Describe 'gh-account-guard.ps1 - entry point (block, Issue #327 bugfix)' {
         }
     }
 }
+
+. (Join-Path $PSScriptRoot 'shell-quoting.TestData.ps1')
+
+Describe 'Test-GhAccountGuard - palabra-comando con comillas o escapes (Issue #370, grupo J)' {
+
+    $cases = @(
+        'git "push" origin main'
+        'git pu\sh origin main'
+        "g'i't push origin main"
+        'gh pr "create" --base develop'
+        'gh "pr" create --base develop'
+        "gh pr cr'eate' --base develop"
+        'g"h" pr create --base develop'
+        '"gh" repo edit --private'
+        'FOO=1 sudo git "push" origin main'
+        'gh repo "edit" --private'
+    )
+    foreach ($c in $cases) {
+        It "bloquea con cuenta distinta: $c" {
+            Mock Get-ExpectedGhAccount { 'diegosvart' }
+            Mock Get-ActiveGhAccount { 'ServiciosTIebi' }
+            (Test-GhAccountGuard -Command $c).decision | Should Be 'block'
+        }
+    }
+}
+
+Describe 'Test-GhAccountGuard - matriz prefijo x wrapper x cola (Issue #370, grupo I)' {
+
+    It 'vacia solo cuando la cola es git/gh y el prefijo es reconocible; en el resto bloquea' {
+        function Get-ProjectRoot { 'C:proyecto' }
+        function Get-ExpectedGhAccount { 'diegosvart' }
+        function Get-ActiveGhAccount { 'ServiciosTIebi' }
+        $violations = New-Object System.Collections.Generic.List[string]
+        foreach ($case in (Get-MatrixCases -Payload 'git push origin main')) {
+            $r = Test-GhAccountGuard -Command $case.Command
+            $blocked = [bool]$r
+            if ($blocked -eq $case.ExpectEmptied) { $violations.Add($case.Command) }
+        }
+        ($violations | Select-Object -First 10) -join "`n" | Should Be ''
+    }
+}

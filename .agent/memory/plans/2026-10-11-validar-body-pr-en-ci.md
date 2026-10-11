@@ -1,14 +1,12 @@
 ---
-status: approved
+status: done
+pr: "#383"
+commit: 2255084
+completed_at: 2026-10-11
 issue: 382
 date: 2026-10-11
 ---
 
----
-status: draft
-issue: 382
-date: 2026-10-11
----
 
 # Plan Issue #382 — Forzar validación del body de PR fuera de open-pr.sh
 

@@ -1,5 +1,8 @@
 ---
-status: approved
+status: done
+pr: "#384"
+commit: 0fe025e
+completed_at: 2026-10-11
 issue: 378
 date: 2026-10-11
 ---

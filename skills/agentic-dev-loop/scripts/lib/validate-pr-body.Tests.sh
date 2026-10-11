@@ -69,6 +69,62 @@ valid_body | sed 's/$/\r/' > "$TMP/crlf.md"
 out=$(validate_pr_body "$TMP/crlf.md" 2>&1); rc=$?
 check "headings con CRLF pasan" "$rc" "$out"
 
+only_in_fence() {
+  local f="$1"
+  printf '## Qué\nx\n\n## Beneficio\nx\n\n## Por qué\nx\n\n## Cómo\nx\n\n%s\n## Testing\nx\n%s\n' "$f" "$f"
+}
+only_in_fence '```' > "$TMP/fence-bt.md"
+out=$(validate_pr_body "$TMP/fence-bt.md" 2>&1); rc=$?
+[ $rc -ne 0 ] && echo "$out" | grep -q "## Testing"
+check "heading solo dentro de fence de backticks no cuenta" "$?" "$out"
+
+only_in_fence '~~~' > "$TMP/fence-tl.md"
+out=$(validate_pr_body "$TMP/fence-tl.md" 2>&1); rc=$?
+[ $rc -ne 0 ] && echo "$out" | grep -q "## Testing"
+check "heading solo dentro de fence de tildes no cuenta" "$?" "$out"
+
+printf '## Qué\nx\n## Beneficio\nx\n## Por qué\nx\n## Cómo\nx\n```\n## Testing\nx\n' > "$TMP/unclosed.md"
+validate_pr_body "$TMP/unclosed.md" >/dev/null 2>&1
+[ $? -ne 0 ]
+check "fence sin cerrar ignora lo posterior (fail-closed)" "$?"
+
+printf '## Qué\nx\n## Beneficio\nx\n## Por qué\nx\n## Cómo\nx\n````\n```\n## Testing\n````\n' > "$TMP/longfence.md"
+validate_pr_body "$TMP/longfence.md" >/dev/null 2>&1
+[ $? -ne 0 ]
+check "fence de 4 backticks no se cierra con 3" "$?"
+
+{ valid_body; printf '\n```\n## Otro\n```\n'; } > "$TMP/fence-extra.md"
+out=$(validate_pr_body "$TMP/fence-extra.md" 2>&1); rc=$?
+check "5 secciones validas mas fence con heading extra pasa" "$rc" "$out"
+
+valid_body | sed 's/^## Por qué/## Por que/' > "$TMP/noacc.md"
+validate_pr_body "$TMP/noacc.md" >/dev/null 2>&1
+[ $? -ne 0 ]
+check "'## Por que' sin tilde es rechazado" "$?"
+
+valid_body | sed 's/^## Qué/## QUÉ/' > "$TMP/upper.md"
+validate_pr_body "$TMP/upper.md" >/dev/null 2>&1
+[ $? -ne 0 ]
+check "'## QUÉ' en mayusculas es rechazado" "$?"
+
+: > "$TMP/empty.md"
+out=$(validate_pr_body "$TMP/empty.md" 2>&1); rc=$?
+[ $rc -ne 0 ] && echo "$out" | grep -q "## Qué" && echo "$out" | grep -q "## Testing"
+check "body vacio reporta las 5 faltantes" "$?" "$out"
+
+out=$(validate_pr_body "$TMP/no-existe.md" 2>&1); rc=$?
+[ $rc -ne 0 ] && echo "$out" | grep -qi "no existe"
+check "archivo inexistente falla con mensaje claro" "$?" "$out"
+
+valid_body | sed 's/^## Testing/## Testing   /' > "$TMP/trail.md"
+out=$(validate_pr_body "$TMP/trail.md" 2>&1); rc=$?
+check "heading con espacios finales pasa" "$rc" "$out"
+
+valid_body | sed 's/^## Cómo/### Cómo/' > "$TMP/h3.md"
+validate_pr_body "$TMP/h3.md" >/dev/null 2>&1
+[ $? -ne 0 ]
+check "'### Cómo' (h3) no cuenta" "$?"
+
 mkdir -p "$TMP/bin"
 cat > "$TMP/bin/gh" <<G
 #!/usr/bin/env bash

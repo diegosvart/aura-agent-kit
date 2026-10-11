@@ -300,9 +300,16 @@ prohíbe footers de atribución.
 qué" sin buscarlo en otro artefacto. El PR #300 salió con `## Resumen` / `## Plan de pruebas`
 y sin `Closes #N` porque la regla vivía solo en prosa (Issue #301).
 
-**Enforcement:** estructural vía `open-pr.sh` (ver arriba). Límite conocido: un PR creado o
-editado a mano con `gh` esquiva el validador; cerrar ese hueco con un hook `PreToolUse` queda
-como paso siguiente solo si la evidencia lo justifica.
+**Enforcement:** estructural vía `open-pr.sh` (ver arriba) y, para PRs creados o editados a
+mano desde cualquier cliente (UI web, otra máquina, `gh`/`gh api`), vía el workflow de CI
+`.github/workflows/pr-body.yml` (check `pr-body`, Issue #382), que corre el mismo
+`validate-pr-body.sh` sobre el body (pasado por `env`, nunca interpolado en el shell). Exime
+los PRs de release (base `main`, head `develop`, `cut-release.sh promote`). No es
+retroactivo: solo evalúa PRs en eventos nuevos (`opened`/`edited`/`synchronize`/`reopened`).
+El validador ignora headings dentro de bloques de código (fences). No valida el footer de
+atribución. Límite conocido: el check solo bloquea el merge si está marcado como *required* en
+la protección de `develop` (`apply-branch-protection.sh`) — acción manual del usuario tras
+mergear el workflow; hasta entonces el check informa pero no bloquea.
 
 ### Sin atribución de IA en commits ni PRs (decisión explícita)
 

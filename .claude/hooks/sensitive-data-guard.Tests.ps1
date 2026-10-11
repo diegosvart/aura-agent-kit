@@ -378,5 +378,59 @@ Describe 'Test-MemorySaveGuard - lectura real de repo-classification.json (carac
     }
 }
 
+Describe 'Get-StagedDiff - solo lineas añadidas (Issue #386)' {
+
+    $rut = '12.345.' + '678-9'
+    $pwd1 = 'pass' + 'word=x'
+
+    function New-TempRepo {
+        $dir = Join-Path $env:TEMP "sdg-386-$([guid]::NewGuid().ToString('N'))"
+        New-Item -ItemType Directory -Path $dir | Out-Null
+        Push-Location $dir
+        git init -q 2>$null
+        git config user.email t@example.com
+        git config user.name t
+        return $dir
+    }
+
+    It 'una linea de contexto con patron no se incluye' {
+        $dir = New-TempRepo
+        try {
+            Set-Content -Path f.txt -Value @("RUT $rut", 'a', 'b')
+            git add f.txt; git commit -q -m base 2>$null
+            Set-Content -Path f.txt -Value @("RUT $rut", 'a', 'cambio limpio')
+            git add f.txt
+            $diff = Get-StagedDiff
+            $diff -match [regex]::Escape($rut) | Should Be $false
+            $diff -match 'cambio limpio' | Should Be $true
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+
+    It 'una linea añadida con patron se incluye y bloquea' {
+        $dir = New-TempRepo
+        try {
+            Set-Content -Path f.txt -Value @('limpio')
+            git add f.txt; git commit -q -m base 2>$null
+            Set-Content -Path f.txt -Value @('limpio', "x $pwd1")
+            git add f.txt
+            $diff = Get-StagedDiff
+            $diff -match [regex]::Escape($pwd1) | Should Be $true
+            (Test-ContentAgainstSensitivePatterns -Content $diff -DenylistPath $null).decision | Should Be 'block'
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+
+    It 'una linea eliminada con patron no se incluye' {
+        $dir = New-TempRepo
+        try {
+            Set-Content -Path f.txt -Value @('limpio', "x $pwd1")
+            git add f.txt; git commit -q -m base 2>$null
+            Set-Content -Path f.txt -Value @('limpio')
+            git add f.txt
+            $diff = Get-StagedDiff
+            $diff -match [regex]::Escape($pwd1) | Should Be $false
+        } finally { Pop-Location; Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue }
+    }
+}
+
 Write-Host ""
 Write-Host "Suite completo — ver resumen de Pester arriba (Tests: N, Passed: N, Failed: N)."

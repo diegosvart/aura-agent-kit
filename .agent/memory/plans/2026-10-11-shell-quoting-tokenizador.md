@@ -1,6 +1,9 @@
 ---
-status: approved
+status: done
 issue: 370
+pr: "#371"
+commit: 5d580d2
+completed_at: 2026-10-11
 date: 2026-10-11
 ---
 

@@ -19,6 +19,8 @@
       "PowerShell(agent-browser *)",
       "Bash(where:*)",
       "Bash(which:*)",
+      "Bash(code:*)",
+      "PowerShell(code *)",
       "Bash(ls:*)",
       "Bash(grep:*)",
       "PowerShell(Get-ChildItem *)",
@@ -65,7 +67,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/context-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/context-guard.ps1\"",
             "timeout": 10
           }
         ]
@@ -77,22 +79,27 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/git-guard.ps1\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/sensitive-data-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/sensitive-data-guard.ps1\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/pr-base-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/pr-base-guard.ps1\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/checkout-lock-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/checkout-lock-guard.ps1\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/gh-account-guard.ps1\"",
             "timeout": 5
           }
         ]
@@ -102,22 +109,27 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/git-guard.ps1\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/sensitive-data-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/sensitive-data-guard.ps1\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/pr-base-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/pr-base-guard.ps1\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/checkout-lock-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/checkout-lock-guard.ps1\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/gh-account-guard.ps1\"",
             "timeout": 5
           }
         ]
@@ -127,7 +139,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/agent-frontmatter-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/agent-frontmatter-guard.ps1\"",
             "timeout": 10
           }
         ]
@@ -137,7 +149,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/sensitive-data-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/sensitive-data-guard.ps1\"",
             "timeout": 5
           }
         ]
@@ -149,7 +161,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/session-start.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.ps1\"",
             "timeout": 30
           }
         ]
@@ -159,7 +171,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/session-resume.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-resume.ps1\"",
             "timeout": 30
           }
         ]
@@ -169,7 +181,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/session-start.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.ps1\"",
             "timeout": 30
           }
         ]
@@ -180,7 +192,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/session-end.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-end.ps1\"",
             "timeout": 60
           }
         ]

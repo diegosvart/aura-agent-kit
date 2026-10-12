@@ -4,8 +4,12 @@
 
 $output = @{}
 
-# Raíz del proyecto
-$projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+# Raíz del proyecto (worktree-aware: utiliza git rev-parse para resolver correctamente en worktrees)
+$projectRoot = git rev-parse --show-toplevel 2>$null
+if (-not $projectRoot) {
+    # Fallback si no hay repo git válido (fallback a cálculo basado en path, aunque no es worktree-aware)
+    $projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+}
 $sessionFile = Join-Path $projectRoot ".agent\memory\current-session.json"
 
 if (Test-Path $sessionFile) {

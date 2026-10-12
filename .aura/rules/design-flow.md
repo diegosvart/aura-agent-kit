@@ -16,6 +16,32 @@ Si el usuario elige ir directo → respetar su decisión y continuar con `/plan-
 
 ---
 
+## Regla — Desplegar toda spec nueva para revisión (Issue #336, sesión 2026-09-21)
+
+> **Hipótesis P4:** el usuario revisa specs más rápido y con menos fricción si el archivo se
+> abre automáticamente en su editor en vez de tener que ir a buscarlo manualmente después de
+> que el agente avisa que lo creó. Criterio observable: en las próximas specs generadas, el
+> usuario no tiene que pedir "abrime el archivo" — ya lo tiene abierto cuando termina de leer
+> la respuesta del agente.
+
+Cada vez que el agente **crea o termina de editar** un archivo en `docs/aura/specs/` (spec
+nueva o revisión sustancial de una existente), antes de darla por lista para aprobación:
+
+1. Verificar si el comando `code` (VS Code CLI) está disponible: `where code` (Windows) /
+   `command -v code` (POSIX).
+2. **Si está disponible:** `code "<path-de-la-spec>"` — la abre en una pestaña del editor del
+   usuario, sin bloquear la sesión de Claude Code.
+3. **Si no está disponible:** mostrar el contenido completo del archivo en la respuesta del
+   chat (no solo un resumen) — el usuario necesita poder revisarlo igual, sin depender de
+   abrir el archivo manualmente en otra herramienta.
+4. Nunca asumir en silencio cuál de las dos rutas aplica — el chequeo del paso 1 es obligatorio,
+   no una suposición basada en el sistema operativo.
+
+Aplica solo a `docs/aura/specs/*.md` — no a plans (`.agent/memory/plans/`), issues, ni PRs, que
+ya tienen su propio canal de revisión (GitHub UI).
+
+---
+
 ## Flujo completo de diseño (cuando se sigue el proceso)
 
 ```

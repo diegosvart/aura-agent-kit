@@ -77,8 +77,9 @@ su output directo** — no le pide a un agente que "razone" estos pasos. Esto es
 | `close-cycle.sh <owner>/<repo> <issue>` | Fase 1, Paso 5 | aplica `review` si hay PR abierto con `Closes #N`, `ready` si no hay PR (ni abierto ni mergeado); si el único PR encontrado ya está mergeado, no toca ningún label (issue ya resuelto) |
 | `find-review-candidates.sh <owner>/<repo>` | Fase 2, Paso 1 | stdout = JSON de issues `review` |
 | `find-pr-for-issue.sh <owner>/<repo> <issue>` | Fase 2, Paso 2 | stdout = número de PR, abierto o mergeado (exit 1 si no hay ninguno) |
-| `reject-review.sh <owner>/<repo> <issue>` | Fase 2, Paso 4 (veredicto "No pasa") | quita `review`, agrega `changes-requested`, reabre el issue si estaba `CLOSED`; el comentario con los hallazgos se publica antes, por separado (juicio del agente) |
+| `reject-review.sh <owner>/<repo> <issue>` | Fase 2, Paso 4 (veredicto "No pasa") | quita `review`, agrega `changes-requested`, reabre el issue si estaba `CLOSED`, y publica el comentario-marcador `<!-- aura:verifier-reject -->` que `resolve-tier.sh` cuenta para escalar el modelo (no reemplazar ni rechazar a mano sin el marcador); el comentario con los hallazgos se publica antes, por separado (juicio del agente) |
 | `verify.sh` | corridas sueltas de lint/typecheck/test | resumen corto pass/fail; solo muestra el fragmento de error si algo falla — nunca vuelca output crudo completo en éxito |
+| `save-plan.sh <fecha> <slug> <issue> <archivo>` | Utilidad: guardar plan aprobado al ledger | stdout = ruta creada; fecha `YYYY-MM-DD`, slug `[a-z0-9][a-z0-9-]*`, issue numérico; crea `.agent/memory/plans/<fecha>-<slug>.md` con frontmatter (`status`, `issue`, `date`); falla si ya existe (nunca sobreescribe) |
 
 **Nota de diseño importante (descubierta validando `pick-next-issue.sh` contra un repo real):**
 si el *default branch* del repo (el que dispara el autocierre de `Closes #N`) es distinto de la
@@ -109,8 +110,11 @@ carrera que existía cuando "elegir" y "marcar" eran dos pasos separados); no ha
 ```bash
 skills/agentic-dev-loop/scripts/resolve-tier.sh <OWNER>/<REPO> <N>
 ```
-Default **Haiku**; escala a **Sonnet** si el body trae `**Complejidad:** alta` o si ya hay 1
-comentario de bloqueo/fallo previo en el issue; a **Opus** si hay 2 o más.
+Default **Haiku**; escala a **Sonnet** si el body trae `**Complejidad:** alta` o `**Complejidad:**
+media` (declaración explícita del template de issue, ver `skills/issue-planning/SKILL.md`) o si
+ya hay 1 comentario de bloqueo/fallo previo en el issue; a **Opus** si hay 2 o más. La
+declaración inicial y el escalamiento reactivo por comentarios son independientes — el segundo
+sigue actuando como red de seguridad encima del primero, nunca en su reemplazo.
 
 ### Paso 4 — Lanzar el agente de desarrollo
 Prompt autocontenido (el agente parte de cero — sin memoria de esta sesión):
@@ -167,6 +171,18 @@ Prompt autocontenido (el agente parte de cero — sin memoria de esta sesión):
      contra `main` (el default branch del repo) en vez de `develop` (caso real Issues #75/#76,
      ver Errores Comunes) — con `open-pr.sh` ninguno de los dos es posible porque el agente nunca
      construye el comando a mano.
+
+     El archivo de resumen (`<archivo-resumen>`) sigue el **template de PR body unificado**
+     (Issue #332, fuente de verdad en
+     `docs/aura/specs/2026-09-21-issue-332-unificar-formato-artefactos-design.md`):
+     `open-pr.sh` ya antepone `Closes #N`, así que el resumen que arma el dev-runner empieza
+     directo en `# <Título del PR>` seguido de `## Qué` / `## Beneficio` / `## Por qué` /
+     `## Cómo` / `## Criterios de Aceptación` / `## Testing` / `## Notas para el reviewer`
+     (esta última opcional). `open-pr.sh` valida estructuralmente (Issue #301) que estén
+     `## Qué`, `## Beneficio`, `## Por qué`, `## Cómo` y `## Testing`, y rechaza el body si
+     falta alguna. `## Testing` lleva el output real de `verify.sh` (Paso 4, sub-paso
+     3), no una afirmación sin evidencia — mismo criterio que
+     `.aura/rules/harness-core.md` aplica a cualquier estado verificable.
   6. Si en algún punto queda bloqueado (dependencia no resuelta que no se había detectado,
      ambigüedad real del DoD): **no commitear a medias** — comentar en el issue qué falta y
      terminar sin PR.
@@ -275,7 +291,7 @@ varios issues `review` en la misma corrida — auditar no muta código, solo lee
 | Dos dev-runners comparten working directory y el segundo hereda estado sucio del primero | Sin serialización, un `checkout develop && pull` de un dev-runner puede pisar/heredar una rama a medio commitear de una corrida anterior. Caso real: Issue #76 (otro proyecto con este harness) heredó el working directory de Issue #75 y su commit terminó con una entrada duplicada — se reparó a mano con un splice quirúrgico de bytes para no corromper un byte mal codificado preexistente en el archivo. Fix histórico: `isolation:"worktree"` en el Agent tool. Fix actual (Issue #217 — el worktree rompía otras partes del harness, ver Issues #213/#214/#205): `with-checkout-lock.sh` serializa el checkout compartido con un mutex explícito, enforced por `checkout-lock-guard.ps1` (ver Fase 1, Paso 4, sub-paso 1) — el requisito real nunca fue un directorio físicamente distinto, sino que nadie más toque el checkout mientras un dev-runner trabaja |
 | El estado de git (branch activo, working tree) es un recurso mutable compartido entre Bash/subagentes concurrentes de la misma sesión, sin mutex | Evidencia real encontrada en vivo redactando la hipótesis de Issue #217 (no solo el incidente original #75/#76): un cambio *uncommitted* de una tarea concurrente sobrevivió a `git checkout develop` y a un segundo `git checkout -b <rama nueva>` en el mismo checkout físico, y `git branch --show-current` cambió solo entre dos comandos `Bash` consecutivos — otro proceso de la misma sesión ejecutó `git checkout` en la ventana de tiempo, sin ningún mutex que lo impidiera. Confirma que el riesgo no es solo "dos dev-runners consecutivos" (ya cubierto por la Regla de Concurrencia de este skill) sino que el modelo de ejecución permite paralelismo real de `Bash` sobre un único checkout. Fix: mismo lock de `with-checkout-lock.sh` + `checkout-lock-guard.ps1` — cualquier `git checkout`/`switch`/`commit`/`push` de una sesión distinta a la dueña del lock queda bloqueado mientras el lock esté activo |
 | El verifier (Fase 2) lee el checkout compartido mientras un dev-runner (Fase 1) lo muta en paralelo | El lock de checkout (`with-checkout-lock.sh`/`checkout-lock-guard.ps1`, fila anterior) protege al dev-runner, pero la Fase 2 se asume "solo lee, no muta" y corre sin ese lock — "solo lee" no implica "inmune a que otro proceso cambie la rama activa debajo suyo". Caso real: durante un loop con 4 issues (#267/#147/#196/#155), el verifier de PR #273 (Issue #196) reportó que el working tree cambió de rama solo entre dos comandos `Bash`, porque el dev-runner de #155 lo estaba usando en simultáneo. Mitigación que funcionó en la práctica (sin necesitar el lock): el verifier resolvió usando `git fetch origin pull/N/head` + `git show` sobre una copia aislada, en vez de `git checkout <rama-del-PR>` sobre el checkout compartido — ver Fase 2, Paso 3 |
-| La rama local queda viva indefinidamente tras el merge | `post-merge.sh` cierra el issue pero nunca toca la rama local — queda acumulándose hasta que `session_start.md` (Paso 3, salud de ramas) la detecta pasivamente en una sesión posterior, o hasta una limpieza manual. Caso real: `crawler-mcp-diagram` (2026-08-03) acumuló 8 ramas locales + 10 remotas ya mergeadas sin que nada las hubiera limpiado antes de esa sesión. Fix: `cleanup-merged-branch.sh <owner>/<repo> <pr_n> [--delete]` (ver `agents/github.md`, "Al Mergear una PR a Develop", Paso 4) — dry-run por default, borra con `git branch -d` (nunca `-D`) solo tras confirmación explícita del usuario, invocado inmediatamente después de `post-merge.sh` en el mismo turno del merge en vez de esperar a la próxima sesión |
+| La rama local queda viva indefinidamente tras el merge | `post-merge.sh` cierra el issue pero nunca toca la rama local — queda acumulándose hasta que `session_start.md` (Paso 3, salud de ramas) la detecta pasivamente en una sesión posterior, o hasta una limpieza manual. Caso real: `crawler-mcp-diagram` (2026-08-03) acumuló 8 ramas locales + 10 remotas ya mergeadas sin que nada las hubiera limpiado antes de esa sesión. Fix: `cleanup-merged-branch.sh <owner>/<repo> <pr_n> [--delete]` (ver `agents/github.md`, "Al Mergear una PR a Develop", Paso 4) — dry-run por default, borra con `git branch -d` solo tras confirmación explícita del usuario; únicamente si `-d` rechaza una rama squash-mergeada (no es ancestro de develop pero su contenido ya está idéntico) usa `-D` imprimiendo un AVISO con el SHA original para recuperarla (Issue #353), nunca `-D` incondicional; invocado inmediatamente después de `post-merge.sh` en el mismo turno del merge en vez de esperar a la próxima sesión |
 
 ---
 

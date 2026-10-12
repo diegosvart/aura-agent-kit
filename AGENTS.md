@@ -167,6 +167,18 @@ hereda igual, sin reinventarla por repo.
 
 ---
 
+## Formato de Artefactos (Spec / Plan / Issue / PR)
+
+Los templates unificados de Spec (`docs/aura/specs/`), Plan (`.agent/memory/plans/`), Issue
+(`skills/issue-planning/SKILL.md`) y PR body (`skills/agentic-dev-loop/SKILL.md`) — con
+`Beneficio` en lenguaje de negocio, alternativas descartadas, y boundaries `Never`/`Ask First`
+explícitos — están definidos en
+`docs/aura/specs/2026-09-21-issue-332-unificar-formato-artefactos-design.md`. Aplica solo a
+artefactos nuevos de acá en adelante — no se migra el histórico (ver esa spec, sección "Fuera
+de Scope").
+
+---
+
 ## Harness Engineering
 
 El harness tiene tres roles funcionales:

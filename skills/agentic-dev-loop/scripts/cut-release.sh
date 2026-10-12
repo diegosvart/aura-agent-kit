@@ -146,15 +146,36 @@ PYTHON_PLUGIN_BUMP
       exit 1
     fi
 
+    # Idempotencia/reintentabilidad (hallazgo de code-review, PR #331): el tag y el GitHub
+    # Release se chequean y crean por separado. Si un run anterior murio DESPUES de crear el
+    # tag pero ANTES de "gh release create" (network blip, auth transitoria), un reintento
+    # debe detectar el tag ya existente, saltear su creacion, y todavia intentar el Release
+    # -- nunca cortar antes de eso solo porque el tag ya existe.
+    tag_exists=0
     if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
-      echo "El tag '$VERSION' ya existe localmente -- nada que hacer." >&2
+      tag_exists=1
+    fi
+    release_exists=0
+    if gh release view "$VERSION" --repo "$REPO" >/dev/null 2>&1; then
+      release_exists=1
+    fi
+
+    if [ "$tag_exists" -eq 1 ] && [ "$release_exists" -eq 1 ]; then
+      echo "El tag '$VERSION' y el GitHub Release ya existen -- nada que hacer." >&2
       exit 1
     fi
 
-    git checkout main
-    git pull origin main --ff-only
-    git tag -a "$VERSION" -m "$VERSION" "$merge_commit"
-    git push origin "refs/tags/$VERSION"
+    if [ "$tag_exists" -eq 0 ]; then
+      git checkout main
+      git pull origin main --ff-only
+      git tag -a "$VERSION" -m "$VERSION" "$merge_commit"
+      git push origin "refs/tags/$VERSION"
+    fi
+
+    if [ "$release_exists" -eq 0 ]; then
+      gh release create "$VERSION" --repo "$REPO" --title "$VERSION" --generate-notes
+    fi
+
     echo "$merge_commit"
     ;;
 

@@ -66,24 +66,44 @@ Presentar al usuario la lista propuesta antes de crear:
 ¿Aprobás esta lista o querés ajustar algo?
 ```
 
-**Si existe un spec previo** (`docs/aura/specs/*.md`, ej. salido de `/brainstorm`): no re-narrar
-el "por qué" de cada issue — el spec ya lo tiene, con rationale y trade-offs por decisión. El
-body del issue debe cargar solo el "qué" (accionable), y apuntar al spec para el "por qué":
+**Template de issue (Issue #332)** — el body final de cada issue, tras la aprobación de la
+lista de arriba, sigue este template unificado (fuente de verdad completa, con rationale y los
+templates hermanos de Spec/Plan/PR:
+`docs/aura/specs/2026-09-21-issue-332-unificar-formato-artefactos-design.md`):
 
 ```markdown
 ## Descripción
 <una oración — qué se construye>
 
-Ver <D<N>> en `docs/aura/specs/<archivo>.md` para el rationale completo.
+**Complejidad:** baja | media | alta
+Ver <D<N>> en `docs/aura/specs/<archivo>.md` para el rationale completo (si existe spec previo).
+
+## Beneficio
+<una oración, lenguaje de negocio>
 
 ## Archivos
 - <path 1>
-- <path 2>
 
 ## Criterios de Aceptación
-- [ ] <copiado verbatim del criterio de aceptación correspondiente del spec>
-- [ ] <ídem>
+- [ ] <criterio 1>
+
+## Depende de
+nada / Issue N
 ```
+
+**Cómo decidir la Complejidad** (heurística, no cálculo exacto): subir de `baja` a `media`/`alta`
+si aplica alguna de estas señales — toca 3+ archivos, involucra una decisión de diseño que
+todavía no está tomada (el spec no la resolvió), o toca lógica concurrente, de seguridad o de
+datos. `media` alcanza para "hay algo no trivial pero acotado"; `alta` para "requiere que el
+agente ejecutor razone bastante antes de tocar código". Sin ninguna señal, `baja`. Esta
+declaración alimenta directamente `resolve-tier.sh` del skill `agentic-dev-loop` — `alta` y
+`media` ambas escalan de Haiku a Sonnet (ver ese skill para el detalle).
+
+**Si existe un spec previo** (`docs/aura/specs/*.md`, ej. salido de `/brainstorm`): no re-narrar
+el "por qué" de cada issue — el spec ya lo tiene, con rationale y trade-offs por decisión
+(incluyendo su propio campo **Beneficio**, ver el template de Spec en la spec de Issue #332). El
+body del issue carga solo el "qué" (accionable) y el "Beneficio" en una oración, apuntando al
+spec para el rationale completo — no duplicar contenido ya explicado ahí.
 
 Esto evita pagar el costo de redactar el "qué/por qué" dos veces (spec + issue) y evita que
 diverjan con el tiempo. El agente ejecutor lee el spec solo si necesita resolver una ambigüedad

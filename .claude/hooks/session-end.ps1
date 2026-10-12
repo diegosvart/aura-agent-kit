@@ -16,7 +16,11 @@ function Write-ObservabilityLog {
 
 $output = @{}
 
-$projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$projectRoot = git rev-parse --show-toplevel 2>$null
+if (-not $projectRoot) {
+    # Fallback si no hay repo git válido (fallback a cálculo basado en path, aunque no es worktree-aware)
+    $projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+}
 $sessionFile = Join-Path $projectRoot ".agent\memory\current-session.json"
 $backupDir   = Join-Path $projectRoot ".agent\memory\backups"
 

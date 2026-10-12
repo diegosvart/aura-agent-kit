@@ -25,6 +25,15 @@
    explícito del agente en esa sesión. Afirmar "no hay next_step" sin haber hecho esta llamada
    es una violación de la regla de `.aura/rules/harness-core.md` de no afirmar estado sin
    verificar.
+2.5. **Hora de red** (Issue #337): consultar `WebFetch` contra
+   `https://timeapi.io/api/time/current/zone?timeZone=UTC`, extrayendo el datetime ISO 8601
+   UTC. Si la consulta falla (sin red, API caída): usar el reloj local como fallback con
+   advertencia explícita `⚠ Hora de red no disponible — usando reloj local (posible drift)`.
+   Este timestamp se reporta en la tabla "1. Continuidad" del Paso 4, fila "Extraído ahora
+   (UTC, hora de red)" — complementa el `Created:` de Engram, no lo reemplaza. Conversión a
+   hora local: ver `AGENTS.local.md` → "Configuración Regional" → `Timezone (IANA)`; si el
+   campo no existe, mostrar solo UTC con el aviso `⚠ Timezone no configurado en
+   AGENTS.local.md — mostrando solo UTC` (nunca inferir por heurística).
 3. Si `mem_context` falla (error de MCP) o no devuelve resultados → fallback a
    `.agent/memory/current-session.json` (si existe), usando sus 3 campos (`last_updated`,
    `branch`, `next_step`), con advertencia explícita:
@@ -41,6 +50,10 @@
 
 Leer en paralelo:
 - `AGENTS.md` (este archivo, si no se cargó antes)
+- `AGENTS.local.md` (raíz del proyecto, si existe) — **Read explícito obligatorio**: el `@import`
+  automático de `CLAUDE.md` no resuelve archivos gitignorados de forma confiable. Este Read
+  explícito es el fallback estructural de defensa en profundidad (mismo patrón de "dos capas"
+  que usa el Paso 0 con Engram).
 - `{{PROJECT_CONTEXT}}` (archivo de contexto del proyecto)
 - `{{MATRIZ_PLANIFICACION}}` (si existe)
 - `.agent/memory/repo-classification.json` (si existe) — `repo_type`: `harness` / `personal` /
@@ -73,13 +86,29 @@ Si se detecta esta condición, incluirla en la sección "Advertencias" del Resum
 > **Nota de alcance:** este paso es sobre gathering de **git/gh/filesystem**, no sobre memoria
 > Engram (eso ya se resolvió en el Paso 0, con un mecanismo distinto).
 
+### Modos de Ejecución (Issue #322, D4 — piloto de delegación)
+
+Dos opciones equivalentes para resolver este paso (ítems 1-17 abajo):
+
+| Modo | Cuándo usarlo | Cómo |
+|------|---------------|-----|
+| **Automático (hook)** | Sesión con hooks del harness configurados y disparando | Hook `.claude/hooks/session-start.ps1` emite JSON; ver "Si el JSON del hook ya está disponible" más abajo |
+| **Manual (línea por línea)** | Sesión sin hooks, o el JSON del hook no llegó | Ejecutar manualmente los comandos de la tabla; ver sección "Si el hook no disparó" más abajo |
+| **Delegado (piloto)** | Optativo — para medir consumo de contexto de esta sesión | Lanzar un subagente que ejecuta `skills/session-lifecycle/scripts/gather-session-start.sh` y reformatea su JSON para el Resumen Ejecutivo; ver sección "Modo piloto: delegación a subagente" más abajo |
+
+Todos los modos producen el mismo output final (datos 1-17 disponibles para los Pasos 3-4).
+El usuario puede optar por el modo manual en sesiones sin hooks, o experimentar con delegación
+en sesiones con hooks disponibles (para recolectar datos de comparación de contexto, Issue #322).
+
+---
+
 El hook `.claude/hooks/session-start.ps1` corre en los matchers `startup`/`resume`/`clear` y
-emite un único JSON cubriendo los ítems 1-16 de la tabla siguiente. El ítem 17
-(clasificación de repo) **todavía no está wireado al hook** — pese a documentarse acá como
-parte del gathering automático, `session-start.ps1` no lo emite (confirmado por `git diff`:
-el hook no tiene ninguna referencia a `repo-classification.json`, hallazgo del code-review de
-PR #307). Hasta que se implemente, este ítem se resuelve **siempre** con el comando manual de
-más abajo — no asumir que llega en el JSON del hook:
+emite un único JSON cubriendo los ítems 1-17 de la tabla siguiente. El ítem 17
+(clasificación de repo, Issue #308) llega como `repo_classification` con `status`
+`ok` | `missing` | `corrupt` | `invalid`: cualquier valor distinto de `ok` trae `repo_type: null`
+y un `error` — es fail-closed, tratarlo como el caso de mayor riesgo en el Gate de
+Clasificación de Repo (Paso 3), nunca inferir un tipo. El comando manual de más abajo solo
+aplica si el JSON del hook no llegó:
 
 | # | Tarea | Mecanismo interno |
 |---|-------|---------|
@@ -99,15 +128,15 @@ más abajo — no asumir que llega en el JSON del hook:
 | 14 | Candidatos a trabajo stranded | ramas ahead de `develop` con commits `Closes/Fixes/Resolves #N` |
 | 15 | Ideas en backlog | cuenta `## [` en `ideas.md` |
 | 16 | Update del harness disponible | compara tag local de `.aura` vs. remoto (caché 30 min) o versión de plugin instalada vs. marketplace |
-| 17 | Clasificación de repo (Issue #303, D1) — **NO implementado en el hook, ver nota arriba** | comando manual (`cat .agent/memory/repo-classification.json`, más abajo); alimenta el Gate de Clasificación de Repo (Paso 3) |
+| 17 | Clasificación de repo (Issue #303, D1; hook: Issue #308) | lee `.agent/memory/repo-classification.json` → `repo_classification{status,repo_type,...}`; `missing`/`corrupt`/`invalid` se reportan explícitos; alimenta el Gate de Clasificación de Repo (Paso 3) |
 
-**Si el JSON del hook ya está disponible en el contexto** (campos como `branch`,
-`issues_ready`, `open_prs`, `repo_visibility`, `repo_integrity`, `last_session`,
-`harness_update_available` presentes): usar esos datos directamente para el Paso 3 y el Paso 4
-— no repetir ninguna de las llamadas de la tabla de arriba.
+### Si el JSON del hook ya está disponible en el contexto
 
-**Si el hook no disparó** (sesión sin hooks configurados, o el JSON no llegó): ejecutar
-manualmente los comandos equivalentes:
+(campos como `branch`, `issues_ready`, `open_prs`, `repo_visibility`, `repo_integrity`,
+`last_session`, `harness_update_available` presentes): usar esos datos directamente para el
+Paso 3 y el Paso 4 — no repetir ninguna de las llamadas de la tabla de arriba.
+
+### Si el hook no disparó
 
 ```bash
 # Rama, estado, commits
@@ -170,13 +199,45 @@ gathering de rutina de este paso.
 
 ---
 
+### Modo piloto: delegación a subagente (Issue #322, D4)
+
+**Régimen experimental** (no es el default): si el orquestador quiere medir el impacto en
+consumo de contexto de delegar el Paso 2 completo a un subagente (en vez de ejecutar 17 comandos
+crudos e inyectar su output), puede optar por este modo:
+
+**Precondición:** El JSON del hook nativo está disponible, O el orquestador está dispuesto a
+ejecutar la versión manual — se necesita alguno de los dos para proceder.
+
+**Flujo:**
+1. Ejecutar (o recibir del hook): todos los datos de la tabla 1-17 de alguna forma.
+2. **Si se opta por delegación:** Lanzar un subagente con el siguiente contrato autocontenido:
+   - **Input:** el número/nombre del repo (o auto-detectar desde cwd).
+   - **Tarea:** Ejecutar el script `skills/session-lifecycle/scripts/gather-session-start.sh
+     <owner>/<repo>` una sola vez.
+   - **Output:** Capturar su JSON, parsear los campos, y devolver al orquestador un resumen ya
+     formateado (mismo shape que el Resumen Ejecutivo espera para el Paso 4 — no JSON crudo).
+3. El subagente NO ejecuta comandos adicionales ni razona comando por comando — solo corre el
+   script una sola vez y reformatea su output.
+
+**Métrica de éxito:** tokens de contexto del orquestador consumidos durante esta sesión,
+registrados en `.agent/memory/observability/sessions.jsonl` (automático al cierre, Paso 10 de
+`session_end.md`). Comparar contra el promedio de sesiones recientes sin piloto activado para
+medir reducción. Ver `docs/aura/specs/2026-09-18-fase2-marco-024-025-026-028-design.md` (D4)
+para el objetivo completo.
+
+**Nota:** Este modo es optativo y experimental — no reemplaza el flujo manual/hook existente.
+Se documenta acá para que el usuario pueda activarlo en sesiones posteriores si lo desea.
+Mediciones reales solo ocurren en sesiones siguientes donde se active efectivamente.
+
+---
+
 ## Paso 3 — Gates (usa datos del Paso 2)
 
 ### Gate de Clasificación de Repo (Issue #303, D1)
 
 Usar el dato del ítem 17 del Paso 2 (`.agent/memory/repo-classification.json`).
 
-Si el archivo **no existe** (`repo_classification: null`) → **DETENER aquí**. No mostrar el
+Si el archivo **no existe** (`repo_classification.status = "missing"` del hook, o `repo_classification: null` en modo manual) → **DETENER aquí**. No mostrar el
 Resumen Ejecutivo (Paso 4) ni el Capability Menu (Paso 6) hasta que el usuario responda.
 Preguntar textualmente:
 
@@ -195,9 +256,12 @@ Con la respuesta, crear el archivo:
 }
 ```
 
+Si `status` es `corrupt` o `invalid` → mismo bloqueo, pero mostrar el `error` del hook y pedir
+corregir/reescribir el archivo (no pisarlo sin confirmar).
+
 No asumir un default ni inferir por heurística — ver D1 en
 `docs/aura/specs/2026-09-17-memoria-clasificacion-repos-design.md`. Si el archivo **sí
-existe**, continuar sin preguntar y mostrar `repo_type` en la sección "Estado real — mío" del
+existe** con `status = "ok"`, continuar sin preguntar y mostrar `repo_type` en la sección "Estado real — mío" del
 Resumen Ejecutivo (Paso 4).
 
 `repo_type` alimenta además la política de qué puede guardar `mem_save` en este repo — ver
@@ -339,6 +403,8 @@ sección por completo (no mostrar un bloque vacío ni un mensaje de error).
 | Pendiente (última sesión) | <de session_summary #ID, texto completo, no preview> |
 | Próximo paso sugerido | <next_step> |
 | Fuente | Engram (#ID) / fallback current-session.json |
+| Sesión anterior cerrada (UTC, hora de red) | <de la línea "Cierre (UTC, hora de red): ..." dentro de mem_session_summary, o current-session.json.last_updated si Engram no la tiene> |
+| Extraído ahora (UTC, hora de red) | <timestamp del ítem 2.5 del Paso 0, o aviso de fallback a reloj local> |
 
 ## 2. Estado real — mío
 | Check | Estado |
@@ -350,6 +416,29 @@ sección por completo (no mostrar un bloque vacío ni un mensaje de error).
 | Sin rastrear | N archivos |
 | Cambios sin commit | N |
 | Último commit | <hash> "<mensaje>" |
+
+### Herramientas MCP
+| Nombre | Ubicación (config) | Objetivo | Cargada en contexto |
+|---|---|---|---|
+| <nombre> | <archivo/sección de config> | <una línea> | ✓ / ✗ (deferred) |
+
+> Fuente "configuradas": `.claude/settings.json` (`permissions.allow`, `enabledPlugins`) —
+> estático, no cambia salir del Paso 2, delegable a un subagente de solo lectura si el volumen
+> lo justifica (`.aura/rules/subagent-dispatch.md`). Fuente "cargada en contexto": el
+> `<system-reminder>` de deferred tools de esta sesión — **no delegable**, es estado vivo del
+> orquestador. Nota conocida (Issue #337, inventario 2026-09-21): un MCP server puede llegar
+> por instalación **global** del usuario (ej. Engram vía `~/.claude/plugins/`) sin aparecer en
+> `enabledPlugins` de este repo — en ese caso listar igual la tool (aparece en
+> `permissions.allow`) con la ubicación real de su config, no asumir que "no está en
+> settings.json" == "no configurada".
+
+### Hooks activos
+| Nombre | Ubicación (config) | Matcher/Evento | Objetivo |
+|---|---|---|---|
+| <nombre> | `.claude/settings.json` → `<bloque>` | <matcher> | <una línea> |
+
+> Los hooks no tienen columna "cargada en contexto" — no son tools invocables, corren
+> automáticamente en cada evento.
 
 ## 2. Estado real — ajeno / repo
 | Check | Estado |
@@ -372,6 +461,20 @@ Cierre del resumen, línea nueva (capa de visibilidad, no de enforcement):
 ```
 ✓ Contexto previo recuperado (Paso 0) · N chequeos obtenidos por script (Paso 2) · 0 gathering manual
 ```
+
+### Formato de conversión de hora de red a timezone local (Issue #337)
+
+Cada timestamp de red mostrado en la tabla "1. Continuidad" (`Sesión anterior cerrada`,
+`Extraído ahora`) agrega entre paréntesis la conversión a `Timezone (IANA)` de
+`AGENTS.local.md`:
+
+```
+2026-09-21T22:14:11 UTC (19:14:11 America/Santiago)
+```
+
+Si `AGENTS.local.md` no tiene el campo `Timezone (IANA)`: mostrar solo el valor UTC + el
+aviso `⚠ Timezone no configurado en AGENTS.local.md — mostrando solo UTC` (una sola vez en
+Advertencias, no repetido por cada fila).
 
 ### Advertencias — casos especiales a incluir cuando aplican
 

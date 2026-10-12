@@ -27,6 +27,9 @@ if [ ! -f "$BODY_FILE" ]; then
   exit 1
 fi
 
+source "$SCRIPT_DIR/lib/validate-pr-body.sh"
+validate_pr_body "$BODY_FILE" || exit 1
+
 tmp_body=$(mktemp)
 trap 'rm -f "$tmp_body"' EXIT
 

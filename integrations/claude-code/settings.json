@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/context-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/context-guard.ps1\"",
             "timeout": 10
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/git-guard.ps1\"",
             "timeout": 5
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/git-guard.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/git-guard.ps1\"",
             "timeout": 5
           }
         ]
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/session-start.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.ps1\"",
             "timeout": 30
           }
         ]
@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/session-resume.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-resume.ps1\"",
             "timeout": 30
           }
         ]
@@ -60,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NonInteractive -File .claude/hooks/session-end.ps1",
+            "command": "pwsh -NonInteractive -File \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-end.ps1\"",
             "timeout": 60
           }
         ]

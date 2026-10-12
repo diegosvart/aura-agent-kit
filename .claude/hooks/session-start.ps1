@@ -4,8 +4,12 @@
 
 $output = @{}
 
-# Raíz del proyecto (2 niveles arriba de .claude/hooks/)
-$projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+# Raíz del proyecto (worktree-aware: utiliza git rev-parse para resolver correctamente en worktrees)
+$projectRoot = git rev-parse --show-toplevel 2>$null
+if (-not $projectRoot) {
+    # Fallback si no hay repo git válido (fallback a cálculo basado en path, aunque no es worktree-aware)
+    $projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+}
 
 # Git info básica
 try {
@@ -140,6 +144,31 @@ if (Test-Path $sessionFile) {
     }
 } else {
     $output.last_session = $null
+}
+
+# Clasificacion de repo (Issue #308, item 17 / Issue #303 D1) -- ausente/corrupta/invalida se
+# reporta explicita (fail-closed, igual que sensitive-data-guard.ps1), nunca se silencia ni se
+# infiere un repo_type. Lectura de un archivo local pequeno: no agrega latencia relevante.
+$classificationFile = Join-Path $projectRoot ".agent\memory\repo-classification.json"
+$validRepoTypes = @("harness", "personal", "cliente")
+if (-not (Test-Path $classificationFile)) {
+    $output.repo_classification = @{ status = "missing"; repo_type = $null; error = "repo-classification.json no existe" }
+} else {
+    try {
+        $classification = Get-Content $classificationFile -Raw | ConvertFrom-Json
+        if ($classification -and $classification.repo_type -and ($validRepoTypes -contains $classification.repo_type)) {
+            $output.repo_classification = @{
+                status        = "ok"
+                repo_type     = $classification.repo_type
+                classified_at = $classification.classified_at
+                classified_by = $classification.classified_by
+            }
+        } else {
+            $output.repo_classification = @{ status = "invalid"; repo_type = $null; error = "repo_type ausente o fuera de harness/personal/cliente" }
+        }
+    } catch {
+        $output.repo_classification = @{ status = "corrupt"; repo_type = $null; error = $_.Exception.Message }
+    }
 }
 
 # Stash

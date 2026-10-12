@@ -4,6 +4,81 @@
 > mergeada, siempre arriba de todo (orden cronológico inverso). Ver `agents/github.md` →
 > "Al Mergear una PR a Develop".
 
+## 2026-09-22 — Issue #337 — hora de red verificada, timezone de visualización y tabla de herramientas (PR #339)
+
+**Plan:** `.agent/memory/plans/2026-09-21-session-start-hora-red-y-tabla-herramientas.md` (status: done)
+**Qué se agregó:** `protocols/session_start.md` y `protocols/session_end.md` ahora consultan
+hora de red (`timeapi.io`, con fallback a reloj local declarado) al inicio y al cierre de
+sesión, con conversión a hora local vía el campo `Timezone (IANA)` de `AGENTS.local.md`. El
+Resumen Ejecutivo gana filas de continuidad ("Sesión anterior cerrada"/"Extraído ahora", ambas
+en UTC + hora local) y reemplaza el check binario `git/gh/engram` por dos tablas nuevas
+(Herramientas MCP configuradas + Hooks activos), sin perder esa fila original.
+**Por qué importa:** El usuario detectó que el timestamp de continuidad nunca se contrastaba
+contra una fuente de hora externa (solo relojes locales/de Engram) y que no había visibilidad
+de qué herramientas MCP/hooks tenía disponible el agente en cada sesión — relevante porque
+varias tools son `deferred` y solo se cargan tras un `ToolSearch` explícito.
+**Archivos clave:** `protocols/session_start.md`, `protocols/session_end.md`, `AGENTS.local.md`.
+
+## 2026-09-22 — Issue #336 — desplegar automáticamente specs nuevas para revisión (PR #338)
+
+**Plan:** sin ledger de plan formal (regla incorporada directamente a `.aura/rules/design-flow.md`)
+**Qué se agregó:** Regla nueva — cada vez que el agente crea o edita sustancialmente un
+archivo en `docs/aura/specs/`, se abre automáticamente en VS Code (`code <path>`) si el CLI
+está disponible, o se muestra el contenido completo en el chat si no lo está.
+**Por qué importa:** El usuario tuvo que pedir explícitamente "abrime el archivo" tras
+aprobarse una spec — el protocolo no contemplaba ningún paso de despliegue automático.
+**Hallazgo corregido en el mismo PR:** `code` no estaba en `permissions.allow` de
+`.claude/settings.json` — cada invocación de la regla nueva iba a disparar un permission-prompt,
+la misma fricción que la regla busca eliminar.
+**Archivos clave:** `.aura/rules/design-flow.md`, `.claude/settings.json`.
+
+## 2026-09-21 — Issue #306 — leer AGENTS.local.md explícitamente en session_start (PR #334)
+
+**Plan:** no hubo plan formal (fix puntual, spec previa no requerida).
+**Qué se agregó:** `protocols/session_start.md` Paso 1 ahora lista explícitamente
+`AGENTS.local.md` entre los archivos a leer al iniciar sesión, junto a `AGENTS.md` y
+`current-session.json`.
+**Por qué importa:** `CLAUDE.md` ya importaba `@../AGENTS.local.md` en la sección
+"Identidad y Pilares", pero `session_start.md` (el protocolo que efectivamente se ejecuta
+paso a paso al arrancar) no lo mencionaba — la identidad/personalización real del proyecto
+podía quedar sin cargarse en la práctica pese a estar declarada como import. Fix mínimo de
+4 líneas.
+**Archivos clave:** `protocols/session_start.md`.
+
+## 2026-09-19 — Issue #323 — protocolo de bloqueo real de gh-account-guard.ps1 (PR #327 + #329)
+
+**Plan:** Fase 2 worktree-lifecycle (`docs/aura/specs/2026-09-18-worktree-lifecycle-gaps-design.md`).
+**Qué se agregó:** `.claude/hooks/gh-account-guard.ps1` — hook que bloquea `git push`/
+`gh pr create`/`gh repo edit` cuando la cuenta gh activa no coincide con
+`expected_gh_account` en `.agent/memory/repo-classification.json`. PR #327 introdujo el hook
+pero con el protocolo de bloqueo equivocado (`Write-Error`+`exit 1`, que Claude Code no
+reconoce como instrucción de bloqueo — solo ve un hook fallido). PR #329 (seguimiento, mismo
+día) corrigió eso a JSON `{decision,reason}` a stdout + `exit 2` (protocolo real de
+`git-guard.ps1`), y además 2 bugs adicionales descubiertos por TDD end-to-end: la variable
+automática `$input` de PowerShell drenaba el stdin antes de leerlo, y `-match` sobre un array
+nunca poblaba `$Matches`.
+**Por qué importa:** PR #327 se mergeó (14:57:56 UTC) 7 minutos antes de que terminara la
+verificación del fix real (15:04:49 UTC) — `develop` quedó momentáneamente con el enforcement
+roto en la práctica. Issue #323 se reabrió y volvió a cerrar con PR #329. Caso real para
+`.aura/rules/subagent-dispatch.md`: coordinación entre un dev-runner en background y una
+aprobación de merge en tiempo real puede adelantarse al resultado verificado.
+**Archivos clave:** `.claude/hooks/gh-account-guard.ps1`, `.claude/hooks/gh-account-guard.Tests.ps1`.
+
+## 2026-09-19 — Issue #322 — piloto de delegación del gathering de session_start (PR #326)
+
+**Plan:** Fase 2 worktree-lifecycle (`docs/aura/specs/2026-09-18-worktree-lifecycle-gaps-design.md`).
+**Qué se agregó:** `skills/session-lifecycle/scripts/gather-session-start.sh` — script
+consolidado que ejecuta los 17 comandos del Paso 2 de `session_start.md` (git/gh/filesystem)
+y emite un único JSON, reemplazando el gathering manual disperso. Documentado en
+`protocols/session_start.md`.
+**Por qué importa:** El script original usaba `jq -Rs .` para escapar JSON, pero `jq` no
+está instalado en este entorno — bajo `set -euo pipefail` abortaba cada vez que había
+hallazgos de repo-integrity. Verificado independientemente (no solo el auto-reporte del
+dev-runner): reproducido el bug real, corrido el fix con hallazgos simulados con comillas/
+backslash/tabs/UTF-8, JSON válido confirmado byte a byte.
+**Archivos clave:** `skills/session-lifecycle/scripts/gather-session-start.sh`,
+`protocols/session_start.md`.
+
 ## 2026-09-18 — Issue #299 — dogfooding: validado el fix de CLAUDE.md contra repo consumidor real
 
 **Plan:** no hubo plan formal (validación operativa, AC ya definidos en el issue).

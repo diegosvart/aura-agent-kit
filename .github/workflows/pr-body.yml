@@ -1,0 +1,28 @@
+name: pr-body
+
+# Issue #382: el formato del body de PR (5 secciones) se valida tambien para PRs creados o
+# editados a mano. Reusa el mismo validador que open-pr.sh.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-body:
+    name: pr-body
+    runs-on: ubuntu-latest
+    # Los PRs de release (develop -> main, cut-release.sh promote) tienen otro formato.
+    if: ${{ !(github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'develop') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validar estructura del body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s\n' "$PR_BODY" > "$RUNNER_TEMP/pr-body.md"
+          source skills/agentic-dev-loop/scripts/lib/validate-pr-body.sh
+          validate_pr_body "$RUNNER_TEMP/pr-body.md"

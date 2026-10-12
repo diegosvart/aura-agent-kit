@@ -96,6 +96,156 @@ Describe 'Test-PrBaseGuard - gh pr merge con flag antes del target (code-review 
     }
 }
 
+Describe 'Test-PrBaseGuard - texto entre comillas que es dato (Issue #361)' {
+
+    It 'no bloquea --body que menciona el comando de crear PR' {
+        $result = Test-PrBaseGuard -Command 'gh issue create --title x --body "ejecutar gh pr create sin base"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea --comment que menciona el comando de crear PR' {
+        $result = Test-PrBaseGuard -Command "gh issue comment 5 --comment 'usar gh pr create --base main'"
+        $result | Should Be $null
+    }
+
+    It 'no bloquea git commit -m que menciona el comando de crear PR' {
+        $result = Test-PrBaseGuard -Command 'git commit -m "docs: explica gh pr create sin base"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea echo con el comando de crear PR como texto' {
+        $result = Test-PrBaseGuard -Command 'echo "gh pr create --base main"'
+        $result | Should Be $null
+    }
+
+    It 'bloquea bash -c con el comando real' {
+        $result = Test-PrBaseGuard -Command 'bash -c "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sh -c con el comando real' {
+        $result = Test-PrBaseGuard -Command "sh -c 'gh pr create --title x'"
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea pwsh -Command con el comando real' {
+        $result = Test-PrBaseGuard -Command 'pwsh -Command "gh pr create --base staging"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'sigue bloqueando el comando real con --body que menciona --base develop' {
+        $result = Test-PrBaseGuard -Command 'gh pr create --base main --body "usar --base develop"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'no toma --base develop del texto de --body como base real' {
+        $result = Test-PrBaseGuard -Command 'gh pr create --body "--base develop" --title x'
+        $result.decision | Should Be 'block'
+    }
+}
+
+Describe 'Test-PrBaseGuard - comillas con sustitucion ejecutable (review PR #363)' {
+
+    It 'bloquea git commit -m con $(...) que ejecuta el comando real' {
+        $result = Test-PrBaseGuard -Command 'git commit -m "$(gh pr create --base main --title x)"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea git commit -m con backticks que ejecutan el comando real' {
+        $result = Test-PrBaseGuard -Command 'git commit -m "`gh pr create --base main --title x`"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea --body con $(...) que ejecuta el comando real' {
+        $result = Test-PrBaseGuard -Command 'gh issue create --title x --body "$(gh pr create --base main)"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea echo con $(...) que ejecuta el comando real' {
+        $result = Test-PrBaseGuard -Command 'echo "$(gh pr create --base main)"'
+        $result.decision | Should Be 'block'
+    }
+}
+
+Describe 'Test-PrBaseGuard - flags cortos de terceros no vacian payload (review PR #363)' {
+
+    It 'bloquea sudo -b con el comando real' {
+        $result = Test-PrBaseGuard -Command 'sudo -b "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea watch -t con el comando real' {
+        $result = Test-PrBaseGuard -Command 'watch -t "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea bash -xt con el comando real (flag corto fuera de -m/-b/-t)' {
+        $result = Test-PrBaseGuard -Command 'bash -xt "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo -m con el comando real' {
+        $result = Test-PrBaseGuard -Command 'sudo -m "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'no bloquea git commit -m con prefijo FOO="a b" y el comando como texto (Issue #368)' {
+        $result = Test-PrBaseGuard -Command 'FOO="a b" git commit -m "docs: explica gh pr create --base main"'
+        $result | Should Be $null
+    }
+
+    It 'sigue bloqueando gh pr create sin base real con prefijo FOO="a b" (Issue #368)' {
+        $result = Test-PrBaseGuard -Command 'FOO="a b" gh pr create --base main --title x'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo -b con el comando real aunque el prefijo contenga "sudo git" (Issue #368)' {
+        $result = Test-PrBaseGuard -Command 'FOO="sudo git" sudo -b "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo -b con valor de prefijo mixto FOO=x"a git" (Issue #368, re-review)' {
+        $result = Test-PrBaseGuard -Command 'FOO=x"a git" sudo -b "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'sigue sin bloquear git commit -am con el comando como texto' {
+        $result = Test-PrBaseGuard -Command 'git commit -am "docs: explica gh pr create sin base"'
+        $result | Should Be $null
+    }
+
+    It 'sigue sin bloquear gh issue create -b con el comando como texto' {
+        $result = Test-PrBaseGuard -Command 'gh issue create -t x -b "usar gh pr create --base main"'
+        $result | Should Be $null
+    }
+}
+
+Describe 'Test-PrBaseGuard - echo/printf con flags y varios argumentos (review PR #363)' {
+
+    It 'no bloquea echo -e con el comando de crear PR como texto' {
+        $result = Test-PrBaseGuard -Command 'echo -e "gh pr create --base main\n"'
+        $result | Should Be $null
+    }
+
+    It 'no bloquea printf con formato y argumento posterior' {
+        $result = Test-PrBaseGuard -Command 'printf "%s\n" "gh pr create --base main"'
+        $result | Should Be $null
+    }
+}
+
+Describe 'Test-PrBaseGuard - separadores & y salto de linea (review 2 PR #366)' {
+
+    It 'bloquea sudo -b con el comando real tras git status & (background)' {
+        $result = Test-PrBaseGuard -Command 'git status & sudo -b "gh pr create --base main --title x"'
+        $result.decision | Should Be 'block'
+    }
+
+    It 'bloquea sudo -b con el comando real tras git status y salto de linea' {
+        $result = Test-PrBaseGuard -Command ("git status`n" + 'sudo -b "gh pr create --base main --title x"')
+        $result.decision | Should Be 'block'
+    }
+}
+
 Describe 'pr-base-guard.ps1 - entry point (fail-open)' {
 
     It 'input no parseable como JSON: no bloquea y queda logueado' {
@@ -116,5 +266,56 @@ Describe 'pr-base-guard.ps1 - entry point (fail-open)' {
         $proc.ExitCode | Should Be 0
         Test-Path $logPath | Should Be $true
         (Get-Content $logPath -Raw) | Should Match 'FAIL-OPEN'
+    }
+}
+
+. (Join-Path $PSScriptRoot 'shell-quoting.TestData.ps1')
+
+Describe 'Test-PrBaseGuard - palabra-comando con comillas o escapes (Issue #370, grupo J)' {
+
+    $cases = @(
+        'gh pr "create" --base main'
+        'gh "pr" create --base main'
+        "gh pr cr'eate' --base main"
+        'gh pr crea\te --base main'
+        'g"h" pr create --base main'
+        '"gh" pr create --base main'
+        'FOO=1 sudo gh pr "create" --base main'
+        'gh pr create --b"ase" main'
+        'gh pr create "--base" main'
+        'gh pr create --base=ma"in"'
+        'gh pr edit 1 -B main'
+        'gh pr edit 1 --base develop --base main'
+        'gh pr create --base main --head develop --head feature/x'
+    )
+    foreach ($c in $cases) {
+        It "bloquea: $c" {
+            Mock Get-OriginRepoSlug { 'diegosvart/aura-agent-kit' }
+            (Test-PrBaseGuard -Command $c).decision | Should Be 'block'
+        }
+    }
+
+    It 'sigue permitiendo la excepcion release promote con comillas en el valor' {
+        Test-PrBaseGuard -Command 'gh pr create --base "main" --head "develop" --title x' | Should Be $null
+    }
+
+    It '--repo repetido: si algun valor es el repo local se evalua el comando' {
+        Mock Get-OriginRepoSlug { 'diegosvart/aura-agent-kit' }
+        $c = 'gh pr create --repo otro/repo --repo diegosvart/aura-agent-kit --base main'
+        (Test-PrBaseGuard -Command $c).decision | Should Be 'block'
+    }
+}
+
+Describe 'Test-PrBaseGuard - matriz prefijo x wrapper x cola (Issue #370, grupo I)' {
+
+    It 'vacia solo cuando la cola es git/gh y el prefijo es reconocible; en el resto bloquea' {
+        function Get-OriginRepoSlug { 'diegosvart/aura-agent-kit' }
+        $violations = New-Object System.Collections.Generic.List[string]
+        foreach ($case in (Get-MatrixCases -Payload 'gh pr create --base main')) {
+            $r = Test-PrBaseGuard -Command $case.Command
+            $blocked = [bool]$r
+            if ($blocked -eq $case.ExpectEmptied) { $violations.Add($case.Command) }
+        }
+        ($violations | Select-Object -First 10) -join "`n" | Should Be ''
     }
 }

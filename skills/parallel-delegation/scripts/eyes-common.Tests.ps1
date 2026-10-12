@@ -366,15 +366,6 @@ Describe 'Invoke-EyesPurge y Remove-EyesRun (AC22)' {
         Clear-TempItems
     }
 
-    It 'AC22-11: Test-EyesLink distingue enlaces de placeholders de nube (Mock Get-Item)' {
-        Mock Get-Item { [pscustomobject]@{ Attributes = ([IO.FileAttributes]::ReparsePoint -bor [IO.FileAttributes]::Directory); LinkType = $null } }
-        Test-EyesLink -Path 'C:\placeholder-nube' | Should Be $false
-        Mock Get-Item { [pscustomobject]@{ Attributes = ([IO.FileAttributes]::ReparsePoint -bor [IO.FileAttributes]::Directory); LinkType = 'Junction' } }
-        Test-EyesLink -Path 'C:\una-junction' | Should Be $true
-        Mock Get-Item { [pscustomobject]@{ Attributes = ([IO.FileAttributes]::ReparsePoint -bor [IO.FileAttributes]::Directory); LinkType = 'SymbolicLink' } }
-        Test-EyesLink -Path 'C:\un-symlink' | Should Be $true
-    }
-
     It 'AC22-12: Remove-EyesRun sobre un run con archivo abierto lanza la clase E/S' {
         Skip-UnlessWindows
         $repo = New-TempRepo
@@ -398,5 +389,18 @@ Describe 'Invoke-EyesPurge y Remove-EyesRun (AC22)' {
         (Test-Path -LiteralPath $dir) | Should Be $false
         (@($r.purgados) -contains $id) | Should Be $true
         Clear-TempItems
+    }
+}
+
+# Describe aparte: en Pester 3.4 un Mock declarado dentro de un It sigue activo hasta el fin del Describe.
+Describe 'Test-EyesLink con objetos simulados (AC22-11)' {
+
+    It 'AC22-11: Test-EyesLink distingue enlaces de placeholders de nube (Mock Get-Item)' {
+        Mock Get-Item { [pscustomobject]@{ Attributes = ([IO.FileAttributes]::ReparsePoint -bor [IO.FileAttributes]::Directory); LinkType = $null } }
+        Test-EyesLink -Path 'C:\placeholder-nube' | Should Be $false
+        Mock Get-Item { [pscustomobject]@{ Attributes = ([IO.FileAttributes]::ReparsePoint -bor [IO.FileAttributes]::Directory); LinkType = 'Junction' } }
+        Test-EyesLink -Path 'C:\una-junction' | Should Be $true
+        Mock Get-Item { [pscustomobject]@{ Attributes = ([IO.FileAttributes]::ReparsePoint -bor [IO.FileAttributes]::Directory); LinkType = 'SymbolicLink' } }
+        Test-EyesLink -Path 'C:\un-symlink' | Should Be $true
     }
 }

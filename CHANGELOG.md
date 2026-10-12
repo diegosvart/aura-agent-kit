@@ -5,6 +5,93 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2026-10-12
+
+### Added
+- `.claude/hooks/gh-account-guard.ps1`: hook `PreToolUse` que bloquea `git push`, la creación de
+  PR con `gh` y `gh repo edit` cuando la cuenta `gh` activa no coincide con `expected_gh_account`
+  declarado en `.agent/memory/repo-classification.json` (campo opcional; si falta, advierte y
+  permite). Usa el protocolo de bloqueo real de Claude Code (JSON a stdout + `exit 2`) tras
+  corregir dos bugs que lo dejaban inoperante en ejecución real (Issue #323, PRs #327/#329).
+- `skills/session-lifecycle/scripts/gather-session-start.sh`: consolida en un solo script los 17
+  ítems de gathering del Paso 2 de `session_start.md`, con modo opcional de delegación a
+  subagente; incorpora suite de tests propia y emite siempre todas las claves del schema (Issue
+  #322/#345, PRs #326/#359).
+- `session-start.ps1` emite `repo_classification` (`ok|missing|corrupt|invalid`) y el Gate de
+  `session_start` bloquea si la clasificación del repo falta o está dañada, en vez de asumir un
+  valor (Issue #308, PR #375).
+- `skills/agentic-dev-loop/scripts/save-plan.sh`: guarda un plan aprobado en
+  `.agent/memory/plans/<fecha>-<slug>.md` con frontmatter `status: approved`; valida fecha, slug
+  e issue y nunca sobreescribe un plan existente (Issue #362, PR #364).
+- `skills/agentic-dev-loop/scripts/run-all-tests.sh`: corre todas las suites bash y Pester del
+  repo y agrega el resultado en un único exit code (Issue #351, PR #354).
+- Check de CI `pr-body` (`.github/workflows/pr-body.yml`): exige en todo PR las secciones `Qué` /
+  `Beneficio` / `Por qué` / `Cómo` / `Testing`, incluso los creados a mano fuera de
+  `open-pr.sh`; exime los PRs de release y no es retroactivo (Issue #382, PR #383).
+- `skills/repo-integrity/scripts/check-orphaned-worktrees.sh`: registra en un JSONL gitignored el
+  diagnóstico crudo de cada worktree marcado como huérfano, para investigar falsos positivos de
+  sesiones aún activas (Issue #318, PR #320).
+- Tests Pester para `agent-frontmatter-guard.ps1` (20 casos) y suite propia para la librería
+  `shell-quoting.ps1` (Issue #295/#368, PRs #376/#369).
+
+### Changed
+- `skills/agentic-dev-loop/scripts/open-pr.sh` valida con `lib/validate-pr-body.sh` que el body
+  tenga los 5 headings del template unificado y aborta sin llamar a `gh` si falta alguno;
+  `agents/github.md` y `SKILL.md` quedan alineados con ese formato único (Issue #301, PR #381).
+- `.claude/hooks/pr-base-guard.ps1` y `gh-account-guard.ps1` comparten la librería
+  `.claude/hooks/shell-quoting.ps1` (segmentación de comandos y tokenizador de palabra-comando
+  fail-closed) en vez de código duplicado y divergente (Issue #365/#370, PRs #366/#371).
+- `Get-RepoClassification` pasa a un único módulo compartido (`repo-classification.ps1`, en
+  `.claude/hooks/`), cargado por `gh-account-guard.ps1` y `sensitive-data-guard.ps1`: un cambio
+  futuro al esquema de clasificación se hace una sola vez (Issue #347, PR #374).
+- `protocols/session_start.md` / `session_end.md`: lectura explícita de `AGENTS.local.md` en el
+  Paso 1 como segunda capa ante `@import` no confiable (Issue #306, PR #334); hora de red
+  verificada con fallback declarado, timezone de visualización y tablas de herramientas MCP /
+  hooks activos en el resumen (Issue #337, PR #339).
+- `.aura/rules/design-flow.md`: las specs nuevas en `docs/aura/specs/` se abren automáticamente
+  en VS Code (o se muestran completas en el chat si `code` no está disponible) (Issue #336, PR
+  #338). `.aura/rules/harness-core.md`: la regla de no afirmar estado sin verificar se extiende
+  a infraestructura, permisos y BD (Issue #348, PR #349).
+- Formato unificado de specs / planes / issues / PRs (`Beneficio` en lenguaje de negocio,
+  boundaries `Never` / `Ask First`); `resolve-tier.sh` reconoce `**Complejidad:** media` →
+  `sonnet` (Issue #332, PR #333).
+
+### Fixed
+- `gh-account-guard.ps1` y `pr-base-guard.ps1` ya no bloquean comandos que solo mencionan
+  `git push` o la creación de un PR como texto (`--body`, `-m`, `echo`, prefijos `VAR="a b"`), y
+  no se pueden esquivar con comillas, escapes, redirecciones o `sudo -b "..."`; los flags cortos
+  solo se vacían en segmentos `git`/`gh` (Issue #346/#361/#365/#368/#370, PRs
+  #360/#363/#366/#369/#371).
+- `sensitive-data-guard.ps1` escanea solo las líneas añadidas del diff staged (más los nombres de
+  archivo), ignorando contexto y líneas eliminadas; permite commitear cerca de fixtures falsas
+  sin falsos positivos y sigue bloqueando todo dato sensible nuevo. Fuerza además salida sin
+  color, sin textconv ni diff externo y `diff.submodule=short` al leerlo (Issue #386, PR #387).
+- `cut-release.sh tag` crea el GitHub Release correspondiente al taggear y es reintentable si
+  falla la creación del Release, en lugar de dejar tags sin Release; `agents/github.md` →
+  "Proceso de Release" lo refleja (Issue #328, PR #331).
+- `skills/agentic-dev-loop/scripts/cleanup-merged-branch.sh` compara y borra contra
+  `origin/develop` en vez de un `develop` local desactualizado, y borra con `-D` (con AVISO y SHA
+  de recuperación) las ramas squash-mergeadas cuyo contenido verificó (Issue #317/#344/#353, PRs
+  #319/#350/#367).
+- El gate de tests del `agentic-dev-loop` deja de ser un no-op: `session-stack.json` apunta a
+  `run-all-tests.sh` y `verify.sh` informa `SKIP` en vez de pasar en silencio con comando vacío
+  (Issue #351, PR #354). `resolve-tier.sh` escala por el marcador explícito de `reject-review.sh`
+  y no por prosa libre (Issue #352, PR #356).
+- `gather-session-start.sh`: el conteo de ideas lee `.agent/memory/ideas.md`, la salud de ramas
+  se compara contra `origin/develop` tras un fetch con timeout, y ya no omite claves vacías
+  (Issue #345, PR #359).
+- Hooks rotos dentro de worktrees: las rutas en `settings.json` usan `$CLAUDE_PROJECT_DIR` y los
+  hooks de sesión resuelven la raíz con `git rev-parse --show-toplevel` (stopgap, Issue #321, PR
+  #325).
+- `agent-frontmatter-guard.ps1`: `Get-GitBashPath` sube por los directorios ancestros hasta hallar
+  `bin\bash.exe`; antes caía en fail-open silencioso y no validaba nada (Issue #295, PR #376).
+- Tests estabilizados: sin recursión en el test de entry point de `session-end-gather` (Issue
+  #355); `cleanup-merged-branch.Tests.sh` ya no puede alterar `remote.origin.url` del repo real
+  (Issue #377, PR #380); los tests de rendimiento de `shell-quoting-review` miden escalado
+  relativo y no tiempos absolutos (Issue #378, PR #384).
+- `validate-pr-body.sh` ignora headings dentro de bloques de código y falla con mensaje claro si
+  el archivo no existe (Issue #382, PR #383).
+
 ## [2.8.0] - 2026-09-18
 
 ### Added

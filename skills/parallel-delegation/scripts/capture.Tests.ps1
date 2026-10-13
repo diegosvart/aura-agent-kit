@@ -297,7 +297,7 @@ Describe 'capture.ps1 - rechazo de runs enlace o preexistentes (review MAYOR 1)'
         $link = Join-Path $r.Root "output\eyes\$id"
         New-Item -ItemType Junction -Path $link -Target $target | Out-Null
         [void]$script:Junctions.Add($link)
-        $o = Invoke-Capture @('-AvisoDado', $r.Plan, '-RunId', $id, '-ProjectRoot', $r.Root)
+        $o = Invoke-Capture @('-AvisoDado', $r.Plan, '-RunId', $id, '-Region', '99999,99999,1,1', '-ProjectRoot', $r.Root)
         $o.Exit | Should Be 2
         $o.Json.ok | Should Be $false
         $o.Json.motivo.StartsWith('enlace:') | Should Be $true
@@ -313,7 +313,7 @@ Describe 'capture.ps1 - rechazo de runs enlace o preexistentes (review MAYOR 1)'
         $dir = New-OldRun -Root $r.Root -RunId $id
         $previo = Join-Path $dir 'captura.png'
         Set-Content -LiteralPath $previo -Value 'contenido previo'
-        $o = Invoke-Capture @('-AvisoDado', $r.Plan, '-RunId', $id, '-ProjectRoot', $r.Root)
+        $o = Invoke-Capture @('-AvisoDado', $r.Plan, '-RunId', $id, '-Region', '99999,99999,1,1', '-ProjectRoot', $r.Root)
         $o.Exit | Should Be 2
         $o.Json.ok | Should Be $false
         $o.Json.motivo.StartsWith('run:') | Should Be $true

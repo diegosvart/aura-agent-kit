@@ -465,6 +465,53 @@ Describe 'Enlace anidado dentro de un run (review MAYOR 2)' {
     }
 }
 
+Describe 'New-EyesRunDir crea el run de forma atomica (review ronda 3, punto A)' {
+
+    AfterEach { Clear-TempItems }
+
+    It 'crea output/eyes y el run cuando faltan y devuelve la ruta del run' {
+        Skip-UnlessWindows
+        $repo = New-TempRepo
+        $id = New-RunIdAgo -Minutes 1
+        $dir = New-EyesRunDir -Root $repo -RunId $id
+        (Test-Path -LiteralPath $dir -PathType Container) | Should Be $true
+        $dir | Should Be (Get-EyesRunDir -Root $repo -RunId $id)
+    }
+
+    It 'un run que ya existe lanza la clase argumento/enlace y no toca su contenido' {
+        Skip-UnlessWindows
+        $repo = New-TempRepo
+        $id = New-RunIdAgo -Minutes 1
+        $dir = New-RunFolder -Root $repo -RunId $id
+        $ex = Get-Thrown { New-EyesRunDir -Root $repo -RunId $id }
+        ($ex -is [System.ArgumentException]) | Should Be $true
+        (Test-Path -LiteralPath (Join-Path $dir 'captura.txt')) | Should Be $true
+    }
+
+    It 'un run que es una junction lanza la clase argumento/enlace y no escribe en el destino' {
+        Skip-UnlessWindows
+        $repo = New-TempRepo
+        $id = New-RunIdAgo -Minutes 1
+        New-Item -ItemType Directory -Path (Join-Path $repo 'output\eyes') -Force | Out-Null
+        $target = New-TempDir
+        $sentinel = Join-Path $target 'centinela.txt'
+        Set-Content -LiteralPath $sentinel -Value 'no me toques'
+        New-TestJunction -Link (Join-Path $repo "output\eyes\$id") -Target $target
+        $ex = Get-Thrown { New-EyesRunDir -Root $repo -RunId $id }
+        ($ex -is [System.ArgumentException]) | Should Be $true
+        (Test-Path -LiteralPath $sentinel) | Should Be $true
+        @(Get-ChildItem -LiteralPath $target -Force).Count | Should Be 1
+    }
+
+    It 'un RunId invalido lanza la clase argumento/enlace sin crear nada' {
+        Skip-UnlessWindows
+        $repo = New-TempRepo
+        $ex = Get-Thrown { New-EyesRunDir -Root $repo -RunId '..\x' }
+        ($ex -is [System.ArgumentException]) | Should Be $true
+        (Test-Path -LiteralPath (Join-Path $repo 'output')) | Should Be $false
+    }
+}
+
 Describe 'Test-EyesLink con ruta inexistente (review MENOR 3)' {
 
     It 'una ruta que no existe devuelve false sin lanzar' {

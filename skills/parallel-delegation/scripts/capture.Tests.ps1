@@ -331,8 +331,8 @@ function Start-TestWindow {
     $childScript = Join-Path $dir 'ventana.ps1'
     $code = @'
 param([string]$ReadyFile, [string]$StopFile, [string]$Title)
-Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public static class EyesTestDpi { [DllImport("user32.dll")] public static extern bool SetProcessDPIAware(); }'
-[void][EyesTestDpi]::SetProcessDPIAware()
+Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class EyesTestDpi { [DllImport("user32.dll")] public static extern bool SetProcessDPIAware(); [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr value); public static void Enable() { bool ok = false; try { ok = SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch (EntryPointNotFoundException) { } if (!ok) { SetProcessDPIAware(); } } }'
+[EyesTestDpi]::Enable()
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $vs = [System.Windows.Forms.SystemInformation]::VirtualScreen

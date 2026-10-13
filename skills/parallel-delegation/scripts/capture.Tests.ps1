@@ -282,6 +282,47 @@ Describe 'capture.ps1 - contrato sin fotografiar (AC2)' {
     }
 }
 
+Describe 'capture.ps1 - rechazo de runs enlace o preexistentes (review MAYOR 1)' {
+
+    AfterEach { Clear-TempItems }
+
+    It '-RunId que apunta a una junction preexistente: exit 2 con motivo enlace:, sin PNG y centinela intacto' {
+        Skip-UnlessWindows
+        $r = New-CaptureRepo
+        $id = New-RunIdAgo -Minutes 5 -Suffix 'cd34'
+        New-Item -ItemType Directory -Path (Join-Path $r.Root 'output\eyes') -Force | Out-Null
+        $target = New-TempDir
+        $sentinel = Join-Path $target 'centinela.txt'
+        Set-Content -LiteralPath $sentinel -Value 'no me borres'
+        $link = Join-Path $r.Root "output\eyes\$id"
+        New-Item -ItemType Junction -Path $link -Target $target | Out-Null
+        [void]$script:Junctions.Add($link)
+        $o = Invoke-Capture @('-AvisoDado', $r.Plan, '-RunId', $id, '-ProjectRoot', $r.Root)
+        $o.Exit | Should Be 2
+        $o.Json.ok | Should Be $false
+        $o.Json.motivo.StartsWith('enlace:') | Should Be $true
+        (Test-Path -LiteralPath $sentinel) | Should Be $true
+        @(Get-ChildItem -LiteralPath $target -Force).Count | Should Be 1
+        Clear-TempItems
+    }
+
+    It '-RunId de un run ya existente: exit 2 con motivo run: y el contenido previo queda intacto' {
+        Skip-UnlessWindows
+        $r = New-CaptureRepo
+        $id = New-RunIdAgo -Minutes 5 -Suffix 'ef56'
+        $dir = New-OldRun -Root $r.Root -RunId $id
+        $previo = Join-Path $dir 'captura.png'
+        Set-Content -LiteralPath $previo -Value 'contenido previo'
+        $o = Invoke-Capture @('-AvisoDado', $r.Plan, '-RunId', $id, '-ProjectRoot', $r.Root)
+        $o.Exit | Should Be 2
+        $o.Json.ok | Should Be $false
+        $o.Json.motivo.StartsWith('run:') | Should Be $true
+        (Get-Content -LiteralPath $previo -Raw).Trim() | Should Be 'contenido previo'
+        (Test-Path -LiteralPath (Join-Path $dir 'captura.txt')) | Should Be $true
+        Clear-TempItems
+    }
+}
+
 function Start-TestWindow {
     $dir = New-TempDir
     $title = 'EYES-TEST-' + [guid]::NewGuid().ToString('N').Substring(0, 4)

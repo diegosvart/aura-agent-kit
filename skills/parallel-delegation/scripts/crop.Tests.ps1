@@ -191,4 +191,40 @@ Describe 'crop.ps1 (AC6)' {
         (Test-Path -LiteralPath (Join-Path $target 'captura-crop.png')) | Should Be $false
         Clear-TempItems
     }
+
+    It 'review MENOR 7: destino -crop.png existente como enlace: exit 2, nada escrito a traves del enlace y origen intacto' {
+        Skip-UnlessWindows
+        $root = New-CropRepo
+        $src = New-RunPng -Root $root
+        $target = New-TempDir
+        $sentinel = Join-Path $target 'centinela.txt'
+        Set-Content -LiteralPath $sentinel -Value 'no me toques'
+        $link = Join-Path $src.Dir 'captura-crop.png'
+        New-Item -ItemType Junction -Path $link -Target $target | Out-Null
+        [void]$script:Junctions.Add($link)
+        $o = Invoke-Crop @('-Image', $src.Png, '-Bbox', '10,10,20,30', '-ProjectRoot', $root)
+        $o.Exit | Should Be 2
+        $o.Json.ok | Should Be $false
+        (Test-Path -LiteralPath $src.Png) | Should Be $true
+        (Test-Path -LiteralPath $sentinel) | Should Be $true
+        @(Get-ChildItem -LiteralPath $target -Force).Count | Should Be 1
+        Clear-TempItems
+    }
+
+    It 'review MENOR 7: directorio padre enlace: exit 2 y no se escribe el recorte en el destino del enlace' {
+        Skip-UnlessWindows
+        $root = New-CropRepo
+        $target = New-TempDir
+        $real = Join-Path $target 'captura.png'
+        New-SourcePng -Path $real
+        $link = Join-Path $root 'enlace'
+        New-Item -ItemType Junction -Path $link -Target $target | Out-Null
+        [void]$script:Junctions.Add($link)
+        $o = Invoke-Crop @('-Image', (Join-Path $link 'captura.png'), '-Bbox', '10,10,20,30', '-ProjectRoot', $root)
+        $o.Exit | Should Be 2
+        $o.Json.ok | Should Be $false
+        (Test-Path -LiteralPath $real) | Should Be $true
+        (Test-Path -LiteralPath (Join-Path $target 'captura-crop.png')) | Should Be $false
+        Clear-TempItems
+    }
 }

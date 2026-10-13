@@ -392,6 +392,96 @@ Describe 'Invoke-EyesPurge y Remove-EyesRun (AC22)' {
     }
 }
 
+function New-NestedLinkRun {
+    $repo = New-TempRepo
+    $id = New-RunIdAgo -Minutes 100
+    $dir = New-RunFolder -Root $repo -RunId $id
+    $target = New-TempDir
+    $sentinel = Join-Path $target 'centinela.txt'
+    Set-Content -LiteralPath $sentinel -Value 'no me borres'
+    New-TestJunction -Link (Join-Path $dir 'lnk') -Target $target
+    [pscustomobject]@{ Repo = $repo; RunId = $id; Dir = $dir; Sentinel = $sentinel }
+}
+
+function Invoke-Ps51Scenario {
+    param([string]$Root, [string]$Mode, [string]$RunId)
+    $scriptDir = New-TempDir
+    $scenario = Join-Path $scriptDir 'escenario.ps1'
+    $body = @'
+param([string]$Common, [string]$Root, [string]$Mode, [string]$RunId)
+$ErrorActionPreference = 'Stop'
+. $Common
+if ($Mode -eq 'remove') { $r = Remove-EyesRun -Root $Root -RunId $RunId } else { $r = Invoke-EyesPurge -Root $Root }
+$r | ConvertTo-Json -Depth 5 -Compress
+'@
+    Set-Content -LiteralPath $scenario -Value $body -Encoding UTF8
+    [Console]::OutputEncoding = [Text.UTF8Encoding]::new()
+    $raw = & powershell.exe -NoProfile -File $scenario -Common $commonPath -Root $Root -Mode $Mode -RunId $RunId 2>&1
+    [pscustomobject]@{ Exit = $LASTEXITCODE; Raw = (($raw | Out-String).Trim()) }
+}
+
+Describe 'Enlace anidado dentro de un run (review MAYOR 2)' {
+
+    AfterEach { Clear-TempItems }
+
+    It 'Remove-EyesRun (pwsh 7) borra el run y no el contenido del destino de un enlace anidado' {
+        Skip-UnlessWindows
+        $s = New-NestedLinkRun
+        $r = Remove-EyesRun -Root $s.Repo -RunId $s.RunId
+        (Test-Path -LiteralPath $s.Dir) | Should Be $false
+        (Test-Path -LiteralPath $s.Sentinel) | Should Be $true
+        (@($r.purgados) -contains $s.RunId) | Should Be $true
+        Clear-TempItems
+    }
+
+    It 'Invoke-EyesPurge (pwsh 7) borra el run y no el contenido del destino de un enlace anidado' {
+        Skip-UnlessWindows
+        $s = New-NestedLinkRun
+        $r = Invoke-EyesPurge -Root $s.Repo
+        (Test-Path -LiteralPath $s.Dir) | Should Be $false
+        (Test-Path -LiteralPath $s.Sentinel) | Should Be $true
+        (@($r.purgados) -contains $s.RunId) | Should Be $true
+        Clear-TempItems
+    }
+
+    It 'Remove-EyesRun bajo powershell.exe 5.1 borra el run y no el contenido del destino de un enlace anidado' {
+        Skip-UnlessWindows
+        $s = New-NestedLinkRun
+        $o = Invoke-Ps51Scenario -Root $s.Repo -Mode 'remove' -RunId $s.RunId
+        $o.Exit | Should Be 0
+        (Test-Path -LiteralPath $s.Dir) | Should Be $false
+        (Test-Path -LiteralPath $s.Sentinel) | Should Be $true
+        Clear-TempItems
+    }
+
+    It 'Invoke-EyesPurge bajo powershell.exe 5.1 borra el run y no el contenido del destino de un enlace anidado' {
+        Skip-UnlessWindows
+        $s = New-NestedLinkRun
+        $o = Invoke-Ps51Scenario -Root $s.Repo -Mode 'purge' -RunId $s.RunId
+        $o.Exit | Should Be 0
+        (Test-Path -LiteralPath $s.Dir) | Should Be $false
+        (Test-Path -LiteralPath $s.Sentinel) | Should Be $true
+        Clear-TempItems
+    }
+}
+
+Describe 'Test-EyesLink con ruta inexistente (review MENOR 3)' {
+
+    It 'una ruta que no existe devuelve false sin lanzar' {
+        $ruta = Join-Path ([IO.Path]::GetTempPath()) ('eyes-no-existe-' + [guid]::NewGuid().ToString('N'))
+        Test-EyesLink -Path $ruta | Should Be $false
+    }
+}
+
+Describe 'Test-EyesLink falla cerrada ante errores de consulta (review MENOR 3)' {
+
+    It 'si Get-Item falla por un motivo distinto de no existe lanza la clase argumento/enlace' {
+        Mock Get-Item { throw (New-Object System.UnauthorizedAccessException 'acceso denegado simulado') }
+        $ex = Get-Thrown { Test-EyesLink -Path 'C:\no-consultable' }
+        ($ex -is [System.ArgumentException]) | Should Be $true
+    }
+}
+
 # Describe aparte: en Pester 3.4 un Mock declarado dentro de un It sigue activo hasta el fin del Describe.
 Describe 'Test-EyesLink con objetos simulados (AC22-11)' {
 

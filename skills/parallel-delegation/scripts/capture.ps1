@@ -174,7 +174,8 @@ try {
         $capW = [int]$vs.Width; $capH = [int]$vs.Height
     }
 
-    [void](New-Item -ItemType Directory -Path $runDir -Force)
+    try { [void](New-EyesRunDir -Root $root -RunId $runId) }
+    catch [System.ArgumentException] { Stop-Eyes 2 ('run: ' + $_.Exception.Message) }
     $bmp = $null
     $final = $null
     try {

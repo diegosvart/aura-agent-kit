@@ -82,6 +82,20 @@ function Get-EyesRunDir {
     $dir
 }
 
+function New-EyesRunDir {
+    param([string]$Root, [string]$RunId)
+    $dir = Get-EyesRunDir -Root $Root -RunId $RunId
+    try {
+        [void](New-Item -ItemType Directory -Path $dir -ErrorAction Stop)
+    } catch {
+        if ((Test-Path -LiteralPath $dir) -or (Test-EyesLink -Path $dir)) {
+            throw (New-EyesArgError "el run $RunId ya existe o es un enlace (junction/symlink)")
+        }
+        throw (New-Object System.IO.IOException ("no se pudo crear el run ${RunId}: " + $_.Exception.Message), $_.Exception)
+    }
+    $dir
+}
+
 function Assert-OutputIgnored {
     param([string]$Root, [string]$Path = 'output/eyes/captura.png')
     if (-not $Root) { $Root = Resolve-EyesRoot }

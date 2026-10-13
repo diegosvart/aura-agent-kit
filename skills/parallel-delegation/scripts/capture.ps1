@@ -125,6 +125,17 @@ try {
     try { [void](Assert-OutputIgnored -Root $root -Path $pngPath) }
     catch [System.InvalidOperationException] { Stop-Eyes 5 ('gitignore: ' + $_.Exception.Message) }
 
+    try {
+        if (Test-EyesLink -Path $runDir) {
+            Stop-Eyes 2 "enlace: la carpeta del run $runId es un enlace (junction/symlink); no se captura a través de enlaces"
+        }
+    } catch [System.ArgumentException] {
+        Stop-Eyes 2 ('enlace: ' + $_.Exception.Message)
+    }
+    if (Test-Path -LiteralPath $runDir) {
+        Stop-Eyes 2 "run: el run $runId ya existe; no se sobrescribe una captura previa"
+    }
+
     # 6. Purga de runs de más de 1 hora
     try { $purga = Invoke-EyesPurge -Root $root }
     catch [System.ArgumentException] { Stop-Eyes 2 ('purga: ' + $_.Exception.Message) }

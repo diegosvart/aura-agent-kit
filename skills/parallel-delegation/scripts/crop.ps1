@@ -56,6 +56,19 @@ try {
         }
     }
 
+    $parent = Split-Path -Parent $full
+    $cropPath = Join-Path $parent ([IO.Path]::GetFileNameWithoutExtension($full) + '-crop.png')
+    try {
+        if (Test-EyesLink -Path $parent) {
+            Stop-Eyes 2 'destino: el directorio del recorte es un enlace (junction/symlink)'
+        }
+        if (Test-EyesLink -Path $cropPath) {
+            Stop-Eyes 2 'destino: el archivo -crop.png ya existe y es un enlace (junction/symlink)'
+        }
+    } catch [System.ArgumentException] {
+        Stop-Eyes 2 ('destino: ' + $_.Exception.Message)
+    }
+
     try {
         Add-Type -AssemblyName System.Drawing
     } catch {
@@ -74,7 +87,6 @@ try {
             Stop-Eyes 2 "bbox: el rectángulo queda fuera de la imagen ($($src.Width)x$($src.Height))"
         }
 
-        $cropPath = Join-Path (Split-Path -Parent $full) ([IO.Path]::GetFileNameWithoutExtension($full) + '-crop.png')
         $area = New-Object System.Drawing.Rectangle ([int]$rect.X), ([int]$rect.Y), ([int]$rect.W), ([int]$rect.H)
         try {
             $dst = $src.Clone($area, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)

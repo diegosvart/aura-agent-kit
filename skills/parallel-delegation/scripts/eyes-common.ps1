@@ -190,7 +190,17 @@ function Test-EyesImageUniform {
 
 function Test-EyesLink {
     param([string]$Path)
-    $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+    try {
+        $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    } catch {
+        $e = $_.Exception
+        $noExiste = ($e -is [System.Management.Automation.ItemNotFoundException]) -or
+            ($e -is [System.IO.FileNotFoundException]) -or
+            ($e -is [System.IO.DirectoryNotFoundException]) -or
+            ($_.CategoryInfo.Category -eq [System.Management.Automation.ErrorCategory]::ObjectNotFound)
+        if ($noExiste) { return $false }
+        throw (New-EyesArgError "no se pudo consultar la ruta '$Path': $($e.Message)")
+    }
     if ($null -eq $item) { return $false }
     $lt = [string]$item.LinkType
     return ($lt -eq 'Junction' -or $lt -eq 'SymbolicLink')

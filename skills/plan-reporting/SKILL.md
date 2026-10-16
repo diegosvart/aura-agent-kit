@@ -94,7 +94,7 @@ Esto NO re-consulta Dataverse (usa el caché del Paso 1). El CSV usa encoding `u
 |-----------|-------|
 | Org | `org914d3d16.crm.dynamics.com` |
 | Tenant | `b16beb2c-1c93-4497-bc75-5a1cdae6ee6c` |
-| Auth user | `dmorales@grupoebi.cl` |
+| Auth user | `<usuario>@<dominio>` (cuenta con acceso al plan; valor real solo local) |
 | Responsable field | `msdyn_pfwmodifiedby` (expand `fullname`) |
 | Notas field | `msdyn_descriptionplaintext` |
 | Plan TI 2026 GUID | `6b687051-6b51-f111-bec7-7ced8d17c48d` |

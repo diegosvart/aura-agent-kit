@@ -94,3 +94,7 @@ output/
 # Config cross-repo de agents/evaluator.md — ruta de checkout local a aura-harness-diagrams,
 # específica de cada máquina. Ver .agent/memory/evaluator-config.json.example.
 .agent/memory/evaluator-config.json
+
+# Config local de skills/plan-reporting: org, tenant, cuenta y GUID del plan reales.
+# Identifican a la organizacion; nunca versionar. Ver .agent/memory/plan-reporting-config.json.example.
+.agent/memory/plan-reporting-config.json

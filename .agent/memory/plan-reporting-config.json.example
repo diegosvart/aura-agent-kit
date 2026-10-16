@@ -1,0 +1,5 @@
+{
+  "org": "<ORG>",
+  "tenant_id": "<TENANT_ID>",
+  "plan_guid": "<PLAN_GUID>"
+}

@@ -96,11 +96,14 @@ Los valores que identifican a la organización viven **solo local** en
 `.agent/memory/plan-reporting-config.json.example`). Nunca se escriben en este archivo,
 en comandos ni en commits: leerlos del JSON local en cada ejecución.
 
+**Si el archivo no existe:** copiar `.agent/memory/plan-reporting-config.json.example` a
+`.agent/memory/plan-reporting-config.json` y pedirle al usuario los valores reales. Nunca
+inventarlos ni reconstruirlos desde el historial de git: sin esos valores, detener la ejecución.
+
 | Parámetro | Valor |
 |-----------|-------|
-| Org | `<ORG>.crm.dynamics.com` (clave `org` del JSON local) |
-| Tenant | `<TENANT_ID>` (clave `tenant_id`) |
-| Auth user | `<usuario>@<dominio>` (clave `auth_user`; cuenta con acceso al plan) |
+| Org | `<ORG>.crm.dynamics.com` (clave `org` del JSON local; organización de Dataverse que se consulta) |
+| Tenant | `<TENANT_ID>` (clave `tenant_id`; se usa en `az login --tenant`) |
 | Responsable field | `msdyn_pfwmodifiedby` (expand `fullname`) |
 | Notas field | `msdyn_descriptionplaintext` |
 | Plan GUID | `<PLAN_GUID>` (clave `plan_guid`) |

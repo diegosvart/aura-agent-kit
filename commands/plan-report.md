@@ -41,7 +41,9 @@
   ```
   az login --use-device-code --tenant <TENANT_ID>
   ```
-  (`<TENANT_ID>` viene de `.agent/memory/plan-reporting-config.json`, local y gitignored)
+  (`<TENANT_ID>` viene de la clave `tenant_id` de `.agent/memory/plan-reporting-config.json`,
+  local y gitignored. Si el archivo no existe: copiar el `.example` y pedir los valores al
+  usuario; nunca inventarlos)
 - Python 3.10+ en el PATH
 - `scripts/plan_report.py` en la raíz del repo
 
@@ -52,7 +54,7 @@
 ```
 /plan-report "Planificación área TI 2026"
 /plan-report "Planificación área TI 2026" --window 7 --today 2026-07-01
-/plan-report --project-id <PLAN_GUID>
+/plan-report --project-id <PLAN_GUID>   # <PLAN_GUID> = clave `plan_guid` del JSON local
 ```
 
 ---

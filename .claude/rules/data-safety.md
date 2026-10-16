@@ -31,9 +31,9 @@ Incluye, sin limitarse a:
 - SchemaCrawler MCP es read-only **por diseño** (sólo metadatos vía
   `INFORMATION_SCHEMA`). Esta regla refuerza esa propiedad a nivel de agente
   para que ningún canal alternativo la viole.
-- El usuario de BD (`dmorales` en `PRESERVA`) tiene `db_datareader`; cualquier
-  intento de escritura va a fallar igual, pero el agente no debe siquiera
-  intentarlo ni proponerlo.
+- El usuario de BD del proyecto (`<usuario>` en `<BD>`) tiene `db_datareader`;
+  cualquier intento de escritura va a fallar igual, pero el agente no debe
+  siquiera intentarlo ni proponerlo.
 - Pérdida o corrupción de datos es irreversible y desproporcionada al beneficio
   de cualquier automatización.
 

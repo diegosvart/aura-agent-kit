@@ -22,7 +22,8 @@ Incluye, sin limitarse a:
   read-only** (`SELECT`, vistas de INFORMATION_SCHEMA, `EXPLAIN`, metadatos) — salvo las dos excepciones acotadas de *redacción* (nunca ejecución) de DCL de permisos y de DDL de vistas definidas en "Excepciones".
 - Si el usuario pide explícitamente una operación de escritura: **rehusar** y
   redirigir a que la ejecute manualmente con sus propias herramientas y permisos,
-  fuera del agente.
+  fuera del agente. Única salvedad: la *redacción* (nunca la ejecución) que
+  permiten las dos excepciones de "Excepciones", bajo sus requisitos.
 - Si una herramienta MCP futura expone capacidades de escritura, debe ser
   bloqueada por defecto en `.claude/settings.json` → `permissions.deny`.
 
@@ -94,14 +95,16 @@ Alcance, estrictamente:
   anterior a 2016 SP1 no admite `CREATE OR ALTER`. Si la vista ya existe, se
   prefiere `ALTER VIEW`, que conserva sus permisos.
 
-Requisitos obligatorios, los cuatro, sin los cuales la redacción no procede:
+Requisitos obligatorios, sin los cuales la redacción no procede:
 
 1. **Los mismos requisitos 1, 2 y 3 de la excepción 1**: ruta gitignored
    (`output/<BD>/`), header `-- PARA EJECUCIÓN MANUAL. NO AUTOMÁTICA. El agente
    no ejecuta este script.` como primera línea, y el agente nunca lo invoca.
-2. **La redacción está prevista en una spec aprobada por el usuario (P2) o el
-   usuario la pidió explícitamente.** El agente no la sugiere de forma
-   proactiva fuera de ese marco.
+2. **Spec aprobada que menciona expresamente este uso.** La redacción debe estar
+   prevista de forma explícita (qué vista, para qué) en una spec aprobada por el
+   usuario (P2); un pedido verbal o una spec que no mencione la redacción de DDL
+   de vistas no basta. El agente no la sugiere de forma proactiva fuera de ese
+   marco.
 3. **Después de que el usuario lo aplica, el agente solo verifica con `SELECT`**
    (vista contra su `SELECT` de origen); jamás reintenta ni corrige la vista
    por su cuenta en la BD.
@@ -113,12 +116,16 @@ Requisitos obligatorios, los cuatro, sin los cuales la redacción no procede:
 
 Además, el archivo puede incluir, en bloques separados, un `SELECT` de
 verificación y el `ALTER VIEW` de rollback con la definición anterior, capturada
-antes en solo lectura (por ejemplo `sp_helptext`).
+antes en solo lectura mediante `SELECT` (por ejemplo `OBJECT_DEFINITION()` o
+`sys.sql_modules`; no `sp_helptext`, que es un procedimiento almacenado).
 
 Cualquier otro caso de uso legítimo fuera de estas dos excepciones (ej. seed de
 datos en BD de testing local) sigue el camino ya definido: documentarse en
 una spec aprobada (P2), ejecutarse fuera del agente, y referenciarse
 explícitamente en `.env` con una BD distinta.
 
-Hipótesis P4 que sustenta la excepción 2: ver el cuerpo del PR que la introdujo
-(el experimento local `docs/aura/experiments/` está gitignored).
+Hipótesis P4 que sustenta la excepción 2: ver el cuerpo del PR #411 de
+`aura-agent-kit` (el experimento local `docs/aura/experiments/` está gitignored).
+Resumen: en las primeras N=10 vistas el tiempo medio por vista validada baja
+respecto de la línea base manual, con 0 sentencias fuera de `ALTER VIEW` /
+`CREATE VIEW` y 0 ejecuciones por el agente.

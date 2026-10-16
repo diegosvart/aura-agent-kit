@@ -3,10 +3,10 @@
 ## Regla absoluta
 
 El agente **NO PUEDE** proponer, generar, ejecutar ni sugerir como opción cualquier
-operación que altere el estado de una base de datos conectada al proyecto (única excepción acotada: redacción, nunca ejecución, de DCL de permisos — ver "Excepciones").
+operación que altere el estado de una base de datos conectada al proyecto (únicas dos excepciones acotadas: redacción, nunca ejecución, de DCL de permisos y de DDL de vistas — ver "Excepciones").
 
 Incluye, sin limitarse a:
-- **DDL:** `CREATE`, `ALTER`, `DROP`, `TRUNCATE`, `RENAME`, `COMMENT ON`
+- **DDL:** `CREATE`, `ALTER`, `DROP`, `TRUNCATE`, `RENAME`, `COMMENT ON` (ejecución prohibida sin excepción; ver excepción acotada de *redacción* de DDL de vistas en "Excepciones")
 - **DML:** `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `UPSERT`, `REPLACE`
 - **DCL:** `GRANT`, `REVOKE`, `DENY` (ejecución prohibida sin excepción; ver excepción acotada de *redacción* en "Excepciones")
 - **TCL agresivo:** `ROLLBACK` sobre transacciones ajenas, `SAVEPOINT` destructivos
@@ -19,7 +19,7 @@ Incluye, sin limitarse a:
 
 - Cualquier herramienta MCP, CLI (`sqlcmd`, `psql`, `mysql`, etc.), script
   (`.sql`, `.ps1`, `.py`) o snippet que el agente produzca debe ser **estrictamente
-  read-only** (`SELECT`, vistas de INFORMATION_SCHEMA, `EXPLAIN`, metadatos) — salvo la única excepción acotada de *redacción* (nunca ejecución) de DCL de permisos definida en "Excepciones".
+  read-only** (`SELECT`, vistas de INFORMATION_SCHEMA, `EXPLAIN`, metadatos) —  salvo las dos excepciones acotadas de *redacción* (nunca ejecución) de DCL de permisos y de DDL de vistas definidas en "Excepciones"..
 - Si el usuario pide explícitamente una operación de escritura: **rehusar** y
   redirigir a que la ejecute manualmente con sus propias herramientas y permisos,
   fuera del agente.
@@ -39,15 +39,17 @@ Incluye, sin limitarse a:
 
 ## Excepciones
 
-Una sola, acotada, y que NO habilita ejecución bajo ninguna circunstancia:
+Dos, acotadas, y ninguna habilita ejecución bajo ninguna circunstancia:
 
-**Redacción (no ejecución) de DCL de gestión de permisos.** El agente puede
+### 1. Redacción (no ejecución) de DCL de gestión de permisos
+
+El agente puede
 REDACTAR — nunca ejecutar — sentencias `GRANT`, `REVOKE` o `DENY` sobre
 permisos de usuarios/roles, para que el usuario las revise y ejecute
 manualmente con sus propias credenciales, fuera del agente. Aplica
-exclusivamente a DCL de permisos; DDL y DML siguen absolutamente prohibidos
-tanto para redactar como para ejecutar, sin excepción alguna — esta excepción
-no los alcanza bajo ninguna interpretación.
+exclusivamente a DCL de permisos; el DML y el DDL fuera de la excepción 2
+siguen absolutamente prohibidos tanto para redactar como para ejecutar — esta
+excepción no los alcanza bajo ninguna interpretación.
 
 Requisitos obligatorios, los cuatro, sin los cuales la redacción no procede:
 
@@ -67,10 +69,53 @@ Requisitos obligatorios, los cuatro, sin los cuales la redacción no procede:
    escritura — esta excepción no crea una excepción a esa prohibición de
    sugerencia proactiva, solo a la de redactar cuando el usuario ya lo pidió.
 
-Cualquier otro caso de uso legítimo fuera de DCL de permisos (ej. seed de
+Hipótesis P4 que sustenta esta excepción:
+`docs/aura/experiments/2026-09-14-data-safety-dcl-redaction-exception.md`.
+
+### 2. Redacción (no ejecución) de DDL de vistas
+
+El agente puede REDACTAR — nunca ejecutar — `ALTER VIEW` o `CREATE VIEW` de **una
+vista cuyo cuerpo es un `SELECT` de solo lectura**, para que el usuario lo revise
+y lo aplique manualmente con sus propias credenciales, fuera del agente. Existe
+porque el trabajo de validar vistas consiste en llevar a una vista un `SELECT`
+que el agente ya ejecutó y comparó en solo lectura; sin la excepción, ese paso
+quedaría en una zona gris o se rehacería a mano en cada vista.
+
+Alcance, estrictamente:
+
+- Solo `ALTER VIEW` / `CREATE VIEW`. Nada de `DROP`, `sp_rename`, `SELECT INTO`,
+`OPENROWSET/OPENQUERY/xp_*`, índices, tablas, procedimientos, triggers, funciones ni cambios de schema.
+- El cuerpo de la vista debe ser el mismo `SELECT` que el agente ya ejecutó y
+  validó en solo lectura (sin efectos de escritura).
+- La sintaxis debe ser la soportada por la versión del motor (el agente la
+  verifica en solo lectura, por ejemplo `@@VERSION`): por ejemplo, SQL Server
+  anterior a 2016 SP1 no admite `CREATE OR ALTER`. Si la vista ya existe, se
+  prefiere `ALTER VIEW`, que conserva sus permisos.
+   
+
+Requisitos obligatorios, los cinco, sin los cuales la redacción no procede:
+
+1. **Los mismos requisitos 1, 2 y 3 de la excepción 1**: ruta gitignored
+   (`output/<BD>/`), header `-- PARA EJECUCIÓN MANUAL. NO AUTOMÁTICA. El agente
+   no ejecuta este script.` como primera línea, y el agente nunca lo invoca.
+2. **La redacción está prevista en una spec aprobada por el usuario (P2) o el
+   usuario la pidió explícitamente.** El agente no la sugiere de forma
+   proactiva fuera de ese marco.
+3. **Después de que el usuario lo aplica, el agente solo verifica con `SELECT`**
+   (vista contra su `SELECT` de origen); jamás reintenta ni corrige la vista
+   por su cuenta en la BD.
+4. **Puede acompañar al `ALTER VIEW`** (en bloques separados del mismo archivo)
+   `SELECT` de verificación y el `ALTER VIEW` de rollback con la definición
+   anterior, capturada antes en solo lectura (por ejemplo `sp_helptext`).
+5. **Verificación determinista**: todo archivo de DDL de vistas debe contener
+   únicamente el header, comentarios y sentencias `ALTER VIEW` / `CREATE VIEW`
+   (más `SELECT` de verificación); un lint de solo lectura lo comprueba antes
+   de entregarlo al usuario.
+
+Cualquier otro caso de uso legítimo fuera de estas dos excepciones (ej. seed de
 datos en BD de testing local) sigue el camino ya definido: documentarse en
 una spec aprobada (P2), ejecutarse fuera del agente, y referenciarse
 explícitamente en `.env` con una BD distinta.
 
-Hipótesis P4 que sustenta esta excepción:
-`docs/aura/experiments/2026-09-14-data-safety-dcl-redaction-exception.md`.
+Hipótesis P4 que sustenta la excepción 2: ver el cuerpo del PR que la introdujo
+(el experimento local `docs/aura/experiments/` está gitignored).

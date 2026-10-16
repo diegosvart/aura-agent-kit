@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.1] - 2026-10-16
+
+### Added
+- `.claude/rules/data-safety.md`: excepción acotada que permite al agente REDACTAR (nunca
+  ejecutar) `ALTER VIEW` / `CREATE VIEW` de una vista cuyo cuerpo es un `SELECT` ya validado en
+  solo lectura. Exige ruta gitignored, header de ejecución manual, spec aprobada que lo mencione
+  expresamente y verificación determinista del archivo; sin `DROP`, `SELECT INTO`, índices,
+  tablas, procedimientos ni lecturas fuera de la BD (PR #411).
+
+### Changed
+- La validación de `repo_type` queda en un solo lugar: `.claude/hooks/repo-classification.ps1`
+  expone la lista de tipos válidos y `Get-RepoClassificationStatus` (`ok|missing|corrupt|invalid`),
+  que consumen `session-start.ps1` y `sensitive-data-guard.ps1` en vez de validar cada uno por su
+  cuenta. El guard sigue fail-closed. Cambio de comportamiento: `repo_type` pasa a ser
+  case-sensitive, así que valores como `"Cliente"` o `"HARNESS"` ahora son `invalid` (más
+  estricto, no más permisivo) (Issue #379, PR #391).
+- Sync-back de `main` a `develop` tras el release v2.9.0 (PR #401).
+
+### Security
+- `skills/plan-reporting/SKILL.md` y `commands/plan-report.md` dejan de publicar en el repo
+  público identificadores de la organización: los valores reales pasan a un archivo local
+  gitignored (`.agent/memory/plan-reporting-config.json`, listado en `.worktreeinclude`) y se
+  versiona solo una plantilla `.example` con placeholders; se documenta qué hacer si el archivo
+  local no existe (PR #412).
+- `.claude/rules/data-safety.md`: anonimización de datos sensibles (usuario y base de datos
+  reales reemplazados por placeholders genéricos) (PR #411).
+
 ## [2.9.0] - 2026-10-12
 
 ### Added

@@ -158,19 +158,20 @@ function Test-MemorySaveGuard {
     if ($script:EngramWriteTools -notcontains $shortName) { return $null }
 
     $repoRoot = Get-RepoRoot
-    $classification = Get-RepoClassification -RepoRoot $repoRoot
-    $repoType = $null
-    if ($classification) { $repoType = $classification.repo_type }
+    $classification = Get-RepoClassificationStatus -RepoRoot $repoRoot
 
-    if ($repoType -eq "harness" -or $repoType -eq "personal") {
+    $repoType = $classification.repo_type
+    if ($classification.status -eq 'ok' -and ($repoType -ceq 'harness' -or $repoType -ceq 'personal')) {
         return $null
     }
 
-    if ($repoType -ne "cliente") {
+    if ($classification.status -ne 'ok' -or $repoType -cne 'cliente') {
         # Ausente, corrupto, o cualquier valor no reconocido (typo como "clientee", etc.) se
         # trata igual: fail-closed, bloqueado incondicionalmente sin evaluar contenido —
         # nunca se asume el path permisivo de "cliente" ante un valor invalido (hallazgo
         # code-review PR #307: un typo caia antes en el path que SI evalua contenido).
+        # La validacion del tipo vive en Get-RepoClassificationStatus (Issue #379); aca solo
+        # se decide la politica: cualquier status distinto de ok bloquea.
         return @{
             decision = "block"
             reason   = "sensitive-data-guard: $shortName bloqueado — no se pudo determinar repo_type valido (.agent/memory/repo-classification.json ausente, corrupto, o con un valor no reconocido). Fail-closed por seguridad (Issue #303 D4). Clasificar el repo (Gate de Clasificacion de Repo en protocols/session_start.md) antes de guardar en Engram."

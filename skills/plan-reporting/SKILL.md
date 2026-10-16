@@ -25,8 +25,9 @@ Declarar explícitamente al inicio de la ejecución.
 
 - `az` CLI instalado y autenticado:
   ```
-  az login --use-device-code --tenant b16beb2c-1c93-4497-bc75-5a1cdae6ee6c
+  az login --use-device-code --tenant <TENANT_ID>
   ```
+  (`<TENANT_ID>` viene de `.agent/memory/plan-reporting-config.json`, ver "Constantes Confirmadas")
 - Python 3.10+ disponible como `python`
 - `scripts/plan_report.py` en la raíz del repo
 
@@ -90,14 +91,19 @@ Esto NO re-consulta Dataverse (usa el caché del Paso 1). El CSV usa encoding `u
 
 ## Constantes Confirmadas (no re-investigar)
 
+Los valores que identifican a la organización viven **solo local** en
+`.agent/memory/plan-reporting-config.json` (gitignored; plantilla versionada:
+`.agent/memory/plan-reporting-config.json.example`). Nunca se escriben en este archivo,
+en comandos ni en commits: leerlos del JSON local en cada ejecución.
+
 | Parámetro | Valor |
 |-----------|-------|
-| Org | `org914d3d16.crm.dynamics.com` |
-| Tenant | `b16beb2c-1c93-4497-bc75-5a1cdae6ee6c` |
-| Auth user | `<usuario>@<dominio>` (cuenta con acceso al plan; valor real solo local) |
+| Org | `<ORG>.crm.dynamics.com` (clave `org` del JSON local) |
+| Tenant | `<TENANT_ID>` (clave `tenant_id`) |
+| Auth user | `<usuario>@<dominio>` (clave `auth_user`; cuenta con acceso al plan) |
 | Responsable field | `msdyn_pfwmodifiedby` (expand `fullname`) |
 | Notas field | `msdyn_descriptionplaintext` |
-| Plan TI 2026 GUID | `6b687051-6b51-f111-bec7-7ced8d17c48d` |
+| Plan GUID | `<PLAN_GUID>` (clave `plan_guid`) |
 
 ---
 

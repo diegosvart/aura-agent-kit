@@ -19,7 +19,7 @@ Incluye, sin limitarse a:
 
 - Cualquier herramienta MCP, CLI (`sqlcmd`, `psql`, `mysql`, etc.), script
   (`.sql`, `.ps1`, `.py`) o snippet que el agente produzca debe ser **estrictamente
-  read-only** (`SELECT`, vistas de INFORMATION_SCHEMA, `EXPLAIN`, metadatos) —  salvo las dos excepciones acotadas de *redacción* (nunca ejecución) de DCL de permisos y de DDL de vistas definidas en "Excepciones"..
+  read-only** (`SELECT`, vistas de INFORMATION_SCHEMA, `EXPLAIN`, metadatos) — salvo las dos excepciones acotadas de *redacción* (nunca ejecución) de DCL de permisos y de DDL de vistas definidas en "Excepciones".
 - Si el usuario pide explícitamente una operación de escritura: **rehusar** y
   redirigir a que la ejecute manualmente con sus propias herramientas y permisos,
   fuera del agente.
@@ -84,16 +84,17 @@ quedaría en una zona gris o se rehacería a mano en cada vista.
 Alcance, estrictamente:
 
 - Solo `ALTER VIEW` / `CREATE VIEW`. Nada de `DROP`, `sp_rename`, `SELECT INTO`,
-`OPENROWSET/OPENQUERY/xp_*`, índices, tablas, procedimientos, triggers, funciones ni cambios de schema.
+  índices, tablas, procedimientos, triggers, funciones ni cambios de schema.
+- El cuerpo de la vista no puede leer fuera de la base de datos del proyecto: sin
+  `OPENROWSET`, `OPENQUERY`, `OPENDATASOURCE`, servidores vinculados ni `xp_*`.
 - El cuerpo de la vista debe ser el mismo `SELECT` que el agente ya ejecutó y
   validó en solo lectura (sin efectos de escritura).
 - La sintaxis debe ser la soportada por la versión del motor (el agente la
   verifica en solo lectura, por ejemplo `@@VERSION`): por ejemplo, SQL Server
   anterior a 2016 SP1 no admite `CREATE OR ALTER`. Si la vista ya existe, se
   prefiere `ALTER VIEW`, que conserva sus permisos.
-   
 
-Requisitos obligatorios, los cinco, sin los cuales la redacción no procede:
+Requisitos obligatorios, los cuatro, sin los cuales la redacción no procede:
 
 1. **Los mismos requisitos 1, 2 y 3 de la excepción 1**: ruta gitignored
    (`output/<BD>/`), header `-- PARA EJECUCIÓN MANUAL. NO AUTOMÁTICA. El agente
@@ -104,13 +105,15 @@ Requisitos obligatorios, los cinco, sin los cuales la redacción no procede:
 3. **Después de que el usuario lo aplica, el agente solo verifica con `SELECT`**
    (vista contra su `SELECT` de origen); jamás reintenta ni corrige la vista
    por su cuenta en la BD.
-4. **Puede acompañar al `ALTER VIEW`** (en bloques separados del mismo archivo)
-   `SELECT` de verificación y el `ALTER VIEW` de rollback con la definición
-   anterior, capturada antes en solo lectura (por ejemplo `sp_helptext`).
-5. **Verificación determinista**: todo archivo de DDL de vistas debe contener
+4. **Verificación determinista**: todo archivo de DDL de vistas debe contener
    únicamente el header, comentarios y sentencias `ALTER VIEW` / `CREATE VIEW`
-   (más `SELECT` de verificación); un lint de solo lectura lo comprueba antes
-   de entregarlo al usuario.
+   (más `SELECT` de verificación); una verificación de solo lectura lo comprueba
+   antes de entregarlo al usuario (un lint, o una revisión determinista
+   equivalente que defina el proyecto consumidor).
+
+Además, el archivo puede incluir, en bloques separados, un `SELECT` de
+verificación y el `ALTER VIEW` de rollback con la definición anterior, capturada
+antes en solo lectura (por ejemplo `sp_helptext`).
 
 Cualquier otro caso de uso legítimo fuera de estas dos excepciones (ej. seed de
 datos en BD de testing local) sigue el camino ya definido: documentarse en

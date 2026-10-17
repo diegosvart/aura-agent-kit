@@ -29,27 +29,28 @@ param(
     [int]$X,
     [int]$Y
 )
+$ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
-$unit = [System.Drawing.GraphicsUnit]::Point
-if ($Unit -eq 'px') { $unit = [System.Drawing.GraphicsUnit]::Pixel }
-$font = New-Object System.Drawing.Font $Font, ([single]$Size), ([System.Drawing.FontStyle]::Regular), $unit
-$fg = $Fg.Split(',') | ForEach-Object { [int]$_ }
-$bg = $Bg.Split(',') | ForEach-Object { [int]$_ }
+$gUnit = [System.Drawing.GraphicsUnit]::Point
+if ($Unit -eq 'px') { $gUnit = [System.Drawing.GraphicsUnit]::Pixel }
+$fontObj = New-Object System.Drawing.Font $Font, ([single]$Size), ([System.Drawing.FontStyle]::Regular), $gUnit
+$fgRgb = $Fg.Split(',') | ForEach-Object { [int]$_ }
+$bgRgb = $Bg.Split(',') | ForEach-Object { [int]$_ }
 if ($W -le 0 -or $H -le 0) {
     $probe = New-Object System.Drawing.Bitmap 10, 10
     $gp = [System.Drawing.Graphics]::FromImage($probe)
-    $sz = $gp.MeasureString($Text, $font)
+    $sz = $gp.MeasureString($Text, $fontObj)
     $gp.Dispose(); $probe.Dispose()
     $W = [int][math]::Ceiling($sz.Width) + 2 * $X
     $H = [int][math]::Ceiling($sz.Height) + 2 * $Y
 }
 $bmp = New-Object System.Drawing.Bitmap $W, $H
 $g = [System.Drawing.Graphics]::FromImage($bmp)
-$g.Clear([System.Drawing.Color]::FromArgb(255, $bg[0], $bg[1], $bg[2]))
+$g.Clear([System.Drawing.Color]::FromArgb(255, $bgRgb[0], $bgRgb[1], $bgRgb[2]))
 $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::$Hint
-$brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, $fg[0], $fg[1], $fg[2]))
-if ($Text) { $g.DrawString($Text, $font, $brush, [single]$X, [single]$Y) }
-$brush.Dispose(); $g.Dispose(); $font.Dispose()
+$brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, $fgRgb[0], $fgRgb[1], $fgRgb[2]))
+if ($Text) { $g.DrawString($Text, $fontObj, $brush, [single]$X, [single]$Y) }
+$brush.Dispose(); $g.Dispose(); $fontObj.Dispose()
 $bmp.Save($Out, [System.Drawing.Imaging.ImageFormat]::Png)
 $bmp.Dispose()
 '@
@@ -137,6 +138,26 @@ function Get-RarosPct {
     [int][math]::Round(100.0 * $raros / $t.Length)
 }
 
+function Get-SimilitudPct {
+    param([string]$A, [string]$B)
+    if ($A.Length -eq 0 -and $B.Length -eq 0) { return 100 }
+    $prev = New-Object 'int[]' ($B.Length + 1)
+    $cur = New-Object 'int[]' ($B.Length + 1)
+    for ($j = 0; $j -le $B.Length; $j++) { $prev[$j] = $j }
+    for ($i = 1; $i -le $A.Length; $i++) {
+        $cur[0] = $i
+        for ($j = 1; $j -le $B.Length; $j++) {
+            $cost = 1
+            if ($A[$i - 1] -ceq $B[$j - 1]) { $cost = 0 }
+            $cur[$j] = [math]::Min([math]::Min($cur[$j - 1] + 1, $prev[$j] + 1), $prev[$j - 1] + $cost)
+        }
+        $t = $prev; $prev = $cur; $cur = $t
+    }
+    $dist = $prev[$B.Length]
+    $max = [math]::Max($A.Length, $B.Length)
+    [int][math]::Round(100.0 * (1 - $dist / $max))
+}
+
 function Invoke-Muestra {
     param([string]$Id, [string]$Tipo, [string]$Expected, [hashtable]$Draw)
     $root = New-TempDir
@@ -151,8 +172,9 @@ function Invoke-Muestra {
     $raros = Get-RarosPct $devuelto
     $chars = [int]$o.Json.chars
     $mostrar = ($normD -replace '\|', '\|')
+    $sim = Get-SimilitudPct -A (ConvertTo-NormText $Expected) -B $normD
     $row = [pscustomobject]@{
-        Id = $Id; Tipo = $Tipo; Correcta = $correcta; Chars = $chars; Raros = $raros
+        Id = $Id; Tipo = $Tipo; Correcta = $correcta; Chars = $chars; Raros = $raros; Sim = $sim
         Fila = ('| {0} | {1} | {2} | {3} | {4} | chars={5} raros={6} |' -f $Id, $Tipo, ($Expected -replace '\|', '\|'), $mostrar, $(if ($correcta) { 'sí' } else { 'no' }), $chars, $raros)
     }
     [void]$script:Muestras.Add($row)
@@ -275,18 +297,15 @@ Describe 'ocr.ps1 (AC5, AC7)' {
             Text = 'Ultima actualizacion: version 2.4.1 estable'; Font = 'Segoe UI'; Size = 9; Unit = 'pt'
             Fg = '0,0,0'; Bg = '255,255,255'; Hint = 'ClearTypeGridFit'; X = 20; Y = 12 }
 
-        $buenas = @($script:Muestras | Where-Object { $_.Correcta })
-        $minChars = 0
-        $maxRaros = 0
-        if ($buenas.Count -gt 0) {
-            $minChars = [int](($buenas | Measure-Object -Property Chars -Minimum).Minimum)
-            $maxRaros = [int](($buenas | Measure-Object -Property Raros -Maximum).Maximum)
-        }
+        $todas = @($script:Muestras)
+        $minChars = [int](($todas | Measure-Object -Property Chars -Minimum).Minimum)
+        $maxRaros = [int](($todas | Measure-Object -Property Raros -Maximum).Maximum)
         $umbralChars = [int][math]::Floor($minChars / 2)
         $umbralRaros = [int][math]::Min(100, $maxRaros * 2 + 10)
         Write-Host ('umbral_min_chars: {0}' -f $umbralChars)
         Write-Host ('umbral_max_raros_pct: {0}' -f $umbralRaros)
-        Write-Host ('# terminal correctas: {0} de 5' -f @($script:Muestras | Where-Object { $_.Tipo -eq 'terminal' -and $_.Correcta }).Count)
+        foreach ($m in $todas) { Write-Host ('# {0} similitud con lo esperado: {1} por ciento' -f $m.Id, $m.Sim) }
+        Write-Host ('# terminal correctas (contiene el esperado): {0} de 5' -f @($todas | Where-Object { $_.Tipo -eq 'terminal' -and $_.Correcta }).Count)
     }
 
     It 'AC5: -OutFile escribe el mismo JSON que stdout bajo output/eyes/<run>/' {

@@ -85,11 +85,16 @@ docs/aura/experiments/
 # stakeholders), nunca versionar. Ver .claude/sensitive-terms.local.txt.example.
 .claude/sensitive-terms.local.txt
 
-# Scripts DCL redactados (GRANT/REVOKE/DENY) para ejecución manual del usuario — única
-# excepción acotada de .claude/rules/data-safety.md (Issue #142). Nunca versionar: son
-# scripts de escritura sobre la BD, aunque el agente nunca los ejecute.
+# Scripts de DCL (GRANT/REVOKE/DENY) y de DDL de vistas (ALTER/CREATE VIEW) redactados para
+# ejecución manual del usuario — las dos excepciones acotadas de .claude/rules/data-safety.md
+# (Issue #142 y PR #411). Nunca versionar: son scripts de escritura sobre la BD, aunque el
+# agente nunca los ejecute.
 output/
 
 # Config cross-repo de agents/evaluator.md — ruta de checkout local a aura-harness-diagrams,
 # específica de cada máquina. Ver .agent/memory/evaluator-config.json.example.
 .agent/memory/evaluator-config.json
+
+# Config local de skills/plan-reporting: org, tenant, cuenta y GUID del plan reales.
+# Identifican a la organizacion; nunca versionar. Ver .agent/memory/plan-reporting-config.json.example.
+.agent/memory/plan-reporting-config.json
